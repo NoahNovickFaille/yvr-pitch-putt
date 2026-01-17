@@ -2,7 +2,7 @@ import { createMMKV, type MMKV } from 'react-native-mmkv';
 
 // Single MMKV instance for the app
 export const storage: MMKV = createMMKV({
-  id: 'confidant-storage',
+  id: 'cove-storage',
 });
 
 // Type-safe storage helpers

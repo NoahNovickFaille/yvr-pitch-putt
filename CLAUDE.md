@@ -1,4 +1,4 @@
-# Confidant - Local-First Emotional Companion
+# Cove - Local-First Emotional Companion
 
 React Native/Expo iOS app using on-device LLM for private emotional conversations with persistent memory.
 

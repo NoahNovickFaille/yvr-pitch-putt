@@ -4,7 +4,7 @@
  */
 
 export const DISCLAIMER_TEXT = {
-  intro: 'Confidant is designed to be a private space for reflection and emotional expression. However, it is important to understand:',
+  intro: 'Cove is designed to be a private space for reflection and emotional expression. However, it is important to understand:',
 
   bullets: [
     'This app is NOT a substitute for professional mental health care, therapy, or medical advice.',

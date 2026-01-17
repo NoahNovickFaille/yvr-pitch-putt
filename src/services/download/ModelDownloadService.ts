@@ -97,7 +97,7 @@ export function downloadModel(
     url: MODEL_CONFIG.url,
     destination,
     headers: {
-      'User-Agent': 'Confidant-iOS/1.0',
+      'User-Agent': 'Cove-iOS/1.0',
     },
   });
 

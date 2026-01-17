@@ -90,7 +90,7 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.brandName}>Confidant</Text>
+        <Text style={styles.brandName}>Cove</Text>
         <IconButton
           style={styles.newChatButton}
           onPress={handleNewChat}

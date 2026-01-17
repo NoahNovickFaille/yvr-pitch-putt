@@ -1,6 +1,6 @@
 # App Components
 
-Chat interface components and modals specific to Confidant.
+Chat interface components and modals specific to Cove.
 
 ## Structure
 

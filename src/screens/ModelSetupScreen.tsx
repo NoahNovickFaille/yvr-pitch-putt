@@ -77,7 +77,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
         <View style={styles.section}>
           <Text style={styles.title}>Download AI Model</Text>
           <Text style={styles.description}>
-            Confidant needs to download the AI model ({formatBytes(MODEL_CONFIG.expectedSizeBytes)})
+            Cove needs to download the AI model ({formatBytes(MODEL_CONFIG.expectedSizeBytes)})
             to work. This only happens once.
           </Text>
           <Text style={styles.note}>
@@ -184,7 +184,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
             source={require('../../assets/images/splash-icon.png')}
             style={styles.logo}
           />
-          <Text style={styles.appName}>Confidant</Text>
+          <Text style={styles.appName}>Cove</Text>
           <ActivityIndicator size="large" color={WarmColors.primary} />
         </View>
       );

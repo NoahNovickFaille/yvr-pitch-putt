@@ -1,7 +1,7 @@
 module.exports = {
   expo: {
     name: 'Cove',
-    slug: 'confidant',
+    slug: 'cove',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
@@ -11,10 +11,10 @@ module.exports = {
       resizeMode: 'contain',
       backgroundColor: '#ffffff',
     },
-    scheme: 'confidant',
+    scheme: 'cove',
     platforms: ['ios'],
     ios: {
-      bundleIdentifier: 'ca.corvustech.confidant',
+      bundleIdentifier: 'ca.corvustech.cove',
       supportsTablet: false,
       infoPlist: {
         UIBackgroundModes: ['fetch'], // For background downloads

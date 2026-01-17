@@ -78,7 +78,7 @@ export function SettingsScreen() {
   const handleDeleteAllMemories = () => {
     Alert.alert(
       'Delete All Memories',
-      `Are you sure you want to delete all ${memories.length} memories? This will reset Confidant's knowledge of you. This action cannot be undone.`,
+      `Are you sure you want to delete all ${memories.length} memories? This will reset Cove's knowledge of you. This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -266,7 +266,7 @@ export function SettingsScreen() {
 
         {/* App Info */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Confidant v1.0</Text>
+          <Text style={styles.footerText}>Cove v1.0</Text>
           <Text style={styles.footerSubtext}>
             Your private emotional companion
           </Text>
