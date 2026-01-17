@@ -12,7 +12,7 @@ See: .planning/PROJECT.md
 Phase: 2 of 4 (Core Chat)
 Plan: 4 of 7 complete
 Status: In progress
-Last activity: 2026-01-16 - Completed 02-05-PLAN.md (Chat Service)
+Last activity: 2026-01-16 - Completed 02-04-PLAN.md (Chat Store)
 
 Progress: [#######---] 57%
 
@@ -20,14 +20,14 @@ Progress: [#######---] 57%
 
 **Velocity:**
 - Total plans completed: 7
-- Average duration: 2.6 min
+- Average duration: 2.7 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 11 min | 3.7 min |
-| 02-core-chat | 4/7 | 8 min | 2.0 min |
+| 02-core-chat | 4/7 | 10 min | 2.5 min |
 
 ## Accumulated Context
 
@@ -54,6 +54,10 @@ Progress: [#######---] 57%
 | iosTaskHint: 'dictation' | 02-03 | Optimizes iOS SFSpeechRecognizer for natural speech vs short commands |
 | interimResults: true | 02-03 | Enables real-time transcript updates as user speaks for responsive UX |
 | Service wrapper pattern for native modules | 02-03 | Separates imperative native module control from React state management |
+| Persist to MMKV before state updates | 02-04 | Synchronous writes before set() ensure data survives app termination |
+| Track conversationMeta with startedAt/endedAt | 02-04 | Phase 3 memory extraction needs session boundaries |
+| Separate streaming state from persisted messages | 02-04 | isGenerating/partialResponse are transient UI state, not conversation data |
+| storage.remove() not storage.delete() | 02-04 | MMKV v3 Nitro API uses remove() method per interface definition |
 | Crisis detection runs BEFORE model interaction | 02-05 | Ensures no unsafe content ever reaches the model - safety-first architecture |
 | Streaming via callback pattern | 02-05 | Simple callbacks (onToken, onComplete) over async generators for React integration |
 | continueAfterCrisis separate method | 02-05 | Explicit post-acknowledgment path without re-running crisis detection |
@@ -70,5 +74,5 @@ Progress: [#######---] 57%
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Completed 02-05-PLAN.md (Chat Service)
+Stopped at: Completed 02-04-PLAN.md (Chat Store)
 Resume file: None
