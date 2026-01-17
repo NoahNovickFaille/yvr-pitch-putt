@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md
 
 **Core value:** Memory system that makes conversations feel continuous across sessions
-**Current focus:** Phase 2 - Core Chat (In Progress)
+**Current focus:** Phase 3 - Memory System (In Progress)
 
 ## Current Position
 
-Phase: 2 of 4 (Core Chat)
-Plan: 6 of 7 complete
+Phase: 3 of 4 (Memory System)
+Plan: 1 of 4 complete
 Status: In progress
-Last activity: 2026-01-16 - Completed 02-06-PLAN.md (Chat UI Components)
+Last activity: 2026-01-16 - Completed 03-01-PLAN.md (Memory Types & Extraction Prompt)
 
-Progress: [########--] 67%
+Progress: [########░-] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 2.6 min
+- Total plans completed: 9
+- Average duration: 2.5 min
 
 **By Phase:**
 
@@ -28,6 +28,7 @@ Progress: [########--] 67%
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 11 min | 3.7 min |
 | 02-core-chat | 5/7 | 12.4 min | 2.5 min |
+| 03-memory-system | 1/4 | 1.3 min | 1.3 min |
 
 ## Accumulated Context
 
@@ -67,6 +68,11 @@ Progress: [########--] 67%
 | Haptic feedback on crisis interactions | 02-06 | Warning haptic on modal appearance, medium impact on hotline taps reinforces critical nature |
 | Microphone red when active | 02-06 | Visual feedback that speech is being recorded (privacy indicator) |
 | Auto-scroll on new content | 02-06 | Scroll to bottom when messages arrive or tokens stream (keeps latest content visible) |
+| 5 memory types (person, event, emotion, fact, preference) | 03-01 | Covers semantic categories for meaningful memory extraction |
+| 3 decay categories (persistent, temporal, contextual) | 03-01 | Enables differential decay rates (168h/24h/4h half-life) |
+| 1-10 importance scale | 03-01 | Matches research patterns, provides clear extraction guidance |
+| 0-8 memories per conversation | 03-01 | Prevents extraction overload while capturing key information |
+| 200 char max memory content | 03-01 | Forces concise storage, manageable token budget |
 
 ### Pending Todos
 
@@ -79,5 +85,5 @@ Progress: [########--] 67%
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Completed 02-06-PLAN.md (Chat UI Components)
+Stopped at: Completed 03-01-PLAN.md (Memory Types & Extraction Prompt)
 Resume file: None
