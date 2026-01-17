@@ -48,3 +48,22 @@ export const STOP_WORDS = [
   '<|end_of_turn|>',
   '<|endoftext|>',
 ];
+
+/**
+ * Builds system prompt with injected memories.
+ *
+ * Memories are added naturally - the AI should reference them
+ * organically without explicitly saying "I remember."
+ */
+export function buildSystemPromptWithMemories(memorySection: string | null): string {
+  if (!memorySection) {
+    return SYSTEM_PROMPT;
+  }
+
+  const instruction = `
+${memorySection}
+
+Use these memories naturally in conversation when relevant. Don't explicitly say "I remember" - just reference the information naturally as if you know them.`;
+
+  return `${SYSTEM_PROMPT}${instruction}`;
+}
