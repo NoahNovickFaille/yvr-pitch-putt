@@ -101,45 +101,45 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODEL-01 | Pending | Pending |
-| MODEL-02 | Pending | Pending |
-| MODEL-03 | Pending | Pending |
-| MODEL-04 | Pending | Pending |
-| MODEL-05 | Pending | Pending |
-| CHAT-01 | Pending | Pending |
-| CHAT-02 | Pending | Pending |
-| CHAT-03 | Pending | Pending |
-| CHAT-04 | Pending | Pending |
-| CHAT-05 | Pending | Pending |
-| CHAT-06 | Pending | Pending |
-| CHAT-07 | Pending | Pending |
-| CHAT-08 | Pending | Pending |
-| CHAT-09 | Pending | Pending |
-| MEM-01 | Pending | Pending |
-| MEM-02 | Pending | Pending |
-| MEM-03 | Pending | Pending |
-| MEM-04 | Pending | Pending |
-| MEM-05 | Pending | Pending |
-| MEM-06 | Pending | Pending |
-| SAFE-01 | Pending | Pending |
-| SAFE-02 | Pending | Pending |
-| SAFE-03 | Pending | Pending |
-| SAFE-04 | Pending | Pending |
-| SAFE-05 | Pending | Pending |
-| SAFE-06 | Pending | Pending |
-| POLISH-01 | Pending | Pending |
-| POLISH-02 | Pending | Pending |
-| POLISH-03 | Pending | Pending |
-| POLISH-04 | Pending | Pending |
-| POLISH-05 | Pending | Pending |
-| POLISH-06 | Pending | Pending |
-| POLISH-07 | Pending | Pending |
+| MODEL-01 | Phase 1 | Pending |
+| MODEL-02 | Phase 1 | Pending |
+| MODEL-03 | Phase 1 | Pending |
+| MODEL-04 | Phase 1 | Pending |
+| MODEL-05 | Phase 1 | Pending |
+| CHAT-01 | Phase 2 | Pending |
+| CHAT-02 | Phase 2 | Pending |
+| CHAT-03 | Phase 2 | Pending |
+| CHAT-04 | Phase 2 | Pending |
+| CHAT-05 | Phase 2 | Pending |
+| CHAT-06 | Phase 2 | Pending |
+| CHAT-07 | Phase 2 | Pending |
+| CHAT-08 | Phase 2 | Pending |
+| CHAT-09 | Phase 2 | Pending |
+| MEM-01 | Phase 3 | Pending |
+| MEM-02 | Phase 3 | Pending |
+| MEM-03 | Phase 3 | Pending |
+| MEM-04 | Phase 3 | Pending |
+| MEM-05 | Phase 3 | Pending |
+| MEM-06 | Phase 3 | Pending |
+| SAFE-01 | Phase 2 | Pending |
+| SAFE-02 | Phase 2 | Pending |
+| SAFE-03 | Phase 2 | Pending |
+| SAFE-04 | Phase 2 | Pending |
+| SAFE-05 | Phase 4 | Pending |
+| SAFE-06 | Phase 4 | Pending |
+| POLISH-01 | Phase 4 | Pending |
+| POLISH-02 | Phase 4 | Pending |
+| POLISH-03 | Phase 4 | Pending |
+| POLISH-04 | Phase 4 | Pending |
+| POLISH-05 | Phase 4 | Pending |
+| POLISH-06 | Phase 4 | Pending |
+| POLISH-07 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 33 total
-- Mapped to phases: 0
-- Unmapped: 33
+- Mapped to phases: 33
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-16*
-*Last updated: 2026-01-16 after initial definition*
+*Last updated: 2026-01-16 after roadmap creation*
