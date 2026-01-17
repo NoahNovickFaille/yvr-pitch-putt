@@ -10,17 +10,17 @@ See: .planning/PROJECT.md
 ## Current Position
 
 Phase: 3 of 4 (Memory System)
-Plan: 4 of 4 complete
+Plan: 5 of 5 complete
 Status: Phase complete
-Last activity: 2026-01-17 - Completed 03-04-PLAN.md (Memory Orchestration & Lifecycle)
+Last activity: 2026-01-17 - Completed 03-05-PLAN.md (Memory Injection & Token Budget)
 
 Progress: [##########] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 2.1 min
+- Total plans completed: 13
+- Average duration: 2.0 min
 
 **By Phase:**
 
@@ -28,7 +28,7 @@ Progress: [##########] 100%
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 11 min | 3.7 min |
 | 02-core-chat | 5/7 | 12.4 min | 2.5 min |
-| 03-memory-system | 4/4 | 6.7 min | 1.7 min |
+| 03-memory-system | 5/5 | 8.8 min | 1.8 min |
 
 ## Accumulated Context
 
@@ -85,6 +85,11 @@ Progress: [##########] 100%
 | Concurrent extraction guard | 03-04 | isExtracting flag prevents overlapping extraction operations |
 | Fire-and-forget extraction pattern | 03-04 | Non-blocking async calls with catch handlers for graceful error handling |
 | No callback parameter in useConversationEnd | 03-04 | Simpler API - direct integration with MemoryOrchestrator singleton |
+| Token budget allocation for 2048 context | 03-05 | 400 system, 300 memories, 800 conversation, 512 response, 36 overhead |
+| countTokens uses actual tokenizer with fallback | 03-05 | LLM tokenize() when ready, 4 chars/token estimate otherwise |
+| Natural memory reference instruction | 03-05 | AI uses memories naturally without saying "I remember" |
+| Truncate conversation newest to oldest | 03-05 | Preserves recent context over distant history within 800-token budget |
+| Mark memories accessed during retrieval | 03-05 | Reinforces accessed memories via logarithmic boost in decay calculation |
 
 ### Pending Todos
 
@@ -97,5 +102,5 @@ Progress: [##########] 100%
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed 03-04-PLAN.md (Memory Orchestration & Lifecycle) - Phase 3 complete
+Stopped at: Completed 03-05-PLAN.md (Memory Injection & Token Budget) - Phase 3 complete
 Resume file: None
