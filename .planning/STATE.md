@@ -10,16 +10,16 @@ See: .planning/PROJECT.md
 ## Current Position
 
 Phase: 3 of 4 (Memory System)
-Plan: 5 of 5 complete
+Plan: 6 of 6 complete
 Status: Phase complete
-Last activity: 2026-01-17 - Completed 03-05-PLAN.md (Memory Injection & Token Budget)
+Last activity: 2026-01-17 - Completed 03-06-PLAN.md (Memory System Integration)
 
 Progress: [##########] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 2.0 min
 
 **By Phase:**
@@ -28,7 +28,7 @@ Progress: [##########] 100%
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 11 min | 3.7 min |
 | 02-core-chat | 5/7 | 12.4 min | 2.5 min |
-| 03-memory-system | 5/5 | 8.8 min | 1.8 min |
+| 03-memory-system | 6/6 | 10.0 min | 1.7 min |
 
 ## Accumulated Context
 
@@ -90,6 +90,8 @@ Progress: [##########] 100%
 | Natural memory reference instruction | 03-05 | AI uses memories naturally without saying "I remember" |
 | Truncate conversation newest to oldest | 03-05 | Preserves recent context over distant history within 800-token budget |
 | Mark memories accessed during retrieval | 03-05 | Reinforces accessed memories via logarithmic boost in decay calculation |
+| useMemoryExtraction replaces useConversationEnd | 03-06 | Enhanced hook handles both app backgrounding and conversation switching triggers |
+| Root layout initialization for store hydration | 03-06 | Memory store loads in app/_layout.tsx alongside conversation store and migration |
 
 ### Pending Todos
 
@@ -102,5 +104,5 @@ Progress: [##########] 100%
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed 03-05-PLAN.md (Memory Injection & Token Budget) - Phase 3 complete
+Stopped at: Completed 03-06-PLAN.md (Memory System Integration) - Phase 3 fully complete
 Resume file: None
