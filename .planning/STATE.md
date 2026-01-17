@@ -19,8 +19,8 @@ Progress: [#########-] 83%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 2.3 min
+- Total plans completed: 11
+- Average duration: 2.2 min
 
 **By Phase:**
 
@@ -28,7 +28,7 @@ Progress: [#########-] 83%
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 11 min | 3.7 min |
 | 02-core-chat | 5/7 | 12.4 min | 2.5 min |
-| 03-memory-system | 3/4 | 3.5 min | 1.2 min |
+| 03-memory-system | 3/4 | 5.0 min | 1.7 min |
 
 ## Accumulated Context
 
@@ -73,6 +73,10 @@ Progress: [#########-] 83%
 | 1-10 importance scale | 03-01 | Matches research patterns, provides clear extraction guidance |
 | 0-8 memories per conversation | 03-01 | Prevents extraction overload while capturing key information |
 | 200 char max memory content | 03-01 | Forces concise storage, manageable token budget |
+| 168h/24h/4h half-life by category | 03-02 | Persistent/temporal/contextual memories have differential decay rates |
+| Logarithmic access count boost | 03-02 | Prevents unlimited strengthening (10 accesses = 2x, 100 = 3x strength) |
+| 70/30 relevance+keyword blend | 03-02 | Balances temporal freshness (70%) with topical relevance (30%) for retrieval |
+| 5-keyword threshold for perfect match | 03-02 | Words >3 chars, capped at 1.0 after 5+ matches, case-insensitive |
 | Temperature 0.3 for extraction | 03-03 | Lower than chat's 0.7 for consistent, deterministic memory extraction |
 | 20-message limit for extraction | 03-03 | Manages token budget while capturing recent conversation context (~500-1000 tokens) |
 | Single retry on parse failure | 03-03 | Explicit JSON instruction on failure, empty array on double failure (no crash) |
