@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   TextInput,
   StyleSheet,
 } from 'react-native';
-import { Mic, Send, Square } from 'lucide-react-native';
-import { useSpeech } from '../../hooks/useSpeech';
+import { Send } from 'lucide-react-native';
 import { IconButton } from '@/src/components/ui';
 import { DarkColors, DarkSpacing } from '@/constants/darkTheme';
 
@@ -19,17 +18,6 @@ interface ChatInputProps {
 export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: ChatInputProps) {
   const [text, setText] = useState('');
   const inputRef = useRef<TextInput>(null);
-  const { isListening, transcript, interimTranscript, start, stop } = useSpeech();
-
-  // Update text from speech transcript
-  useEffect(() => {
-    if (transcript) {
-      setText(transcript);
-    }
-  }, [transcript]);
-
-  // Show interim results while speaking
-  const displayText = isListening && interimTranscript ? interimTranscript : text;
 
   const handleSend = useCallback(() => {
     const message = text.trim();
@@ -40,14 +28,6 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: C
     }
   }, [text, onSend, disabled, isGenerating]);
 
-  const handleMicPress = useCallback(() => {
-    if (isListening) {
-      stop();
-    } else {
-      start();
-    }
-  }, [isListening, start, stop]);
-
   const canSend = text.trim().length > 0 && !disabled && !isGenerating;
 
   // Calculate bottom padding - minimum of 8, or safe area inset
@@ -56,31 +36,18 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: C
   return (
     <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <View style={styles.inputRow}>
-        <IconButton
-          style={[styles.micButton, isListening && styles.micButtonActive]}
-          onPress={handleMicPress}
-          disabled={disabled || isGenerating}
-          accessibilityLabel={isListening ? 'Stop listening' : 'Start voice input'}
-        >
-          {isListening ? (
-            <Square size={18} color="#FFFFFF" fill="#FFFFFF" />
-          ) : (
-            <Mic size={18} color={disabled ? DarkColors.textTertiary : DarkColors.accent} />
-          )}
-        </IconButton>
-
         <View style={styles.inputContainer}>
           <TextInput
             ref={inputRef}
             style={styles.input}
             defaultValue=""
-            value={displayText}
+            value={text}
             onChangeText={setText}
-            placeholder={isListening ? 'Listening...' : 'Message'}
+            placeholder="Message"
             placeholderTextColor={DarkColors.textTertiary}
             multiline
             maxLength={2000}
-            editable={!disabled && !isGenerating && !isListening}
+            editable={!disabled && !isGenerating}
           />
         </View>
 
@@ -90,7 +57,7 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: C
           disabled={!canSend}
           accessibilityLabel="Send message"
         >
-          <Send size={18} color={canSend ? DarkColors.textOnAccent : DarkColors.textTertiary} />
+          <Send size={20} color={canSend ? DarkColors.textOnAccent : DarkColors.textTertiary} />
         </IconButton>
       </View>
     </View>
@@ -108,17 +75,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: DarkSpacing.sm,
   },
-  micButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: DarkColors.surfaceElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  micButtonActive: {
-    backgroundColor: DarkColors.danger,
-  },
   inputContainer: {
     flex: 1,
     backgroundColor: DarkColors.surfaceElevated,
@@ -135,9 +91,9 @@ const styles = StyleSheet.create({
     maxHeight: 120,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: DarkColors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',

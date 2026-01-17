@@ -5,7 +5,7 @@ Chat interface components and modals specific to Confidant.
 ## Structure
 
 ### chat/
-- **ChatInput** - Text input with microphone button for voice input, handles speech-to-text
+- **ChatInput** - Text input with send button for message composition
 - **MessageBubble** - Individual message display (user vs assistant styling)
 - **MessageList** - Scrollable conversation history with auto-scroll to bottom
 - **StreamingMessage** - Live-updating message display during LLM token generation
@@ -15,11 +15,6 @@ Chat interface components and modals specific to Confidant.
 - Modal dialogs (crisis resources, settings, etc.)
 
 ## Key Patterns
-
-### Voice Input
-- Press and hold microphone button to record
-- On-device speech recognition via `@jamsch/expo-speech-recognition`
-- Transcribed text populates input field (user reviews before sending)
 
 ### Message Streaming
 - StreamingMessage updates character-by-character as tokens arrive

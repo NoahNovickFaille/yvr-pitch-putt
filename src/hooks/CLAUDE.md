@@ -1,6 +1,6 @@
 # App Hooks
 
-Custom React hooks for chat, LLM, model management, and speech features.
+Custom React hooks for chat, LLM, and model management.
 
 ## Hooks
 
@@ -33,13 +33,6 @@ Handles model file download on first launch:
 - Resume capability for interrupted downloads
 - File verification
 - Uses background downloader
-
-### useSpeech
-Speech-to-text functionality:
-- On-device voice recognition
-- Push-to-talk pattern
-- Transcription result handling
-- Error handling and permissions
 
 ## Usage Pattern
 

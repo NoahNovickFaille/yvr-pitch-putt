@@ -65,6 +65,13 @@ async function retryExtraction(
     console.log('[MemoryExtractor] Retry extraction complete - memories:', memories.length);
     return memories;
   } catch (error) {
+    // Re-throw cancellation errors so ExtractionQueue can handle them properly
+    const errorMessage = error instanceof Error ? error.message : '';
+    if (errorMessage.includes('Cancelled by higher priority task')) {
+      console.log('[MemoryExtractor] Retry cancelled by higher priority task');
+      throw error;
+    }
+
     console.error('[MemoryExtractor] Retry failed - returning empty array:', error);
     return [];
   }
@@ -133,6 +140,14 @@ export async function extractMemories(
       return await retryExtraction(conversationText);
     }
   } catch (error) {
+    // Re-throw cancellation errors so ExtractionQueue can handle them properly
+    // (cancellations shouldn't count as retries)
+    const errorMessage = error instanceof Error ? error.message : '';
+    if (errorMessage.includes('Cancelled by higher priority task')) {
+      console.log('[MemoryExtractor] Extraction cancelled by higher priority task');
+      throw error;
+    }
+
     console.error('[MemoryExtractor] Extraction error:', error);
     return [];
   }
