@@ -1,18 +1,25 @@
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useConversationStore } from '@/src/stores/conversationStore';
 import { useMemoryStore } from '@/src/stores/memoryStore';
 import { useChatStore } from '@/src/stores/chatStore';
+import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { migrateToMultiConversation } from '@/src/services/migration/conversationMigration';
 import { ExtractionQueue } from '@/src/services/memory/ExtractionQueue';
 import { LLMService } from '@/src/services/llm/LLMService';
 import { DarkColors } from '@/constants/darkTheme';
+import { OnboardingScreen } from '@/src/screens/OnboardingScreen';
+
+// CRITICAL: Prevent auto-hide in global scope before component definition
+SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   anchor: '(drawer)',
@@ -32,6 +39,9 @@ const AppDarkTheme = {
 };
 
 export default function RootLayout() {
+  const [isReady, setIsReady] = useState(false);
+  const onboardingCompleted = useOnboardingStore((state) => state.completed);
+
   // Load persisted data on app startup
   useEffect(() => {
     console.log('[RootLayout] Running migration if needed');
@@ -41,6 +51,10 @@ export default function RootLayout() {
     console.log('[RootLayout] Initializing stores from storage');
     useConversationStore.getState().loadConversations();
     useMemoryStore.getState().loadFromStorage();
+
+    // Check onboarding status (synchronous with MMKV)
+    console.log('[RootLayout] Checking onboarding status');
+    useOnboardingStore.getState().checkOnboardingStatus();
 
     // Load active conversation into chatStore
     const activeId = useConversationStore.getState().activeConversationId;
@@ -52,6 +66,9 @@ export default function RootLayout() {
     // Load extraction queue and process pending extractions once LLM is ready
     console.log('[RootLayout] Loading extraction queue');
     ExtractionQueue.loadFromStorage();
+
+    // Mark app as ready (all synchronous operations complete)
+    setIsReady(true);
 
     // Process queue once LLM is ready and user is idle
     // We delay 10 seconds after LLM is ready to avoid conflicts with active chat
@@ -121,14 +138,40 @@ export default function RootLayout() {
     };
   }, []);
 
+  // Hide splash screen when app is ready
+  useEffect(() => {
+    if (isReady) {
+      console.log('[RootLayout] App ready, hiding splash screen');
+      SplashScreen.hideAsync();
+    }
+  }, [isReady]);
+
+  // Show nothing while initializing (splash remains visible)
+  if (!isReady) {
+    return null;
+  }
+
+  // Show onboarding if not completed
+  if (!onboardingCompleted) {
+    return (
+      <SafeAreaProvider>
+        <OnboardingScreen />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    );
+  }
+
+  // Otherwise render normal app
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: DarkColors.background }}>
-      <KeyboardProvider>
-        <ThemeProvider value={AppDarkTheme}>
-          <Slot />
-          <StatusBar style="light" />
-        </ThemeProvider>
-      </KeyboardProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: DarkColors.background }}>
+        <KeyboardProvider>
+          <ThemeProvider value={AppDarkTheme}>
+            <Slot />
+            <StatusBar style="light" />
+          </ThemeProvider>
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
