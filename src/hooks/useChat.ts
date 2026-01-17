@@ -23,16 +23,10 @@ export function useChat(): UseChatResult {
     startGeneration,
     appendToken,
     completeGeneration,
-    loadFromStorage,
   } = useChatStore();
 
   const [crisisModalVisible, setCrisisModalVisible] = useState(false);
   const [pendingCrisisMessage, setPendingCrisisMessage] = useState<string | null>(null);
-
-  // Load messages from storage on mount
-  useEffect(() => {
-    loadFromStorage();
-  }, [loadFromStorage]);
 
   const handleCrisis = useCallback((result: CrisisResult) => {
     console.log('[useChat] Crisis detected:', result);
