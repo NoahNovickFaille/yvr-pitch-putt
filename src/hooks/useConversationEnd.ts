@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { MemoryOrchestrator } from '../services/memory/MemoryOrchestrator';
-import { useChatStore } from '../stores/chatStore';
+import { useConversationStore } from '../stores/conversationStore';
 
 /**
  * Hook for detecting conversation end and triggering memory extraction
@@ -25,7 +25,7 @@ import { useChatStore } from '../stores/chatStore';
  */
 export function useConversationEnd(): void {
   const appState = useRef(AppState.currentState);
-  const { markConversationEnded } = useChatStore();
+  const { activeConversationId, getConversation, saveConversation } = useConversationStore();
 
   useEffect(() => {
     const subscription = AppState.addEventListener(
@@ -38,8 +38,17 @@ export function useConversationEnd(): void {
         ) {
           console.log('[useConversationEnd] App backgrounding, triggering extraction');
 
-          // Mark conversation ended (updates conversationMeta.endedAt)
-          markConversationEnded();
+          // Mark conversation ended (updates conversation.endedAt)
+          if (activeConversationId) {
+            const conversation = getConversation(activeConversationId);
+            if (conversation && !conversation.endedAt) {
+              const updatedConversation = {
+                ...conversation,
+                endedAt: Date.now(),
+              };
+              saveConversation(updatedConversation);
+            }
+          }
 
           // Trigger extraction (non-blocking, fire-and-forget)
           MemoryOrchestrator.extractAndStore().catch((err) => {
@@ -54,5 +63,5 @@ export function useConversationEnd(): void {
     return () => {
       subscription.remove();
     };
-  }, [markConversationEnded]);
+  }, [activeConversationId, getConversation, saveConversation]);
 }

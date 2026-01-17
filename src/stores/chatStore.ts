@@ -1,19 +1,11 @@
 import { create } from 'zustand';
 import { storage } from '../storage/storage';
-import { ChatMessage, generateMessageId } from '../types/chat';
-
-const MESSAGES_KEY = 'chat_messages';
-const CONVERSATION_META_KEY = 'conversation_meta';
-
-interface ConversationMeta {
-  startedAt: number;
-  endedAt?: number;
-}
+import { ChatMessage, generateMessageId, Conversation } from '../types/chat';
 
 interface ChatState {
   // Data
   messages: ChatMessage[];
-  conversationMeta: ConversationMeta | null;
+  currentConversationId: string | null;
 
   // Streaming state
   isGenerating: boolean;
@@ -25,49 +17,62 @@ interface ChatState {
   appendToken: (token: string) => void;
   completeGeneration: (fullText: string) => void;
   clearConversation: () => void;
-  loadFromStorage: () => void;
-  markConversationEnded: () => void;
+  switchConversation: (conversationId: string | null) => void;
+  getCurrentConversation: () => Conversation | null;
 }
 
-function persistMessages(messages: ChatMessage[]): void {
-  if (__DEV__) {
-    console.log('[ChatStore] Persisting messages:', messages.length);
-  }
-  storage.set(MESSAGES_KEY, JSON.stringify(messages));
+const CONVERSATION_PREFIX = 'conversation:';
+
+function getConversationKey(conversationId: string): string {
+  return `${CONVERSATION_PREFIX}${conversationId}`;
 }
 
-function loadMessages(): ChatMessage[] {
-  const json = storage.getString(MESSAGES_KEY);
-  const messages = json ? JSON.parse(json) : [];
-  if (__DEV__) {
-    console.log('[ChatStore] Loaded messages:', messages.length);
+function loadConversation(conversationId: string): Conversation | null {
+  const key = getConversationKey(conversationId);
+  const json = storage.getString(key);
+
+  if (!json) {
+    if (__DEV__) {
+      console.log('[ChatStore] No conversation found for ID:', conversationId);
+    }
+    return null;
   }
-  return messages;
+
+  const conversation: Conversation = JSON.parse(json);
+  if (__DEV__) {
+    console.log('[ChatStore] Loaded conversation:', conversationId, 'with', conversation.messages.length, 'messages');
+  }
+  return conversation;
 }
 
-function persistMeta(meta: ConversationMeta): void {
+function persistConversation(conversation: Conversation): void {
+  const key = getConversationKey(conversation.id);
   if (__DEV__) {
-    console.log('[ChatStore] Persisting meta:', meta);
+    console.log('[ChatStore] Persisting conversation:', conversation.id, 'with', conversation.messages.length, 'messages');
   }
-  storage.set(CONVERSATION_META_KEY, JSON.stringify(meta));
-}
-
-function loadMeta(): ConversationMeta | null {
-  const json = storage.getString(CONVERSATION_META_KEY);
-  const meta = json ? JSON.parse(json) : null;
-  if (__DEV__) {
-    console.log('[ChatStore] Loaded meta:', meta);
-  }
-  return meta;
+  storage.set(key, JSON.stringify(conversation));
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
-  conversationMeta: null,
+  currentConversationId: null,
   isGenerating: false,
   partialResponse: '',
 
   addUserMessage: (content: string) => {
+    const state = get();
+    const conversationId = state.currentConversationId;
+
+    if (!conversationId) {
+      console.warn('[ChatStore] Cannot add message: no active conversation');
+      return {
+        id: generateMessageId(),
+        role: 'user' as const,
+        content,
+        timestamp: Date.now(),
+      };
+    }
+
     const message: ChatMessage = {
       id: generateMessageId(),
       role: 'user',
@@ -75,20 +80,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
       timestamp: Date.now(),
     };
 
-    const state = get();
     const newMessages = [...state.messages, message];
 
-    // Start new conversation if none exists
-    let meta = state.conversationMeta;
-    if (!meta) {
-      meta = { startedAt: Date.now() };
-      persistMeta(meta);
+    // Get current conversation and update it
+    const conversation = loadConversation(conversationId);
+    if (conversation) {
+      const updatedConversation: Conversation = {
+        ...conversation,
+        messages: newMessages,
+        lastMessageAt: message.timestamp,
+      };
+
+      // CRITICAL: Persist BEFORE state update
+      persistConversation(updatedConversation);
     }
 
-    // CRITICAL: Persist BEFORE state update
-    persistMessages(newMessages);
-    set({ messages: newMessages, conversationMeta: meta });
-
+    set({ messages: newMessages });
     return message;
   },
 
@@ -103,6 +110,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   completeGeneration: (fullText: string) => {
+    const state = get();
+    const conversationId = state.currentConversationId;
+
+    if (!conversationId) {
+      console.warn('[ChatStore] Cannot complete generation: no active conversation');
+      return;
+    }
+
     const message: ChatMessage = {
       id: generateMessageId(),
       role: 'assistant',
@@ -110,10 +125,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
       timestamp: Date.now(),
     };
 
-    const newMessages = [...get().messages, message];
+    const newMessages = [...state.messages, message];
 
-    // CRITICAL: Persist BEFORE state update
-    persistMessages(newMessages);
+    // Get current conversation and update it
+    const conversation = loadConversation(conversationId);
+    if (conversation) {
+      const updatedConversation: Conversation = {
+        ...conversation,
+        messages: newMessages,
+        lastMessageAt: message.timestamp,
+      };
+
+      // CRITICAL: Persist BEFORE state update
+      persistConversation(updatedConversation);
+    }
+
     set({
       messages: newMessages,
       isGenerating: false,
@@ -123,30 +149,54 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   clearConversation: () => {
     if (__DEV__) {
-      console.log('[ChatStore] Clearing conversation');
+      console.log('[ChatStore] Clearing current conversation from memory (not deleting)');
     }
-    storage.remove(MESSAGES_KEY);
-    storage.remove(CONVERSATION_META_KEY);
     set({
       messages: [],
-      conversationMeta: null,
+      currentConversationId: null,
       partialResponse: '',
       isGenerating: false,
     });
   },
 
-  loadFromStorage: () => {
-    const messages = loadMessages();
-    const meta = loadMeta();
-    set({ messages, conversationMeta: meta });
+  switchConversation: (conversationId: string | null) => {
+    if (__DEV__) {
+      console.log('[ChatStore] Switching to conversation:', conversationId);
+    }
+
+    if (!conversationId) {
+      set({
+        messages: [],
+        currentConversationId: null,
+        partialResponse: '',
+        isGenerating: false,
+      });
+      return;
+    }
+
+    // Load conversation from storage
+    const conversation = loadConversation(conversationId);
+    if (conversation) {
+      set({
+        messages: conversation.messages,
+        currentConversationId: conversationId,
+        partialResponse: '',
+        isGenerating: false,
+      });
+    } else {
+      console.warn('[ChatStore] Conversation not found:', conversationId);
+      set({
+        messages: [],
+        currentConversationId: null,
+        partialResponse: '',
+        isGenerating: false,
+      });
+    }
   },
 
-  markConversationEnded: () => {
+  getCurrentConversation: (): Conversation | null => {
     const state = get();
-    if (state.conversationMeta) {
-      const meta = { ...state.conversationMeta, endedAt: Date.now() };
-      persistMeta(meta);
-      set({ conversationMeta: meta });
-    }
+    if (!state.currentConversationId) return null;
+    return loadConversation(state.currentConversationId);
   },
 }));

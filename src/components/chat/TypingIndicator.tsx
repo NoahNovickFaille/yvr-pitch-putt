@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
+import { DarkColors, DarkSpacing } from '@/constants/darkTheme';
 
 export function TypingIndicator() {
   const dot1 = useRef(new Animated.Value(0)).current;
@@ -64,24 +65,24 @@ export function TypingIndicator() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingHorizontal: DarkSpacing.lg,
+    paddingVertical: DarkSpacing.xs,
     alignItems: 'flex-start',
   },
   bubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: DarkSpacing.lg,
     paddingVertical: 14,
-    borderRadius: 20,
-    borderBottomLeftRadius: 4,
-    backgroundColor: '#E9E9EB',
+    borderRadius: DarkSpacing.radiusLg,
+    borderBottomLeftRadius: DarkSpacing.xs,
+    backgroundColor: DarkColors.assistantMessage,
     gap: 4,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#8E8E93',
+    backgroundColor: DarkColors.textSecondary,
   },
 });

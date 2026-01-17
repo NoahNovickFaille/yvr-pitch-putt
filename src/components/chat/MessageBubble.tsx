@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ChatMessage } from '../../types/chat';
+import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -22,8 +23,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingHorizontal: DarkSpacing.lg,
+    paddingVertical: DarkSpacing.xs,
   },
   userContainer: {
     alignItems: 'flex-end',
@@ -32,27 +33,27 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   bubble: {
-    maxWidth: '80%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
+    maxWidth: '85%',
+    paddingHorizontal: DarkSpacing.lg,
+    paddingVertical: DarkSpacing.md,
+    borderRadius: DarkSpacing.radiusLg,
   },
   userBubble: {
-    backgroundColor: '#007AFF',
-    borderBottomRightRadius: 4,
+    backgroundColor: DarkColors.userMessage,
+    borderBottomRightRadius: DarkSpacing.xs,
   },
   assistantBubble: {
-    backgroundColor: '#E9E9EB',
-    borderBottomLeftRadius: 4,
+    backgroundColor: DarkColors.assistantMessage,
+    borderBottomLeftRadius: DarkSpacing.xs,
   },
   text: {
-    fontSize: 16,
+    fontSize: DarkTypography.body,
     lineHeight: 22,
   },
   userText: {
-    color: '#FFFFFF',
+    color: DarkColors.userMessageText,
   },
   assistantText: {
-    color: '#000000',
+    color: DarkColors.assistantMessageText,
   },
 });

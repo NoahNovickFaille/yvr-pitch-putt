@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ModelSetupScreen } from '../../src/screens/ModelSetupScreen';
-import { ChatScreen } from '../../src/screens/ChatScreen';
-import { useDownloadStore } from '../../src/services/download/downloadStore';
-import { useLLM } from '../../src/hooks/useLLM';
+import { ModelSetupScreen } from '@/src/screens/ModelSetupScreen';
+import { ChatScreen } from '@/src/screens/ChatScreen';
+import { useLLM } from '@/src/hooks/useLLM';
 
-export default function HomeScreen() {
+export default function ChatRoute() {
   const [setupComplete, setSetupComplete] = useState(false);
-  const { modelState } = useDownloadStore();
   const { isReady, wasUnloaded, reinitialize } = useLLM();
 
   // Check if we need to show setup on mount

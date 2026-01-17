@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useChatStore } from '../stores/chatStore';
+import { useConversationStore } from '../stores/conversationStore';
 import { ChatService } from '../services/llm/ChatService';
 import { CrisisResult } from '../services/safety/CrisisDetector';
+import { ChatMessage } from '../types/chat';
 
 interface UseChatResult {
-  messages: ReturnType<typeof useChatStore>['messages'];
+  messages: ChatMessage[];
   isGenerating: boolean;
   partialResponse: string;
   crisisModalVisible: boolean;
@@ -23,10 +25,22 @@ export function useChat(): UseChatResult {
     startGeneration,
     appendToken,
     completeGeneration,
+    switchConversation,
   } = useChatStore();
+
+  const {
+    activeConversationId,
+    createConversation,
+    updateConversationMetadata,
+  } = useConversationStore();
 
   const [crisisModalVisible, setCrisisModalVisible] = useState(false);
   const [pendingCrisisMessage, setPendingCrisisMessage] = useState<string | null>(null);
+
+  // Sync chatStore with active conversation from conversationStore
+  useEffect(() => {
+    switchConversation(activeConversationId);
+  }, [activeConversationId, switchConversation]);
 
   const handleCrisis = useCallback((result: CrisisResult) => {
     console.log('[useChat] Crisis detected:', result);
@@ -36,6 +50,33 @@ export function useChat(): UseChatResult {
   const sendMessage = useCallback(
     async (content: string) => {
       if (!content.trim() || isGenerating) return;
+
+      // Create a new conversation if none exists
+      let conversationId = activeConversationId;
+      const isFirstMessage = messages.length === 0;
+
+      if (!conversationId) {
+        // Generate title and preview from first message with actual content
+        const title = content.length > 50
+          ? content.substring(0, 47).trim() + '...'
+          : content.trim();
+        const preview = content.length > 100
+          ? content.substring(0, 97).trim() + '...'
+          : content.trim();
+        conversationId = createConversation(title, preview);
+      } else if (isFirstMessage) {
+        // Update title and preview for existing empty conversation
+        const title = content.length > 50
+          ? content.substring(0, 47).trim() + '...'
+          : content.trim();
+        const preview = content.length > 100
+          ? content.substring(0, 97).trim() + '...'
+          : content.trim();
+        updateConversationMetadata(conversationId, { title, preview, lastMessageAt: Date.now() });
+      } else {
+        // Update existing conversation with latest message timestamp
+        updateConversationMetadata(conversationId, { lastMessageAt: Date.now() });
+      }
 
       // Store the message in case of crisis (to send after acknowledgment)
       setPendingCrisisMessage(content);
@@ -72,11 +113,14 @@ export function useChat(): UseChatResult {
     [
       messages,
       isGenerating,
+      activeConversationId,
       addUserMessage,
       startGeneration,
       appendToken,
       completeGeneration,
       handleCrisis,
+      createConversation,
+      updateConversationMetadata,
     ]
   );
 

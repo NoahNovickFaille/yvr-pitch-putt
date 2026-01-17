@@ -24,6 +24,7 @@ module.exports = {
     },
     plugins: [
       'expo-router',
+      './plugins/withMMKV',
       [
         'expo-splash-screen',
         {

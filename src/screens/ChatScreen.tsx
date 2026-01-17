@@ -1,19 +1,23 @@
 import React from 'react';
-import { View, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChatHeader } from '../components/chat/ChatHeader';
 import { MessageList } from '../components/chat/MessageList';
 import { ChatInput } from '../components/chat/ChatInput';
 import { CrisisModal } from '../components/modals/CrisisModal';
 import { useChat } from '../hooks/useChat';
 import { useConversationEnd } from '../hooks/useConversationEnd';
+import { DarkColors } from '@/constants/darkTheme';
 
 export function ChatScreen() {
+  const insets = useSafeAreaInsets();
   const {
     messages,
     isGenerating,
     partialResponse,
     crisisModalVisible,
     sendMessage,
-    dismissCrisisModal,
     continueAfterCrisis,
   } = useChat();
 
@@ -26,32 +30,42 @@ export function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={styles.container}>
+      <ChatHeader />
 
-      <MessageList
-        messages={messages}
-        isGenerating={isGenerating}
-        partialResponse={partialResponse}
-      />
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior="padding"
+        keyboardVerticalOffset={0}
+      >
+        <MessageList
+          messages={messages}
+          isGenerating={isGenerating}
+          partialResponse={partialResponse}
+        />
 
-      <ChatInput
-        onSend={sendMessage}
-        disabled={false}
-        isGenerating={isGenerating}
-      />
+        <ChatInput
+          onSend={sendMessage}
+          disabled={false}
+          isGenerating={isGenerating}
+          bottomInset={insets.bottom}
+        />
+      </KeyboardAvoidingView>
 
       <CrisisModal
         visible={crisisModalVisible}
         onDismiss={handleDismissCrisis}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DarkColors.background,
+  },
+  keyboardView: {
+    flex: 1,
   },
 });

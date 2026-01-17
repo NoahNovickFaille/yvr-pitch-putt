@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 import { ChatMessage } from '../../types/chat';
 import { MessageBubble } from './MessageBubble';
 import { StreamingMessage } from './StreamingMessage';
 import { TypingIndicator } from './TypingIndicator';
+import { DarkColors, DarkSpacing } from '@/constants/darkTheme';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -61,8 +62,9 @@ export function MessageList({ messages, isGenerating, partialResponse }: Message
 const styles = StyleSheet.create({
   list: {
     flex: 1,
+    backgroundColor: DarkColors.background,
   },
   content: {
-    paddingVertical: 16,
+    paddingVertical: DarkSpacing.lg,
   },
 });

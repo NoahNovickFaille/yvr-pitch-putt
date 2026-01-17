@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 
 interface StreamingMessageProps {
   partialText: string;
@@ -20,31 +21,31 @@ export function StreamingMessage({ partialText }: StreamingMessageProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingHorizontal: DarkSpacing.lg,
+    paddingVertical: DarkSpacing.xs,
     alignItems: 'flex-start',
   },
   bubble: {
-    maxWidth: '80%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-    borderBottomLeftRadius: 4,
-    backgroundColor: '#E9E9EB',
+    maxWidth: '85%',
+    paddingHorizontal: DarkSpacing.lg,
+    paddingVertical: DarkSpacing.md,
+    borderRadius: DarkSpacing.radiusLg,
+    borderBottomLeftRadius: DarkSpacing.xs,
+    backgroundColor: DarkColors.assistantMessage,
     flexDirection: 'row',
     alignItems: 'flex-end',
   },
   text: {
-    fontSize: 16,
+    fontSize: DarkTypography.body,
     lineHeight: 22,
-    color: '#000000',
+    color: DarkColors.assistantMessageText,
     flex: 1,
   },
   cursor: {
     width: 2,
     height: 16,
-    backgroundColor: '#007AFF',
+    backgroundColor: DarkColors.accent,
     marginLeft: 2,
-    opacity: 0.7,
+    opacity: 0.8,
   },
 });

@@ -1,23 +1,24 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { Mic, Send, Square } from 'lucide-react-native';
 import { useSpeech } from '../../hooks/useSpeech';
+import { DarkColors, DarkSpacing } from '@/constants/darkTheme';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   isGenerating?: boolean;
+  bottomInset?: number;
 }
 
-export function ChatInput({ onSend, disabled, isGenerating }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: ChatInputProps) {
   const [text, setText] = useState('');
+  const inputRef = useRef<TextInput>(null);
   const { isListening, transcript, interimTranscript, start, stop } = useSpeech();
 
   // Update text from speech transcript
@@ -35,6 +36,7 @@ export function ChatInput({ onSend, disabled, isGenerating }: ChatInputProps) {
     if (message && !disabled && !isGenerating) {
       onSend(message);
       setText('');
+      inputRef.current?.clear();
     }
   }, [text, onSend, disabled, isGenerating]);
 
@@ -48,89 +50,97 @@ export function ChatInput({ onSend, disabled, isGenerating }: ChatInputProps) {
 
   const canSend = text.trim().length > 0 && !disabled && !isGenerating;
 
+  // Calculate bottom padding - minimum of 8, or safe area inset
+  const bottomPadding = Math.max(8, bottomInset);
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
-    >
-      <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
+      <View style={styles.inputRow}>
         <TouchableOpacity
           style={[styles.micButton, isListening && styles.micButtonActive]}
           onPress={handleMicPress}
           disabled={disabled || isGenerating}
         >
           {isListening ? (
-            <Square size={20} color="#FFFFFF" fill="#FFFFFF" />
+            <Square size={18} color="#FFFFFF" fill="#FFFFFF" />
           ) : (
-            <Mic size={20} color={disabled ? '#C7C7CC' : '#007AFF'} />
+            <Mic size={18} color={disabled ? DarkColors.textTertiary : DarkColors.accent} />
           )}
         </TouchableOpacity>
 
-        <TextInput
-          style={styles.input}
-          value={displayText}
-          onChangeText={setText}
-          placeholder={isListening ? 'Listening...' : 'Message'}
-          placeholderTextColor="#8E8E93"
-          multiline
-          maxLength={2000}
-          editable={!disabled && !isGenerating && !isListening}
-        />
+        <View style={styles.inputContainer}>
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            defaultValue=""
+            value={displayText}
+            onChangeText={setText}
+            placeholder={isListening ? 'Listening...' : 'Message'}
+            placeholderTextColor={DarkColors.textTertiary}
+            multiline
+            maxLength={2000}
+            editable={!disabled && !isGenerating && !isListening}
+          />
+        </View>
 
         <TouchableOpacity
-          style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
+          style={[styles.sendButton, canSend && styles.sendButtonActive]}
           onPress={handleSend}
           disabled={!canSend}
         >
-          <Send size={20} color={canSend ? '#FFFFFF' : '#C7C7CC'} />
+          <Send size={18} color={canSend ? DarkColors.textOnAccent : DarkColors.textTertiary} />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    paddingHorizontal: DarkSpacing.md,
+    paddingTop: DarkSpacing.sm,
+    backgroundColor: DarkColors.background,
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-    gap: 8,
+    gap: DarkSpacing.sm,
   },
   micButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F2F2F7',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: DarkColors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
   },
   micButtonActive: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: DarkColors.danger,
+  },
+  inputContainer: {
+    flex: 1,
+    backgroundColor: DarkColors.surfaceElevated,
+    borderRadius: DarkSpacing.radiusLg,
+    minHeight: 40,
+    maxHeight: 120,
+    justifyContent: 'center',
   },
   input: {
-    flex: 1,
-    minHeight: 36,
-    maxHeight: 120,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 18,
+    paddingHorizontal: DarkSpacing.lg,
+    paddingVertical: DarkSpacing.sm,
     fontSize: 16,
-    color: '#000000',
+    color: DarkColors.text,
+    maxHeight: 120,
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#007AFF',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: DarkColors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendButtonDisabled: {
-    backgroundColor: '#E5E5EA',
+  sendButtonActive: {
+    backgroundColor: DarkColors.accent,
   },
 });
