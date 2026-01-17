@@ -1,6 +1,6 @@
 module.exports = {
   expo: {
-    name: 'Confidant',
+    name: 'Cove',
     slug: 'confidant',
     version: '1.0.0',
     orientation: 'portrait',
@@ -18,8 +18,8 @@ module.exports = {
       supportsTablet: false,
       infoPlist: {
         UIBackgroundModes: ['fetch'], // For background downloads
-        NSMicrophoneUsageDescription: 'Confidant needs microphone access to hear your voice messages.',
-        NSSpeechRecognitionUsageDescription: 'Confidant uses on-device speech recognition to transcribe your voice.',
+        NSMicrophoneUsageDescription: 'Cove needs microphone access to hear your voice messages.',
+        NSSpeechRecognitionUsageDescription: 'Cove uses on-device speech recognition to transcribe your voice.',
         ITSAppUsesNonExemptEncryption: false, // App does not use custom encryption
       },
     },
@@ -63,8 +63,8 @@ module.exports = {
       [
         '@jamsch/expo-speech-recognition',
         {
-          microphonePermission: 'Confidant needs microphone access to hear your voice messages.',
-          speechRecognitionPermission: 'Confidant uses speech recognition to transcribe your voice.',
+          microphonePermission: 'Cove needs microphone access to hear your voice messages.',
+          speechRecognitionPermission: 'Cove uses speech recognition to transcribe your voice.',
         },
       ],
     ],
