@@ -68,9 +68,10 @@ module.exports = {
         },
       ],
     ],
+    owner: 'rahulr8',
     extra: {
       eas: {
-        projectId: 'aa8233cc-b398-4638-8f72-2e006ae7c512',
+        projectId: '62bf0486-0aac-4f47-a4b4-378e9a26895d',
       },
     },
     experiments: {
