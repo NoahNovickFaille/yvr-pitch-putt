@@ -44,6 +44,9 @@ Progress: [######----] 50%
 | State subscription pattern for LLMService | 01-03 | Set-based listeners for reactive updates without Zustand in core |
 | Single memory warning Alert per session | 01-03 | Prevents alert spam during sustained memory pressure |
 | Promise deduplication for init | 01-03 | Prevents multiple concurrent initialization attempts |
+| Timestamp-based message IDs with random suffix | 02-01 | Provides ordering and collision resistance for message uniqueness |
+| Warm friend over clinical therapist personality | 02-01 | Creates approachable AI that validates without medical overreach |
+| Comprehensive Llama 3.2 stop words | 02-01 | 9 stop tokens ensure clean response endings across model variants |
 | Phrase-based crisis matching | 02-02 | Phrase matching over single words reduces false positives (slang vs crisis) |
 | Two-tier severity system | 02-02 | High-severity (any match) vs medium-severity (2+ matches) balances sensitivity/specificity |
 | 15-character negation window | 02-02 | Handles "I don't want to die" while being performant |
