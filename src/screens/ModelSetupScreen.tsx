@@ -6,11 +6,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { useModelDownload } from '../hooks/useModelDownload';
 import { useLLM } from '../hooks/useLLM';
 import { MODEL_CONFIG } from '../constants/model';
 import { deleteModelFile } from '../services/download/ModelDownloadService';
+import { WarmColors, WarmSpacing } from '../../constants/warmTheme';
 
 interface ModelSetupScreenProps {
   onReady: () => void;
@@ -153,7 +155,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
       return (
         <View style={styles.section}>
           <Text style={styles.title}>Verifying Download...</Text>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={WarmColors.primary} />
           <Text style={styles.description}>
             Checking file integrity...
           </Text>
@@ -178,11 +180,12 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
     if (modelState.status === 'ready_to_initialize' || isInitializing) {
       return (
         <View style={styles.section}>
-          <Text style={styles.title}>Loading AI Model...</Text>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.description}>
-            This may take a moment. The AI is waking up.
-          </Text>
+          <Image
+            source={require('../../assets/images/splash-icon.png')}
+            style={styles.logo}
+          />
+          <Text style={styles.appName}>Confidant</Text>
+          <ActivityIndicator size="large" color={WarmColors.primary} />
         </View>
       );
     }
@@ -211,7 +214,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
       return (
         <View style={styles.section}>
           <Text style={styles.title}>Ready!</Text>
-          <ActivityIndicator size="large" color="#34C759" />
+          <ActivityIndicator size="large" color={WarmColors.success} />
         </View>
       );
     }
@@ -219,7 +222,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
     // Fallback
     return (
       <View style={styles.section}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={WarmColors.primary} />
       </View>
     );
   };
@@ -234,45 +237,57 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: WarmColors.background,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: WarmSpacing.sectionSpacing,
   },
   section: {
     width: '100%',
     maxWidth: 320,
     alignItems: 'center',
   },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 16,
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: WarmColors.text,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
   title: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1C1C1E',
+    color: WarmColors.text,
     marginBottom: 16,
     textAlign: 'center',
   },
   description: {
     fontSize: 16,
-    color: '#3C3C43',
+    color: WarmColors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 22,
   },
   note: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: WarmColors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     fontStyle: 'italic',
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: WarmColors.primary,
     paddingVertical: 14,
     paddingHorizontal: 32,
-    borderRadius: 12,
+    borderRadius: WarmSpacing.buttonRadius,
     minWidth: 140,
     alignItems: 'center',
   },
@@ -282,19 +297,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: WarmColors.cardBackground,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: WarmColors.border,
   },
   secondaryButtonText: {
-    color: '#007AFF',
+    color: WarmColors.primary,
     fontSize: 17,
     fontWeight: '600',
   },
   dangerButton: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: WarmColors.dangerLight,
   },
   dangerButtonText: {
-    color: '#FF3B30',
+    color: WarmColors.danger,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -305,24 +322,24 @@ const styles = StyleSheet.create({
   progressContainer: {
     width: '100%',
     height: 8,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: WarmColors.border,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#007AFF',
+    backgroundColor: WarmColors.primary,
     borderRadius: 4,
   },
   progressText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: WarmColors.textSecondary,
     marginBottom: 16,
   },
   errorText: {
     fontSize: 16,
-    color: '#FF3B30',
+    color: WarmColors.danger,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
