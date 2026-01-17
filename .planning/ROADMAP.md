@@ -96,7 +96,7 @@ Plans:
 4. App passes TestFlight review and is installable by beta testers
 5. Disclaimer is visible in both onboarding flow and settings screen
 
-**Plans:** 3 plans
+**Plans:** 4 plans
 
 Plans:
 - [ ] 04-01-PLAN.md — Onboarding flow with privacy, name, and disclaimer
