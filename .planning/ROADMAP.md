@@ -74,12 +74,12 @@ Plans:
 **Plans:** 6 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Define memory types and extraction prompt with JSON schema
-- [ ] 03-02-PLAN.md — Create memory decay calculations and Zustand store with MMKV
-- [ ] 03-03-PLAN.md — Create LLM-based memory extractor service
-- [ ] 03-04-PLAN.md — Create memory orchestrator and conversation end detection hook
-- [ ] 03-05-PLAN.md — Integrate memories into ChatService with token budget management
-- [ ] 03-06-PLAN.md — Integrate memory system into app and verify end-to-end
+- [x] 03-01-PLAN.md — Define memory types and extraction prompt with JSON schema
+- [x] 03-02-PLAN.md — Create memory decay calculations and Zustand store with MMKV
+- [x] 03-03-PLAN.md — Create LLM-based memory extractor service
+- [x] 03-04-PLAN.md — Create memory orchestrator and conversation end detection hook
+- [x] 03-05-PLAN.md — Integrate memories into ChatService with token budget management
+- [x] 03-06-PLAN.md — Integrate memory system into app and verify end-to-end
 
 ---
 
@@ -111,7 +111,7 @@ Plans:
 |-------|--------|-----------|
 | 1 - Foundation | In Progress | 3/4 plans |
 | 2 - Core Chat | Planned | - |
-| 3 - Memory System | Planned | 0/6 plans |
+| 3 - Memory System | ✓ Complete | 6/6 plans |
 | 4 - Polish | Planned | 0/3 plans |
 
 ---
