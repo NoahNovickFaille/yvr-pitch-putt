@@ -10,24 +10,24 @@ See: .planning/PROJECT.md
 ## Current Position
 
 Phase: 2 of 4 (Core Chat)
-Plan: 3 of 7 complete
+Plan: 4 of 7 complete
 Status: In progress
-Last activity: 2026-01-17 - Completed 02-03-PLAN.md (Speech Recognition)
+Last activity: 2026-01-16 - Completed 02-05-PLAN.md (Chat Service)
 
-Progress: [######----] 50%
+Progress: [#######---] 57%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 3.0 min
+- Total plans completed: 7
+- Average duration: 2.6 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 11 min | 3.7 min |
-| 02-core-chat | 3/7 | 7 min | 2.3 min |
+| 02-core-chat | 4/7 | 8 min | 2.0 min |
 
 ## Accumulated Context
 
@@ -54,6 +54,10 @@ Progress: [######----] 50%
 | iosTaskHint: 'dictation' | 02-03 | Optimizes iOS SFSpeechRecognizer for natural speech vs short commands |
 | interimResults: true | 02-03 | Enables real-time transcript updates as user speaks for responsive UX |
 | Service wrapper pattern for native modules | 02-03 | Separates imperative native module control from React state management |
+| Crisis detection runs BEFORE model interaction | 02-05 | Ensures no unsafe content ever reaches the model - safety-first architecture |
+| Streaming via callback pattern | 02-05 | Simple callbacks (onToken, onComplete) over async generators for React integration |
+| continueAfterCrisis separate method | 02-05 | Explicit post-acknowledgment path without re-running crisis detection |
+| Temperature 0.7 for chat | 02-05 | Balances empathy (needs creativity) with coherence (needs consistency) |
 
 ### Pending Todos
 
@@ -65,6 +69,6 @@ Progress: [######----] 50%
 
 ## Session Continuity
 
-Last session: 2026-01-17
-Stopped at: Completed 02-03-PLAN.md (Speech Recognition)
+Last session: 2026-01-16
+Stopped at: Completed 02-05-PLAN.md (Chat Service)
 Resume file: None
