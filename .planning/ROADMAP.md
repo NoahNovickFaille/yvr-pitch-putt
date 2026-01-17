@@ -22,7 +22,13 @@ This roadmap delivers Confidant in four phases ordered by technical dependency a
 3. Model initializes successfully and app remains stable under iOS memory pressure
 4. Initialization errors display helpful user-facing messages (not crashes)
 
-**Plans:** (created by /gsd:plan-phase)
+**Plans:** 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Create Expo project with dependencies and config
+- [ ] 01-02-PLAN.md — Download service with pause/resume and MMKV persistence
+- [ ] 01-03-PLAN.md — LLM service with memory pressure handling
+- [ ] 01-04-PLAN.md — Setup screen UI with visual verification
 
 ---
 
@@ -81,7 +87,7 @@ This roadmap delivers Confidant in four phases ordered by technical dependency a
 
 | Phase | Status | Completed |
 |-------|--------|-----------|
-| 1 - Foundation | Not started | - |
+| 1 - Foundation | Planned | - |
 | 2 - Core Chat | Not started | - |
 | 3 - Memory System | Not started | - |
 | 4 - Polish | Not started | - |
