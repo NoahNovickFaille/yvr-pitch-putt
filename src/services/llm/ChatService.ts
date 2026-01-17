@@ -1,7 +1,14 @@
 import { LLMService } from './LLMService';
 import { detectCrisis, CrisisResult } from '../safety/CrisisDetector';
-import { SYSTEM_PROMPT, STOP_WORDS } from './systemPrompt';
+import { SYSTEM_PROMPT, STOP_WORDS, buildSystemPromptWithMemories } from './systemPrompt';
 import { ChatMessage } from '../../types/chat';
+import { useMemoryStore } from '../../stores/memoryStore';
+import {
+  TOKEN_BUDGET,
+  truncateConversationHistory,
+  buildMemorySectionWithinBudget,
+  countTokens,
+} from './TokenBudget';
 
 export interface SendMessageOptions {
   conversationHistory: ChatMessage[];
@@ -17,6 +24,59 @@ export interface SendMessageResult {
 }
 
 class ChatServiceImpl {
+  /**
+   * Build prompt with memories and conversation history within token budget.
+   * Returns system prompt and truncated message history.
+   */
+  private async buildPromptWithMemories(
+    userMessage: string,
+    conversationHistory: ChatMessage[]
+  ): Promise<{
+    systemPrompt: string;
+    messages: { role: 'user' | 'assistant'; content: string }[];
+  }> {
+    // Step 1: Get relevant memories
+    const memories = useMemoryStore.getState().getTopMemories(6, userMessage);
+
+    // Step 2: Mark memories as accessed (reinforces them)
+    if (memories.length > 0) {
+      useMemoryStore.getState().markAccessed(memories.map((m) => m.id));
+    }
+
+    // Step 3: Build memory section within budget
+    const memorySection = await buildMemorySectionWithinBudget(
+      memories,
+      TOKEN_BUDGET.memories
+    );
+
+    // Step 4: Build system prompt with memories
+    const systemPrompt = buildSystemPromptWithMemories(memorySection);
+
+    // Step 5: Truncate conversation history to fit budget
+    const truncatedHistory = await truncateConversationHistory(
+      conversationHistory,
+      TOKEN_BUDGET.conversation
+    );
+
+    // Log budget usage in dev
+    if (__DEV__) {
+      const systemTokens = await countTokens(systemPrompt);
+      console.log('[ChatService] Token budget:', {
+        system: systemTokens,
+        memories: memories.length,
+        history: truncatedHistory.length,
+      });
+    }
+
+    return {
+      systemPrompt,
+      messages: truncatedHistory.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+    };
+  }
+
   /**
    * Send a user message and get streaming AI response.
    *
@@ -45,13 +105,13 @@ class ChatServiceImpl {
       return { crisis: null, success: false, error };
     }
 
-    // Step 3: Build message array with system prompt
+    // Step 3: Build message array with system prompt and memories
+    const { systemPrompt, messages: historyMessages } =
+      await this.buildPromptWithMemories(userMessage, conversationHistory);
+
     const messages = [
-      { role: 'system' as const, content: SYSTEM_PROMPT },
-      ...conversationHistory.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
+      { role: 'system' as const, content: systemPrompt },
+      ...historyMessages,
       { role: 'user' as const, content: userMessage },
     ];
 
@@ -102,12 +162,13 @@ class ChatServiceImpl {
       return { success: false, error: 'AI model not ready.' };
     }
 
+    // Build message array with system prompt and memories
+    const { systemPrompt, messages: historyMessages } =
+      await this.buildPromptWithMemories(userMessage, conversationHistory);
+
     const messages = [
-      { role: 'system' as const, content: SYSTEM_PROMPT },
-      ...conversationHistory.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
+      { role: 'system' as const, content: systemPrompt },
+      ...historyMessages,
       { role: 'user' as const, content: userMessage },
     ];
 
