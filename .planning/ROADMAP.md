@@ -68,10 +68,18 @@ Plans:
 1. After conversation ends, app extracts and stores key information (people, events, emotions)
 2. In new conversation, AI references relevant details from previous sessions
 3. Memory from 3+ days ago still surfaces when contextually relevant
-4. Prompts stay under 4096 tokens even with extensive memory and long conversations
+4. Prompts stay under 2048 tokens even with extensive memory and long conversations
 5. Recent important information takes priority over old ephemeral details
 
-**Plans:** (created by /gsd:plan-phase)
+**Plans:** 6 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Define memory types and extraction prompt with JSON schema
+- [ ] 03-02-PLAN.md — Create memory decay calculations and Zustand store with MMKV
+- [ ] 03-03-PLAN.md — Create LLM-based memory extractor service
+- [ ] 03-04-PLAN.md — Create memory orchestrator and conversation end detection hook
+- [ ] 03-05-PLAN.md — Integrate memories into ChatService with token budget management
+- [ ] 03-06-PLAN.md — Integrate memory system into app and verify end-to-end
 
 ---
 
@@ -98,7 +106,7 @@ Plans:
 |-------|--------|-----------|
 | 1 - Foundation | In Progress | 3/4 plans |
 | 2 - Core Chat | Planned | - |
-| 3 - Memory System | Not started | - |
+| 3 - Memory System | Planned | 0/6 plans |
 | 4 - Polish | Not started | - |
 
 ---
