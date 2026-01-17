@@ -14,7 +14,7 @@ module.exports = {
     scheme: 'confidant',
     platforms: ['ios'],
     ios: {
-      bundleIdentifier: 'com.confidant.app',
+      bundleIdentifier: 'ca.corvustech.confidant',
       supportsTablet: false,
       infoPlist: {
         UIBackgroundModes: ['fetch'], // For background downloads
@@ -47,7 +47,7 @@ module.exports = {
       [
         '@kesha-antonov/react-native-background-downloader',
         {
-          addMmkvDependency: false, // We already have MMKV
+          addMmkvDependency: true, // Let plugin add MMKV pod for native headers
         },
       ],
       [
