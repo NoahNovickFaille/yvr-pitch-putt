@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md
 
 **Core value:** Memory system that makes conversations feel continuous across sessions
-**Current focus:** Phase 3 - Memory System (Complete, Verified)
+**Current focus:** Phase 4 - Polish (In Progress)
 
 ## Current Position
 
-Phase: 3 of 4 (Memory System)
-Plan: 6 of 6 complete
-Status: Phase verified and complete
-Last activity: 2026-01-17 - Completed 03-06-PLAN.md (Memory System Integration)
+Phase: 4 of 4 (Polish)
+Plan: 2 of 4 complete
+Status: In progress
+Last activity: 2026-01-17 - Completed 04-02-PLAN.md (Settings Screen)
 
-Progress: [##########] 100%
+Progress: [################--] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 16
 - Average duration: 2.0 min
 
 **By Phase:**
@@ -29,6 +29,7 @@ Progress: [##########] 100%
 | 01-foundation | 3/3 | 11 min | 3.7 min |
 | 02-core-chat | 5/7 | 12.4 min | 2.5 min |
 | 03-memory-system | 6/6 | 10.0 min | 1.7 min |
+| 04-polish | 2/4 | 6 min | 3.0 min |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Progress: [##########] 100%
 | Mark memories accessed during retrieval | 03-05 | Reinforces accessed memories via logarithmic boost in decay calculation |
 | useMemoryExtraction replaces useConversationEnd | 03-06 | Enhanced hook handles both app backgrounding and conversation switching triggers |
 | Root layout initialization for store hydration | 03-06 | Memory store loads in app/_layout.tsx alongside conversation store and migration |
+| Crisis buttons use #DC2626 red | 04-02 | Matches CrisisModal styling for visual consistency |
+| DISCLAIMER_TEXT import from constants | 04-02 | Single source of truth - matches onboarding screen |
+| Clear All Data calls both removeAllConversations() and clearAll() | 04-02 | Comprehensive data reset without affecting onboarding state |
 
 ### Pending Todos
 
@@ -104,5 +108,5 @@ Progress: [##########] 100%
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed 03-06-PLAN.md (Memory System Integration) - Phase 3 fully complete
+Stopped at: Completed 04-02-PLAN.md (Settings Screen) - Phase 4 in progress
 Resume file: None
