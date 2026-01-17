@@ -18,6 +18,8 @@ module.exports = {
       supportsTablet: false,
       infoPlist: {
         UIBackgroundModes: ['fetch'], // For background downloads
+        NSMicrophoneUsageDescription: 'Confidant needs microphone access to hear your voice messages.',
+        NSSpeechRecognitionUsageDescription: 'Confidant uses on-device speech recognition to transcribe your voice.',
       },
     },
     plugins: [
@@ -54,6 +56,13 @@ module.exports = {
           ios: {
             newArchEnabled: true, // Required for llama.rn v0.10+
           },
+        },
+      ],
+      [
+        '@jamsch/expo-speech-recognition',
+        {
+          microphonePermission: 'Confidant needs microphone access to hear your voice messages.',
+          speechRecognitionPermission: 'Confidant uses speech recognition to transcribe your voice.',
         },
       ],
     ],
