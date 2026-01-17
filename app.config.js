@@ -1,0 +1,69 @@
+module.exports = {
+  expo: {
+    name: 'Confidant',
+    slug: 'confidant',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/images/icon.png',
+    userInterfaceStyle: 'automatic',
+    splash: {
+      image: './assets/images/splash-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffff',
+    },
+    scheme: 'confidant',
+    platforms: ['ios'],
+    ios: {
+      bundleIdentifier: 'com.confidant.app',
+      supportsTablet: false,
+      infoPlist: {
+        UIBackgroundModes: ['fetch'], // For background downloads
+      },
+    },
+    plugins: [
+      'expo-router',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/images/splash-icon.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+          dark: {
+            backgroundColor: '#000000',
+          },
+        },
+      ],
+      [
+        'llama.rn',
+        {
+          enableEntitlements: true,
+          entitlementsProfile: 'production',
+          forceCxx20: true,
+        },
+      ],
+      [
+        '@kesha-antonov/react-native-background-downloader',
+        {
+          addMmkvDependency: false, // We already have MMKV
+        },
+      ],
+      [
+        'expo-build-properties',
+        {
+          ios: {
+            newArchEnabled: true, // Required for llama.rn v0.10+
+          },
+        },
+      ],
+    ],
+    extra: {
+      eas: {
+        projectId: 'placeholder-update-after-eas-init',
+      },
+    },
+    experiments: {
+      typedRoutes: true,
+    },
+  },
+};
