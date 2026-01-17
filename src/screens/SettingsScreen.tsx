@@ -7,13 +7,16 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { Menu, Cpu, MessageSquare, Brain, Shield, Trash2 } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import { Menu, Cpu, MessageSquare, Brain, Shield, Trash2, Phone, MessageCircle, AlertTriangle } from 'lucide-react-native';
 import { useConversationStore } from '../stores/conversationStore';
 import { useMemoryStore } from '../stores/memoryStore';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
+import { DISCLAIMER_TEXT } from '../constants/disclaimer';
 
 export function SettingsScreen() {
   const navigation = useNavigation();
@@ -22,6 +25,36 @@ export function SettingsScreen() {
 
   const handleMenuPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
+  };
+
+  const handleCall988 = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Linking.openURL('tel:988');
+  };
+
+  const handleTextCrisisLine = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Linking.openURL('sms:741741&body=HOME');
+  };
+
+  const handleClearAllData = () => {
+    Alert.alert(
+      'Clear All Data',
+      'This will permanently delete all conversations and memories. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All Data',
+          style: 'destructive',
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            removeAllConversations();
+            clearAll();
+            Alert.alert('Cleared', 'All conversations and memories have been deleted.');
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteAllConversations = () => {
@@ -78,6 +111,37 @@ export function SettingsScreen() {
       </SafeAreaView>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        {/* Crisis Resources Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Crisis Resources</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.crisisButton}
+              onPress={handleCall988}
+              activeOpacity={0.8}
+            >
+              <Phone size={20} color="#FFFFFF" />
+              <View style={styles.crisisButtonContent}>
+                <Text style={styles.crisisButtonTitle}>Call 988</Text>
+                <Text style={styles.crisisButtonSubtitle}>Suicide & Crisis Lifeline</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={{ height: DarkSpacing.itemSpacing }} />
+            <TouchableOpacity
+              style={styles.crisisButton}
+              onPress={handleTextCrisisLine}
+              activeOpacity={0.8}
+            >
+              <MessageCircle size={20} color="#FFFFFF" />
+              <View style={styles.crisisButtonContent}>
+                <Text style={styles.crisisButtonTitle}>Text HOME to 741741</Text>
+                <Text style={styles.crisisButtonSubtitle}>Crisis Text Line</Text>
+              </View>
+            </TouchableOpacity>
+            <Text style={styles.crisisAvailability}>Available 24/7, free and confidential</Text>
+          </View>
+        </View>
+
         {/* Model Information Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Model Information</Text>
@@ -159,6 +223,45 @@ export function SettingsScreen() {
               </Text>
             </View>
           </View>
+        </View>
+
+        {/* About This App / Disclaimer Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About This App</Text>
+          <View style={styles.card}>
+            <View style={styles.disclaimerRow}>
+              <AlertTriangle size={20} color={DarkColors.warning} />
+              <Text style={styles.disclaimerIntro}>{DISCLAIMER_TEXT.intro}</Text>
+            </View>
+            <View style={styles.disclaimerBullets}>
+              {DISCLAIMER_TEXT.bullets.map((bullet, index) => (
+                <Text key={index} style={styles.disclaimerBullet}>
+                  {'\u2022'} {bullet}
+                </Text>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Danger Zone Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>Danger Zone</Text>
+          <TouchableOpacity
+            style={styles.clearAllCard}
+            onPress={handleClearAllData}
+            activeOpacity={0.7}
+            disabled={conversationIds.length === 0 && memories.length === 0}
+          >
+            <View style={styles.dangerRow}>
+              <Trash2 size={20} color={DarkColors.danger} />
+              <View style={styles.dangerContent}>
+                <Text style={styles.dangerText}>Clear All Data</Text>
+                <Text style={styles.dangerSubtext}>
+                  Delete all conversations and memories permanently
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* App Info */}
@@ -295,5 +398,67 @@ const styles = StyleSheet.create({
   footerSubtext: {
     fontSize: DarkTypography.caption1,
     color: DarkColors.textTertiary,
+  },
+  // Crisis Resources Styles
+  crisisButton: {
+    backgroundColor: '#DC2626',
+    paddingVertical: DarkSpacing.lg,
+    paddingHorizontal: DarkSpacing.lg,
+    borderRadius: DarkSpacing.radiusSm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DarkSpacing.md,
+  },
+  crisisButtonContent: {
+    flex: 1,
+  },
+  crisisButtonTitle: {
+    color: '#FFFFFF',
+    fontSize: DarkTypography.callout,
+    fontWeight: DarkTypography.weightSemibold,
+  },
+  crisisButtonSubtitle: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: DarkTypography.footnote,
+    marginTop: 2,
+  },
+  crisisAvailability: {
+    fontSize: DarkTypography.footnote,
+    color: DarkColors.textSecondary,
+    textAlign: 'center',
+    marginTop: DarkSpacing.lg,
+  },
+  // Disclaimer Styles
+  disclaimerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: DarkSpacing.md,
+    marginBottom: DarkSpacing.md,
+  },
+  disclaimerIntro: {
+    flex: 1,
+    fontSize: DarkTypography.callout,
+    color: DarkColors.text,
+    lineHeight: 22,
+  },
+  disclaimerBullets: {
+    marginLeft: 32,
+  },
+  disclaimerBullet: {
+    fontSize: DarkTypography.footnote,
+    color: DarkColors.textSecondary,
+    lineHeight: 20,
+    marginBottom: DarkSpacing.sm,
+  },
+  // Danger Zone Styles
+  dangerSectionTitle: {
+    color: DarkColors.danger,
+  },
+  clearAllCard: {
+    backgroundColor: DarkColors.dangerMuted,
+    borderRadius: DarkSpacing.radiusMd,
+    padding: DarkSpacing.cardPadding,
+    borderWidth: 1,
+    borderColor: DarkColors.danger,
   },
 });
