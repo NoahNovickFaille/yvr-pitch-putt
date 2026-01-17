@@ -11,11 +11,13 @@ Main chat orchestration hook. Handles:
 - Token-by-token response updates
 - Integrates with chatStore, LLMService, and memory system
 
-### useConversationEnd
-Detects when conversation ends (app backgrounded or user leaves chat). Triggers:
-- Memory extraction from conversation
+### useMemoryExtraction
+Detects when to extract memories from conversations. Triggers:
+- Memory extraction when app backgrounds
+- Memory extraction when user switches to a different conversation
 - Conversation metadata update (endedAt timestamp)
-- Uses AppState and React Navigation lifecycle
+- Uses AppState for background detection and conversation store for switch detection
+- Integrates with ExtractionQueue for retry on failure
 
 ### useLLM
 Low-level LLM interaction hook. Manages:

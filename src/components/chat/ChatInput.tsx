@@ -60,6 +60,7 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: C
           style={[styles.micButton, isListening && styles.micButtonActive]}
           onPress={handleMicPress}
           disabled={disabled || isGenerating}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           {isListening ? (
             <Square size={18} color="#FFFFFF" fill="#FFFFFF" />
@@ -87,6 +88,7 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: C
           style={[styles.sendButton, canSend && styles.sendButtonActive]}
           onPress={handleSend}
           disabled={!canSend}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Send size={18} color={canSend ? DarkColors.textOnAccent : DarkColors.textTertiary} />
         </TouchableOpacity>

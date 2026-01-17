@@ -7,7 +7,7 @@ import { MessageList } from '../components/chat/MessageList';
 import { ChatInput } from '../components/chat/ChatInput';
 import { CrisisModal } from '../components/modals/CrisisModal';
 import { useChat } from '../hooks/useChat';
-import { useConversationEnd } from '../hooks/useConversationEnd';
+import { useMemoryExtraction } from '../hooks/useMemoryExtraction';
 import { DarkColors } from '@/constants/darkTheme';
 
 export function ChatScreen() {
@@ -21,8 +21,8 @@ export function ChatScreen() {
     continueAfterCrisis,
   } = useChat();
 
-  // Memory extraction on conversation end
-  useConversationEnd();
+  // Memory extraction on conversation end and switch
+  useMemoryExtraction();
 
   const handleDismissCrisis = () => {
     // When user dismisses after countdown, continue with the message

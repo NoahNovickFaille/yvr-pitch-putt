@@ -4,13 +4,14 @@
   "version": "1.0.0",
   "scripts": {
     "prebuild": "expo prebuild",
-		"start": "expo start",
-		"android": "expo run:android --device",
-		"ios": "expo run:ios --device",
-		"dev": "expo start --clear",
-		"expo:lint": "expo lint",
+    "start": "expo start",
+    "android": "expo run:android --device",
+    "ios": "expo run:ios --device",
+    "dev": "expo start --clear",
+    "expo:lint": "expo lint",
     "lfg:ios": "npm run prebuild --clean && npm run ios",
-    "lfg:android": "npm run prebuild --clean && npm run android"
+    "lfg:android": "npm run prebuild --clean && npm run android",
+    "lint": "expo lint"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
