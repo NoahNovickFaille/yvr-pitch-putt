@@ -10,24 +10,24 @@ See: .planning/PROJECT.md
 ## Current Position
 
 Phase: 2 of 4 (Core Chat)
-Plan: 4 of 7 complete
+Plan: 6 of 7 complete
 Status: In progress
-Last activity: 2026-01-16 - Completed 02-04-PLAN.md (Chat Store)
+Last activity: 2026-01-16 - Completed 02-06-PLAN.md (Chat UI Components)
 
-Progress: [#######---] 57%
+Progress: [########--] 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 2.7 min
+- Total plans completed: 8
+- Average duration: 2.6 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 11 min | 3.7 min |
-| 02-core-chat | 4/7 | 10 min | 2.5 min |
+| 02-core-chat | 5/7 | 12.4 min | 2.5 min |
 
 ## Accumulated Context
 
@@ -62,6 +62,11 @@ Progress: [#######---] 57%
 | Streaming via callback pattern | 02-05 | Simple callbacks (onToken, onComplete) over async generators for React integration |
 | continueAfterCrisis separate method | 02-05 | Explicit post-acknowledgment path without re-running crisis detection |
 | Temperature 0.7 for chat | 02-05 | Balances empathy (needs creativity) with coherence (needs consistency) |
+| Typing indicator before streaming | 02-06 | Show animated dots when generation starts, replace with StreamingMessage once first token arrives |
+| 5-second crisis modal countdown | 02-06 | Enforces resource acknowledgment without being permanently blocking (balances safety with usability) |
+| Haptic feedback on crisis interactions | 02-06 | Warning haptic on modal appearance, medium impact on hotline taps reinforces critical nature |
+| Microphone red when active | 02-06 | Visual feedback that speech is being recorded (privacy indicator) |
+| Auto-scroll on new content | 02-06 | Scroll to bottom when messages arrive or tokens stream (keeps latest content visible) |
 
 ### Pending Todos
 
@@ -74,5 +79,5 @@ Progress: [#######---] 57%
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Completed 02-04-PLAN.md (Chat Store)
+Stopped at: Completed 02-06-PLAN.md (Chat UI Components)
 Resume file: None
