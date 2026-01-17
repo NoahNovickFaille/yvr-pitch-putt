@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "expo-speech-recognition": "^3.0.1",
     "@kesha-antonov/react-native-background-downloader": "^4.4.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/drawer": "^7.5.0",

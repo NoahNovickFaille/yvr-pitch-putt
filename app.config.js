@@ -61,7 +61,7 @@ module.exports = {
         },
       ],
       [
-        '@jamsch/expo-speech-recognition',
+        'expo-speech-recognition',
         {
           microphonePermission: 'Cove needs microphone access to hear your voice messages.',
           speechRecognitionPermission: 'Cove uses speech recognition to transcribe your voice.',
