@@ -81,15 +81,14 @@ export function useChat(): UseChatResult {
       // Store the message in case of crisis (to send after acknowledgment)
       setPendingCrisisMessage(content);
 
-      // Start generation UI state
+      // Start generation UI state and add user message immediately
       startGeneration();
+      addUserMessage(content);
 
       const result = await ChatService.sendMessage(content, {
         conversationHistory: messages,
         onToken: appendToken,
         onComplete: (fullText) => {
-          // Add user message first, then complete with AI response
-          addUserMessage(content);
           completeGeneration(fullText);
           setPendingCrisisMessage(null);
         },

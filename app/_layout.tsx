@@ -56,12 +56,10 @@ export default function RootLayout() {
     console.log('[RootLayout] Checking onboarding status');
     useOnboardingStore.getState().checkOnboardingStatus();
 
-    // Load active conversation into chatStore
-    const activeId = useConversationStore.getState().activeConversationId;
-    if (activeId) {
-      console.log('[RootLayout] Loading active conversation:', activeId);
-      useChatStore.getState().switchConversation(activeId);
-    }
+    // Always start with a new conversation on app launch
+    console.log('[RootLayout] Creating new conversation for fresh start');
+    const newId = useConversationStore.getState().createConversation();
+    useChatStore.getState().switchConversation(newId);
 
     // Load extraction queue and process pending extractions once LLM is ready
     console.log('[RootLayout] Loading extraction queue');
