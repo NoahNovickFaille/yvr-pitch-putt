@@ -1,6 +1,6 @@
 # Memory Service
 
-The memory service provides persistent, context-aware memory that allows Confidant to remember facts, emotions, and events from past conversations. It uses an Ebbinghaus-inspired decay model to prioritize recent and frequently-accessed memories.
+The memory service provides persistent, context-aware memory that allows Cove to remember facts, emotions, and events from past conversations. It uses an Ebbinghaus-inspired decay model to prioritize recent and frequently-accessed memories.
 
 ## Architecture Overview
 

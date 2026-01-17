@@ -1,10 +1,10 @@
-# Confidant
+# Cove
 
 A local-first emotional companion app for iOS. All AI processing happens on-device using a 3B parameter LLM, ensuring complete privacy - your conversations never leave your phone.
 
-## What is Confidant?
+## What is Cove?
 
-Confidant is a warm, empathetic AI companion that remembers your conversations and builds context over time. Unlike cloud-based chatbots, everything runs locally:
+Cove is a warm, empathetic AI companion that remembers your conversations and builds context over time. Unlike cloud-based chatbots, everything runs locally:
 
 - **On-Device LLM**: Uses llama.rn with Metal GPU acceleration
 - **Persistent Memory**: Remembers facts, emotions, and events across sessions
@@ -308,7 +308,7 @@ npm run lint       # Run ESLint
 
 ## Privacy
 
-Confidant is designed with privacy as a core principle:
+Cove is designed with privacy as a core principle:
 
 - **No cloud inference**: LLM runs entirely on-device
 - **No cloud speech**: Voice recognition uses iOS on-device engine

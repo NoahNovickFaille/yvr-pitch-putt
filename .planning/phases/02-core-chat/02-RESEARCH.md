@@ -6,7 +6,7 @@
 
 ## Summary
 
-Phase 2 implements the core chat experience for Confidant: bidirectional conversation with an on-device LLM, voice input via speech-to-text, message persistence, and crisis safety features. The critical technical challenges are: (1) streaming token-by-token responses from llama.rn with proper callback handling, (2) integrating on-device iOS speech recognition without cloud dependencies, (3) designing a message persistence schema with MMKV, (4) implementing crisis keyword detection before messages reach the model, and (5) building a responsive chat UI with typing indicators.
+Phase 2 implements the core chat experience for Cove: bidirectional conversation with an on-device LLM, voice input via speech-to-text, message persistence, and crisis safety features. The critical technical challenges are: (1) streaming token-by-token responses from llama.rn with proper callback handling, (2) integrating on-device iOS speech recognition without cloud dependencies, (3) designing a message persistence schema with MMKV, (4) implementing crisis keyword detection before messages reach the model, and (5) building a responsive chat UI with typing indicators.
 
 llama.rn v0.10+ provides a clean streaming API via the `context.completion()` method with a partial completion callback that fires for each generated token. For speech recognition, `@jamsch/expo-speech-recognition` is the recommended library with explicit on-device mode support (`requiresOnDeviceRecognition: true`). Crisis detection should use a two-stage approach: fast keyword matching followed by pattern analysis, with immediate modal display before the message is sent to the model.
 
@@ -820,7 +820,7 @@ const styles = StyleSheet.create({
 ### Empathetic System Prompt
 ```typescript
 // services/llm/systemPrompt.ts
-export const SYSTEM_PROMPT = `You are a caring, supportive companion who listens with empathy and warmth. Your name is Confidant.
+export const SYSTEM_PROMPT = `You are a caring, supportive companion who listens with empathy and warmth. Your name is Cove.
 
 Core Principles:
 - Listen actively and reflect back what you hear

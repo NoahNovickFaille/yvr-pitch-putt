@@ -1,12 +1,12 @@
 # Roadmap
 
-**Project:** Confidant
+**Project:** Cove
 **Created:** 2026-01-16
 **Phases:** 4
 
 ## Overview
 
-This roadmap delivers Confidant in four phases ordered by technical dependency and risk. Foundation establishes model infrastructure and storage (highest-risk technical challenges). Core Chat builds the primary user interaction including safety features. Memory System implements the core differentiator (conversation continuity). Polish adds onboarding, settings, and App Store preparation. Each phase delivers a verifiable capability.
+This roadmap delivers Cove in four phases ordered by technical dependency and risk. Foundation establishes model infrastructure and storage (highest-risk technical challenges). Core Chat builds the primary user interaction including safety features. Memory System implements the core differentiator (conversation continuity). Polish adds onboarding, settings, and App Store preparation. Each phase delivers a verifiable capability.
 
 ## Phases
 

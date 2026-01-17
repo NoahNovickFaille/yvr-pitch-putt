@@ -1,4 +1,4 @@
-# Confidant
+# Cove
 
 ## What This Is
 

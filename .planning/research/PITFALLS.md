@@ -339,5 +339,5 @@ How roadmap phases should address these pitfalls.
 - [Berkeley: Emotional Dependency on ChatGPT](https://greatergood.berkeley.edu/article/item/can_you_get_emotionally_dependent_on_chatgpt)
 
 ---
-*Pitfalls research for: Confidant - Local-first iOS emotional companion app*
+*Pitfalls research for: Cove - Local-first iOS emotional companion app*
 *Researched: 2026-01-16*

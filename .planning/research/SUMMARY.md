@@ -1,13 +1,13 @@
 # Project Research Summary
 
-**Project:** Confidant
+**Project:** Cove
 **Domain:** Local-first emotional companion / AI journaling iOS app
 **Researched:** 2026-01-16
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Confidant is a local-first iOS emotional companion app that differentiates through complete privacy (on-device LLM, no cloud) and memory-driven conversation continuity. Research confirms this is a viable approach with a clear tech stack: Expo SDK 54 with React Native's New Architecture, llama.rn for on-device inference (Llama 3.2 3B), MMKV for fast local storage, and @react-native-voice/voice for speech-to-text. The local-first approach is a genuine competitive advantage since 91% of surveyed users would pay more for on-device AI processing, and no major competitor (Pi, Replika, Wysa, Woebot) offers fully offline operation.
+Cove is a local-first iOS emotional companion app that differentiates through complete privacy (on-device LLM, no cloud) and memory-driven conversation continuity. Research confirms this is a viable approach with a clear tech stack: Expo SDK 54 with React Native's New Architecture, llama.rn for on-device inference (Llama 3.2 3B), MMKV for fast local storage, and @react-native-voice/voice for speech-to-text. The local-first approach is a genuine competitive advantage since 91% of surveyed users would pay more for on-device AI processing, and no major competitor (Pi, Replika, Wysa, Woebot) offers fully offline operation.
 
 The recommended approach is to build in four phases: Foundation (model download infrastructure, storage layer, memory management), Core Chat (LLM integration, streaming UI, voice input, crisis detection), Memory System (extraction, retrieval, context building), and Polish (onboarding, settings, App Store preparation). This ordering respects dependency chains discovered in architecture research while front-loading the highest-risk technical challenges (iOS memory pressure, large file downloads) before building features atop them.
 
@@ -29,7 +29,7 @@ The stack is validated and locked. Expo SDK 54 provides React Native 0.81 with N
 
 ### Expected Features
 
-Feature research identified clear table stakes vs differentiators. The key insight: Confidant's positioning is "conversational companion with memory" rather than "clinical CBT tool" (Woebot/Wysa's territory).
+Feature research identified clear table stakes vs differentiators. The key insight: Cove's positioning is "conversational companion with memory" rather than "clinical CBT tool" (Woebot/Wysa's territory).
 
 **Must have (table stakes):**
 - Conversational AI chat with streaming responses

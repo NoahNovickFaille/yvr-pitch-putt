@@ -6,7 +6,7 @@
 
 ## Summary
 
-Phase 3 implements the memory system that makes conversations feel continuous across sessions - the core differentiator for Confidant. The system must extract meaningful memories from conversations, store them with importance scores and decay rates, and retrieve relevant memories when building prompts - all while staying within a tight 2048 token context window.
+Phase 3 implements the memory system that makes conversations feel continuous across sessions - the core differentiator for Cove. The system must extract meaningful memories from conversations, store them with importance scores and decay rates, and retrieve relevant memories when building prompts - all while staying within a tight 2048 token context window.
 
 The recommended approach uses the on-device LLM itself for memory extraction via structured JSON output, combined with an Ebbinghaus-inspired decay model and a hybrid retrieval algorithm (recency + importance + keyword matching). This avoids external dependencies while leveraging llama.rn's native `tokenize()` method for accurate token counting.
 

@@ -1,4 +1,4 @@
-# Requirements: Confidant
+# Requirements: Cove
 
 **Defined:** 2026-01-16
 **Core Value:** Memory system that makes conversations feel continuous across sessions
@@ -86,7 +86,7 @@ Explicitly excluded. Documented to prevent scope creep.
 |---------|--------|
 | Cloud sync | Destroys privacy value proposition; conflicts with local-first architecture |
 | User accounts | Unnecessary for local-only app; adds complexity |
-| Social sharing | Conflicts with confidant positioning; privacy concerns |
+| Social sharing | Conflicts with cove positioning; privacy concerns |
 | Android support | iOS-first strategy; may revisit after v1 validation |
 | Gamification (streaks, badges) | Mental health isn't a game; can create anxiety |
 | Professional therapist integration | Scope creep; regulatory complexity; liability |

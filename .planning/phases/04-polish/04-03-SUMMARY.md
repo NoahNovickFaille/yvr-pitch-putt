@@ -42,7 +42,7 @@ completed: 2026-01-17
 
 # Phase 4 Plan 3: App Icon and Splash Screen Summary
 
-**Custom Confidant branding with calming purple-blue gradient and abstract connection symbol**
+**Custom Cove branding with calming purple-blue gradient and abstract connection symbol**
 
 ## Performance
 

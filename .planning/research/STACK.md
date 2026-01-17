@@ -43,7 +43,7 @@
 
 ```bash
 # Create Expo project with SDK 54
-npx create-expo-app@latest confidant --template default
+npx create-expo-app@latest cove --template default
 
 # Core dependencies (locked choices)
 npx expo install react-native-mmkv react-native-nitro-modules
@@ -85,8 +85,8 @@ npm install -D @testing-library/react-native @types/react jest
     ],
     "ios": {
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Confidant uses your microphone for voice-to-text input",
-        "NSSpeechRecognitionUsageDescription": "Confidant uses speech recognition to transcribe your voice messages"
+        "NSMicrophoneUsageDescription": "Cove uses your microphone for voice-to-text input",
+        "NSSpeechRecognitionUsageDescription": "Cove uses speech recognition to transcribe your voice messages"
       }
     }
   }
@@ -213,5 +213,5 @@ The ~1.8GB model download requires careful handling:
 - [Zustand GitHub](https://github.com/pmndrs/zustand) - State management
 
 ---
-*Stack research for: Confidant - Local-first emotional companion iOS app*
+*Stack research for: Cove - Local-first emotional companion iOS app*
 *Researched: 2026-01-16*

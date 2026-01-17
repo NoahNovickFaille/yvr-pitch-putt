@@ -30,7 +30,7 @@ Features that set the product apart. Not required, but valuable.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Memory system (conversation continuity)** | Confidant's core differentiator; makes AI feel like it "knows you" across sessions | HIGH | Requires memory extraction, storage, retrieval, and context injection |
+| **Memory system (conversation continuity)** | Cove's core differentiator; makes AI feel like it "knows you" across sessions | HIGH | Requires memory extraction, storage, retrieval, and context injection |
 | **Fully local/private (no cloud)** | 91% would pay more for on-device processing; addresses massive privacy concerns | HIGH | On-device LLM, local-only data, no network required |
 | **Voice input (speech-to-text)** | Reflectly, Untold, Lid offer voice journaling; lowers friction significantly | MEDIUM | Apple Speech framework is mature; transcription accuracy is good |
 | **Conversational (not structured check-ins)** | Pi differentiates from Woebot/Wysa's structured approach; feels more natural | HIGH | Prompt engineering, conversation flow design |
@@ -46,7 +46,7 @@ Features that seem good but create problems.
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
 | **Cloud sync across devices** | Convenience, backup anxiety | Destroys privacy value prop; complex architecture; security liability | Secure local backup/restore (manual export) |
-| **Social sharing/friends** | How We Feel has this; social support is valuable | Conflicts with "confidant" positioning; privacy concerns; adds complexity | Keep private; users can share screenshots if desired |
+| **Social sharing/friends** | How We Feel has this; social support is valuable | Conflicts with "cove" positioning; privacy concerns; adds complexity | Keep private; users can share screenshots if desired |
 | **Gamification (streaks, badges)** | Increases engagement metrics | Mental health isn't a game; can create anxiety about "breaking streaks" | Gentle encouragement without punishment mechanics |
 | **Detailed analytics dashboards** | Users think they want data | Overwhelming; can increase rumination; shifts focus from feeling to measuring | Simple, actionable insights surfaced naturally in conversation |
 | **Professional therapist integration** | Wysa offers this; seems comprehensive | Scope creep; regulatory complexity; liability; not our core value | Clear disclaimer that app is not therapy; provide crisis resources |
@@ -166,7 +166,7 @@ Features to defer until product-market fit is established.
 
 ## Competitor Feature Analysis
 
-| Feature | How We Feel | Reflectly | Woebot | Wysa | Replika | Pi | **Confidant** |
+| Feature | How We Feel | Reflectly | Woebot | Wysa | Replika | Pi | **Cove** |
 |---------|-------------|-----------|--------|------|---------|----|----|
 | **Conversational AI** | No (check-in only) | Limited | Yes (scripted) | Yes (scripted) | Yes (generative) | Yes (generative) | **Yes (generative)** |
 | **Memory/continuity** | Check-in history | Entry history | Limited | Limited | Yes (inconsistent) | Yes | **Yes (core focus)** |
@@ -180,14 +180,14 @@ Features to defer until product-market fit is established.
 
 ### Competitive Positioning Summary
 
-**Confidant differentiates by:**
+**Cove differentiates by:**
 1. **Fully local/private** - No other major competitor offers this
 2. **Memory-first design** - Conversation continuity as core value, not afterthought
 3. **Conversational (not clinical)** - More like Pi's warmth, less like Woebot's structure
 4. **Free (no subscription)** - Local processing means no ongoing cloud costs
 5. **Offline-capable** - Works anywhere, anytime
 
-**Confidant intentionally avoids:**
+**Cove intentionally avoids:**
 1. Structured CBT/DBT programs (not therapy replacement)
 2. Social features (privacy-first)
 3. Gamification (mental health isn't a game)
@@ -230,5 +230,5 @@ Features to defer until product-market fit is established.
 
 ---
 
-*Feature research for: Confidant - Local-first iOS emotional companion app*
+*Feature research for: Cove - Local-first iOS emotional companion app*
 *Researched: 2026-01-16*

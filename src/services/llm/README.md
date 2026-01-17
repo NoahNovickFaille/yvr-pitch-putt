@@ -1,6 +1,6 @@
 # LLM Service
 
-The LLM service manages on-device inference using [llama.rn](https://github.com/mybigday/llama.rn) with Metal GPU acceleration. This is the core inference layer that powers all AI interactions in Confidant.
+The LLM service manages on-device inference using [llama.rn](https://github.com/mybigday/llama.rn) with Metal GPU acceleration. This is the core inference layer that powers all AI interactions in Cove.
 
 ## Architecture Overview
 
@@ -35,7 +35,7 @@ The LLM service manages on-device inference using [llama.rn](https://github.com/
 | `ChatService.ts` | High-level chat orchestration with safety and memory |
 | `CompletionQueue.ts` | Priority queue preventing "context busy" errors |
 | `TokenBudget.ts` | Context window management (2048 tokens) |
-| `systemPrompt.ts` | Confidant's personality and behavior definition |
+| `systemPrompt.ts` | Cove's personality and behavior definition |
 | `memoryMonitor.ts` | iOS memory pressure handling |
 | `JsonUtils.ts` | LLM response parsing utilities |
 
@@ -254,13 +254,13 @@ const truncatedHistory = truncateConversationHistory(
 
 ## System Prompt
 
-Defines Confidant's personality and behavior.
+Defines Cove's personality and behavior.
 
 ### Structure
 
 ```typescript
 const BASE_SYSTEM_PROMPT = `
-You are Confidant, a warm and empathetic companion...
+You are Cove, a warm and empathetic companion...
 [personality definition, ~400 tokens]
 `;
 

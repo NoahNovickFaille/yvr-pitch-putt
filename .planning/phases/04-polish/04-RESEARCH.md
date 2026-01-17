@@ -222,7 +222,7 @@ export function SettingsScreen() {
           About This App
         </Text>
         <Text style={{ fontSize: 14, lineHeight: 20, color: '#3C3C43' }}>
-          Confidant is not a substitute for professional mental health care, therapy, or medical advice.
+          Cove is not a substitute for professional mental health care, therapy, or medical advice.
           If you are experiencing a crisis, please contact 988 or emergency services.
         </Text>
       </View>
@@ -271,7 +271,7 @@ export function DisclaimerStep({ onAcknowledge }: DisclaimerStepProps) {
 
       <ScrollView style={{ flex: 1, marginBottom: 24 }}>
         <Text style={{ fontSize: 16, lineHeight: 24, color: '#3C3C43' }}>
-          Confidant is designed to be a private space for reflection and emotional expression.
+          Cove is designed to be a private space for reflection and emotional expression.
           However, it is important to understand:
         </Text>
 
@@ -493,7 +493,7 @@ module.exports = {
       ],
     ],
     ios: {
-      bundleIdentifier: 'ca.corvustech.confidant', // Required for App Store
+      bundleIdentifier: 'ca.corvustech.cove', // Required for App Store
       // ... rest of iOS config
     },
   },

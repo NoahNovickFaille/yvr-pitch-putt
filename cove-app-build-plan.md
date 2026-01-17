@@ -1,8 +1,8 @@
-# Confidant: Local-First Emotional Companion App
+# Cove: Local-First Emotional Companion App
 
 ## Project Overview
 
-A React Native iOS app that serves as a private emotional confidant. All data stays on-device. Users can have conversations about their feelings, and the app builds memory over time to offer personalized insights.
+A React Native iOS app that serves as a private emotional cove. All data stays on-device. Users can have conversations about their feelings, and the app builds memory over time to offer personalized insights.
 
 Inspired by How We Feel's design sensibility but differentiated by being conversational rather than structured check-ins.
 
@@ -382,7 +382,7 @@ The modal should be supportive, not alarming: "It sounds like you might be going
 
 Display prominently during onboarding and accessible from Settings:
 
-> **Confidant is an emotional journal, not a therapist.**
+> **Cove is an emotional journal, not a therapist.**
 > 
 > This app is designed to help you reflect on your feelings and experiences. It is not a substitute for professional mental health care. If you're struggling, please reach out to a licensed therapist or counselor.
 

@@ -39,7 +39,7 @@ The established libraries/tools for this phase:
 **Installation:**
 ```bash
 # Create Expo SDK 54 project
-npx create-expo-app@latest confidant --template default
+npx create-expo-app@latest cove --template default
 
 # Core Phase 1 dependencies
 npm install llama.rn
@@ -397,7 +397,7 @@ export function downloadModel(
     url: MODEL_CONFIG.url,
     destination,
     headers: {
-      'User-Agent': 'Confidant-iOS/1.0',
+      'User-Agent': 'Cove-iOS/1.0',
     },
   })
     .begin(({ expectedBytes }) => {
@@ -502,14 +502,14 @@ export default LLMService.getInstance();
 // app.config.js
 module.exports = {
   expo: {
-    name: 'Confidant',
-    slug: 'confidant',
+    name: 'Cove',
+    slug: 'cove',
     version: '1.0.0',
     orientation: 'portrait',
-    scheme: 'confidant',
+    scheme: 'cove',
     platforms: ['ios'],
     ios: {
-      bundleIdentifier: 'com.yourcompany.confidant',
+      bundleIdentifier: 'com.yourcompany.cove',
       supportsTablet: false,
       infoPlist: {
         UIBackgroundModes: ['fetch'], // For background downloads

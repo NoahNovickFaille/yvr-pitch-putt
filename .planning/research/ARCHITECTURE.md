@@ -625,5 +625,5 @@ This ordering ensures each phase has its dependencies ready. Storage must exist 
 - [Zustand MMKV Storage (DEV Community)](https://dev.to/mehdifaraji/zustand-mmkv-storage-blazing-fast-persistence-for-zustand-in-react-native-3ef1) - State persistence patterns
 
 ---
-*Architecture research for: Confidant - Local-first iOS emotional companion*
+*Architecture research for: Cove - Local-first iOS emotional companion*
 *Researched: 2026-01-16*
