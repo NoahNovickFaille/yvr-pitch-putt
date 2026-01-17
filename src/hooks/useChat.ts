@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useChatStore } from '../stores/chatStore';
 import { ChatService } from '../services/llm/ChatService';
 import { CrisisResult } from '../services/safety/CrisisDetector';
-import { useConversationEnd } from './useConversationEnd';
 
 interface UseChatResult {
   messages: ReturnType<typeof useChatStore>['messages'];
@@ -25,7 +24,6 @@ export function useChat(): UseChatResult {
     appendToken,
     completeGeneration,
     loadFromStorage,
-    markConversationEnded,
   } = useChatStore();
 
   const [crisisModalVisible, setCrisisModalVisible] = useState(false);
@@ -35,9 +33,6 @@ export function useChat(): UseChatResult {
   useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
-
-  // Mark conversation ended when app backgrounds
-  useConversationEnd(markConversationEnded);
 
   const handleCrisis = useCallback((result: CrisisResult) => {
     console.log('[useChat] Crisis detected:', result);
