@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { FlatList, StyleSheet } from 'react-native';
+import { FlatList, StyleSheet, Keyboard } from 'react-native';
 import { ChatMessage } from '../../types/chat';
 import { MessageBubble } from './MessageBubble';
 import { StreamingMessage } from './StreamingMessage';
@@ -24,6 +24,19 @@ export function MessageList({ messages, isGenerating, partialResponse }: Message
       }, 100);
     }
   }, [messages.length, partialResponse]);
+
+  // Scroll to bottom when keyboard opens to keep messages visible
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    return () => {
+      showSubscription.remove();
+    };
+  }, []);
 
   const renderItem = ({ item }: { item: ChatMessage }) => (
     <MessageBubble message={item} />
