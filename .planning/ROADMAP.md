@@ -96,7 +96,12 @@ Plans:
 4. App passes TestFlight review and is installable by beta testers
 5. Disclaimer is visible in both onboarding flow and settings screen
 
-**Plans:** (created by /gsd:plan-phase)
+**Plans:** 3 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Onboarding flow with privacy, name, and disclaimer
+- [ ] 04-02-PLAN.md — Settings screen with crisis resources and data management
+- [ ] 04-03-PLAN.md — App assets and TestFlight submission
 
 ---
 
@@ -107,7 +112,7 @@ Plans:
 | 1 - Foundation | In Progress | 3/4 plans |
 | 2 - Core Chat | Planned | - |
 | 3 - Memory System | Planned | 0/6 plans |
-| 4 - Polish | Not started | - |
+| 4 - Polish | Planned | 0/3 plans |
 
 ---
 
