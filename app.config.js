@@ -20,6 +20,7 @@ module.exports = {
         UIBackgroundModes: ['fetch'], // For background downloads
         NSMicrophoneUsageDescription: 'Confidant needs microphone access to hear your voice messages.',
         NSSpeechRecognitionUsageDescription: 'Confidant uses on-device speech recognition to transcribe your voice.',
+        ITSAppUsesNonExemptEncryption: false, // App does not use custom encryption
       },
     },
     plugins: [
@@ -38,7 +39,7 @@ module.exports = {
         },
       ],
       [
-        'llama.rn',
+        './plugins/withLlamaRN',
         {
           enableEntitlements: true,
           entitlementsProfile: 'production',
@@ -69,7 +70,7 @@ module.exports = {
     ],
     extra: {
       eas: {
-        projectId: 'placeholder-update-after-eas-init',
+        projectId: 'aa8233cc-b398-4638-8f72-2e006ae7c512',
       },
     },
     experiments: {

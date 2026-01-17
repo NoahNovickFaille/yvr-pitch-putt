@@ -1,0 +1,22 @@
+{
+  "cli": {
+    "appVersionSource": "local"
+  },
+  "build": {
+    "production": {
+      "ios": {
+        "resourceClass": "default",
+        "buildConfiguration": "Release"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "NEEDS_USER_INPUT",
+        "ascAppId": "NEEDS_USER_INPUT",
+        "appleTeamId": "NEEDS_USER_INPUT"
+      }
+    }
+  }
+}
