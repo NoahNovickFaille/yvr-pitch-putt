@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Alert,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import { Swipeable, RectButton } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 import { MessageSquare, Trash2 } from 'lucide-react-native';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 
@@ -47,33 +47,56 @@ export function ConversationListItem({
   onPress,
   onDelete,
 }: ConversationListItemProps) {
-  const handleDelete = () => {
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const handlePress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress();
+  }, [onPress]);
+
+  const handleDelete = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       'Delete Conversation',
       'Are you sure you want to delete this conversation? This action cannot be undone.',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: onDelete },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => swipeableRef.current?.close(),
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            swipeableRef.current?.close();
+            onDelete();
+          },
+        },
       ]
     );
-  };
+  }, [onDelete]);
 
-  const renderRightActions = () => (
-    <TouchableOpacity
+  const renderRightActions = useCallback(() => (
+    <RectButton
       style={styles.deleteAction}
       onPress={handleDelete}
-      activeOpacity={0.8}
     >
       <Trash2 size={20} color={DarkColors.text} />
-    </TouchableOpacity>
-  );
+    </RectButton>
+  ), [handleDelete]);
 
   return (
-    <Swipeable renderRightActions={renderRightActions}>
-      <TouchableOpacity
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      overshootRight={false}
+      friction={2}
+    >
+      <RectButton
         style={[styles.container, isActive && styles.activeContainer]}
-        onPress={onPress}
-        activeOpacity={0.7}
+        onPress={handlePress}
+        underlayColor={DarkColors.surfaceElevated}
       >
         <View style={styles.iconContainer}>
           <MessageSquare
@@ -100,7 +123,7 @@ export function ConversationListItem({
             {preview}
           </Text>
         </View>
-      </TouchableOpacity>
+      </RectButton>
     </Swipeable>
   );
 }

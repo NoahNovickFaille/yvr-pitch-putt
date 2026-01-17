@@ -53,36 +53,71 @@ export default function RootLayout() {
     console.log('[RootLayout] Loading extraction queue');
     ExtractionQueue.loadFromStorage();
 
-    // Process queue once LLM is ready
-    // Retry every 5 seconds until LLM is ready (max 1 minute)
+    // Process queue once LLM is ready and user is idle
+    // We delay 10 seconds after LLM is ready to avoid conflicts with active chat
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let hasStartedProcessing = false;
+
     const checkLLMAndProcessQueue = async () => {
+      // Skip if already processing
+      if (ExtractionQueue.isCurrentlyProcessing()) {
+        return;
+      }
+
       if (LLMService.isReady()) {
-        console.log('[RootLayout] LLM ready, processing extraction queue');
+        console.log('[RootLayout] LLM ready, attempting extraction queue processing');
         try {
+          // processQueue() will internally check if user is active
+          // If deferred, it returns immediately and we can try again later
           await ExtractionQueue.processQueue();
+
+          // Only mark as done if queue is now empty (all items processed)
+          if (ExtractionQueue.getQueueLength() === 0) {
+            hasStartedProcessing = true;
+            // Clear interval - we're done
+            if (intervalId) {
+              clearInterval(intervalId);
+              intervalId = null;
+            }
+          }
         } catch (error) {
           console.error('[RootLayout] Error processing extraction queue:', error);
         }
       }
     };
 
-    const maxRetries = 12; // 12 retries * 5 seconds = 60 seconds
-    let retryCount = 0;
-    const interval = setInterval(() => {
-      if (retryCount >= maxRetries) {
-        console.log('[RootLayout] Max retries reached for extraction queue processing');
-        clearInterval(interval);
-        return;
-      }
+    // Wait 10 seconds before first attempt to give chat time to finish
+    // This avoids cancelling extraction immediately when user resumes chatting
+    const initialDelay = setTimeout(() => {
       checkLLMAndProcessQueue();
-      retryCount++;
-    }, 5000);
 
-    // Also try immediately in case LLM is already ready
-    checkLLMAndProcessQueue();
+      // If LLM wasn't ready, retry every 10 seconds (up to 1 minute total)
+      if (!hasStartedProcessing) {
+        let retryCount = 0;
+        const maxRetries = 6; // 6 retries * 10 seconds = 60 seconds additional
+
+        intervalId = setInterval(() => {
+          if (retryCount >= maxRetries || hasStartedProcessing) {
+            if (intervalId) {
+              clearInterval(intervalId);
+              intervalId = null;
+            }
+            if (retryCount >= maxRetries) {
+              console.log('[RootLayout] Max retries reached for extraction queue processing');
+            }
+            return;
+          }
+          checkLLMAndProcessQueue();
+          retryCount++;
+        }, 10000);
+      }
+    }, 10000); // 10 second initial delay
 
     return () => {
-      clearInterval(interval);
+      clearTimeout(initialDelay);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, []);
 

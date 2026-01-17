@@ -2,11 +2,11 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import { Mic, Send, Square } from 'lucide-react-native';
 import { useSpeech } from '../../hooks/useSpeech';
+import { IconButton } from '@/src/components/ui';
 import { DarkColors, DarkSpacing } from '@/constants/darkTheme';
 
 interface ChatInputProps {
@@ -56,18 +56,18 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: C
   return (
     <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <View style={styles.inputRow}>
-        <TouchableOpacity
+        <IconButton
           style={[styles.micButton, isListening && styles.micButtonActive]}
           onPress={handleMicPress}
           disabled={disabled || isGenerating}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityLabel={isListening ? 'Stop listening' : 'Start voice input'}
         >
           {isListening ? (
             <Square size={18} color="#FFFFFF" fill="#FFFFFF" />
           ) : (
             <Mic size={18} color={disabled ? DarkColors.textTertiary : DarkColors.accent} />
           )}
-        </TouchableOpacity>
+        </IconButton>
 
         <View style={styles.inputContainer}>
           <TextInput
@@ -84,14 +84,14 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: C
           />
         </View>
 
-        <TouchableOpacity
+        <IconButton
           style={[styles.sendButton, canSend && styles.sendButtonActive]}
           onPress={handleSend}
           disabled={!canSend}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityLabel="Send message"
         >
           <Send size={18} color={canSend ? DarkColors.textOnAccent : DarkColors.textTertiary} />
-        </TouchableOpacity>
+        </IconButton>
       </View>
     </View>
   );

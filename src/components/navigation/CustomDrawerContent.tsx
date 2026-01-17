@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   FlatList,
   StyleSheet,
 } from 'react-native';
@@ -11,6 +10,7 @@ import { router } from 'expo-router';
 import { Plus, Settings, MessageCircle } from 'lucide-react-native';
 import { useConversationStore } from '@/src/stores/conversationStore';
 import { ConversationListItem } from './ConversationListItem';
+import { IconButton, PressableButton } from '@/src/components/ui';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 
 interface CustomDrawerContentProps {
@@ -91,13 +91,13 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.brandName}>Confidant</Text>
-        <TouchableOpacity
+        <IconButton
           style={styles.newChatButton}
           onPress={handleNewChat}
-          activeOpacity={0.7}
+          accessibilityLabel="Create new conversation"
         >
           <Plus size={20} color={DarkColors.accent} />
-        </TouchableOpacity>
+        </IconButton>
       </View>
 
       {/* Section header */}
@@ -117,14 +117,14 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
 
       {/* Footer with Settings */}
       <View style={styles.footer}>
-        <TouchableOpacity
+        <PressableButton
           style={styles.settingsButton}
           onPress={handleSettingsPress}
-          activeOpacity={0.7}
+          accessibilityLabel="Open settings"
         >
           <Settings size={20} color={DarkColors.textSecondary} />
           <Text style={styles.settingsText}>Settings</Text>
-        </TouchableOpacity>
+        </PressableButton>
       </View>
     </SafeAreaView>
   );

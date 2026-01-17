@@ -12,17 +12,22 @@ export const DECAY_STRENGTH: Record<MemoryCategory, number> = {
 
 /**
  * Calculate decay factor using Ebbinghaus-inspired formula
+ * Handles legacy memories that may not have category field
  * @param memory - Memory to calculate decay for
  * @param now - Current timestamp (defaults to Date.now())
  * @returns Decay factor between 0 (fully decayed) and 1 (no decay)
  */
 export function calculateDecay(memory: Memory, now: number = Date.now()): number {
   const hoursSinceAccess = (now - memory.lastAccessed) / (1000 * 60 * 60);
-  const baseStrength = DECAY_STRENGTH[memory.category];
+
+  // Fallback to 'persistent' for legacy memories without category
+  const category = memory.category ?? 'persistent';
+  const baseStrength = DECAY_STRENGTH[category];
 
   // Access count reinforcement: frequently accessed memories decay slower
   // Logarithmic boost to prevent unlimited strengthening
-  const boostedStrength = baseStrength * (1 + Math.log10(memory.accessCount + 1));
+  const accessCount = memory.accessCount ?? 0;
+  const boostedStrength = baseStrength * (1 + Math.log10(accessCount + 1));
 
   // Exponential decay formula: e^(-t/τ) where τ is the decay constant
   const decayFactor = Math.exp(-hoursSinceAccess / boostedStrength);
@@ -32,6 +37,7 @@ export function calculateDecay(memory: Memory, now: number = Date.now()): number
 
 /**
  * Calculate relevance score combining importance and decay
+ * Handles legacy memories that may not have importance field
  * @param memory - Memory to score
  * @param now - Current timestamp (defaults to Date.now())
  * @returns Relevance score between 0 and 1
@@ -41,7 +47,10 @@ export function calculateRelevanceScore(
   now: number = Date.now()
 ): number {
   const decayFactor = calculateDecay(memory, now);
-  const normalizedImportance = memory.importance / 10; // 1-10 scale -> 0-1
+
+  // Fallback to 7 for legacy memories without importance
+  const importance = memory.importance ?? 7;
+  const normalizedImportance = importance / 10; // 1-10 scale -> 0-1
 
   return normalizedImportance * decayFactor;
 }

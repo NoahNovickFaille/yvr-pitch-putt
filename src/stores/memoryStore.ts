@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { storage } from '../storage/storage';
-import { Memory, generateMemoryId } from '../types/memory';
+import {
+  Memory,
+  MemoryCategory,
+  MemoryType,
+  generateMemoryId,
+  inferImportance,
+  inferCategory,
+} from '../types/memory';
 import {
   calculateRelevanceScore,
   calculateKeywordMatch,
@@ -8,16 +15,22 @@ import {
 
 const MEMORIES_KEY = 'stored_memories';
 
+/**
+ * Input type for addMemories - accepts simplified extraction results
+ * importance and category are optional and will be inferred from type
+ */
+interface ExtractedMemory {
+  type: MemoryType;
+  content: string;
+  importance?: number;
+  category?: MemoryCategory;
+}
+
 interface MemoryState {
   memories: Memory[];
 
   // Actions
-  addMemories: (
-    extracted: Omit<
-      Memory,
-      'id' | 'createdAt' | 'lastAccessed' | 'accessCount'
-    >[]
-  ) => void;
+  addMemories: (extracted: ExtractedMemory[]) => void;
   markAccessed: (memoryIds: string[]) => void;
   pruneDecayed: (threshold: number) => void;
   getTopMemories: (count: number, context?: string) => Memory[];
@@ -44,22 +57,29 @@ function loadMemories(): Memory[] {
 export const useMemoryStore = create<MemoryState>((set, get) => ({
   memories: [],
 
-  addMemories: (
-    extracted: Omit<
-      Memory,
-      'id' | 'createdAt' | 'lastAccessed' | 'accessCount'
-    >[]
-  ) => {
+  addMemories: (extracted: ExtractedMemory[]) => {
     const now = Date.now();
 
-    // Create full Memory objects
+    // Create full Memory objects with inferred values for missing fields
     const newMemories: Memory[] = extracted.map((mem) => ({
-      ...mem,
       id: generateMemoryId(),
+      type: mem.type,
+      content: mem.content,
+      // Use provided importance or infer from type
+      importance: mem.importance ?? inferImportance(mem.type),
+      // Use provided category or infer from type
+      category: mem.category ?? inferCategory(mem.type),
       createdAt: now,
       lastAccessed: now,
       accessCount: 0,
     }));
+
+    if (__DEV__) {
+      console.log('[MemoryStore] Adding memories:', newMemories.length);
+      newMemories.forEach((m) => {
+        console.log(`  - [${m.type}] "${m.content}" (importance: ${m.importance}, category: ${m.category})`);
+      });
+    }
 
     const state = get();
     const updatedMemories = [...state.memories, ...newMemories];

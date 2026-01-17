@@ -5,6 +5,9 @@ import { useConversationStore } from '../../stores/conversationStore';
 import { LLMService } from '../llm/LLMService';
 import { ExtractionQueue } from './ExtractionQueue';
 
+// Don't attempt direct extraction if user was active within this time
+const ACTIVE_THRESHOLD_MS = 10000; // 10 seconds
+
 /**
  * Memory orchestrator singleton
  *
@@ -32,17 +35,38 @@ class MemoryOrchestratorImpl {
   }
 
   /**
+   * Check if LLM is currently busy (generating a response)
+   */
+  private isLLMBusy(): boolean {
+    const chatState = useChatStore.getState();
+    return chatState.isGenerating;
+  }
+
+  /**
+   * Check if user was recently active (sent a message recently)
+   */
+  private wasRecentlyActive(): boolean {
+    const conversation = useChatStore.getState().getCurrentConversation();
+    if (conversation?.lastMessageAt) {
+      const timeSinceLastMessage = Date.now() - conversation.lastMessageAt;
+      return timeSinceLastMessage < ACTIVE_THRESHOLD_MS;
+    }
+    return false;
+  }
+
+  /**
    * Extract memories from a conversation and store them
    *
    * Guards:
    * - Prevents concurrent extractions
    * - Enforces 1-minute cooldown
+   * - Queues instead of extracting if LLM is busy or user recently active
    * - Initializes LLM if not ready (instead of failing silently)
    * - Requires at least 2 messages
    * - Queues for retry if LLM initialization fails
    *
    * @param conversationId - Optional conversation ID to extract from. If not provided, uses current active conversation.
-   * @returns Promise that resolves when extraction completes (or is skipped)
+   * @returns Promise that resolves when extraction completes (or is skipped/queued)
    */
   async extractAndStore(conversationId?: string): Promise<void> {
     // Guard against concurrent extractions
@@ -86,21 +110,23 @@ class MemoryOrchestratorImpl {
       return;
     }
 
+    // If LLM is busy or user was recently active, queue for later instead of trying now
+    if (this.isLLMBusy() || this.wasRecentlyActive()) {
+      console.log('[MemoryOrchestrator] LLM busy or user recently active, queuing for later');
+      if (targetConversationId) {
+        ExtractionQueue.add(targetConversationId, messages.length);
+      }
+      return;
+    }
+
     // Check LLM availability and initialize if needed
     if (!LLMService.isReady()) {
-      console.log('[MemoryOrchestrator] LLM not ready, attempting to initialize...');
-      try {
-        await LLMService.initialize();
-        console.log('[MemoryOrchestrator] LLM initialized successfully');
-      } catch (error) {
-        console.error('[MemoryOrchestrator] Failed to initialize LLM for extraction:', error);
-        // Queue for retry on next app launch
-        if (targetConversationId) {
-          ExtractionQueue.add(targetConversationId, messages.length);
-          console.log('[MemoryOrchestrator] Queued extraction for retry');
-        }
-        return;
+      console.log('[MemoryOrchestrator] LLM not ready, queuing for later');
+      // Queue for retry when LLM is ready
+      if (targetConversationId) {
+        ExtractionQueue.add(targetConversationId, messages.length);
       }
+      return;
     }
 
     this.isExtracting = true;
@@ -125,10 +151,19 @@ class MemoryOrchestratorImpl {
         }
       }
     } catch (error) {
-      console.error('[MemoryOrchestrator] Extraction failed:', error);
-      // Queue for retry on error
-      if (targetConversationId) {
-        ExtractionQueue.add(targetConversationId, messages.length);
+      // Check if this was a cancellation - queue for retry without logging as error
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage.includes('Cancelled by higher priority task')) {
+        console.log('[MemoryOrchestrator] Extraction cancelled by chat, queuing for later');
+        if (targetConversationId) {
+          ExtractionQueue.add(targetConversationId, messages.length);
+        }
+      } else {
+        console.error('[MemoryOrchestrator] Extraction failed:', error);
+        // Queue for retry on error
+        if (targetConversationId) {
+          ExtractionQueue.add(targetConversationId, messages.length);
+        }
       }
     } finally {
       this.isExtracting = false;

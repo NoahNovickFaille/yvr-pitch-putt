@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 import { Menu } from 'lucide-react-native';
 import { useConversationStore } from '@/src/stores/conversationStore';
+import { IconButton } from '@/src/components/ui';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 
 export function ChatHeader() {
@@ -17,21 +18,21 @@ export function ChatHeader() {
 
   const title = conversation?.title || 'New Conversation';
 
-  const handleMenuPress = () => {
+  const handleMenuPress = useCallback(() => {
     navigation.openDrawer();
-  };
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        {/* Menu button - using Pressable for better hit testing */}
-        <Pressable
+        {/* Menu button */}
+        <IconButton
           style={styles.menuButton}
           onPress={handleMenuPress}
-          hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+          accessibilityLabel="Open navigation menu"
         >
           <Menu size={24} color={DarkColors.textSecondary} />
-        </Pressable>
+        </IconButton>
 
         {/* Conversation title */}
         <View style={styles.titleContainer}>

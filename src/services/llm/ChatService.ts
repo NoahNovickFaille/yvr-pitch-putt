@@ -41,6 +41,14 @@ class ChatServiceImpl {
     // Step 2: Mark memories as accessed (reinforces them)
     if (memories.length > 0) {
       useMemoryStore.getState().markAccessed(memories.map((m) => m.id));
+      if (__DEV__) {
+        console.log('[ChatService] Retrieved memories:', memories.map(m => m.content));
+      }
+    } else {
+      if (__DEV__) {
+        const totalMemories = useMemoryStore.getState().memories.length;
+        console.log('[ChatService] No memories retrieved. Total stored:', totalMemories);
+      }
     }
 
     // Step 3: Build memory section within budget

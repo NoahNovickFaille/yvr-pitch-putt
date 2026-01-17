@@ -12,7 +12,11 @@
 import { storage } from '../../storage/storage';
 import { useConversationStore } from '../../stores/conversationStore';
 import { useMemoryStore } from '../../stores/memoryStore';
+import { useChatStore } from '../../stores/chatStore';
 import { extractMemories, formatConversationForExtraction } from './MemoryExtractor';
+
+// Idle threshold: don't process if user sent a message within this time
+const IDLE_THRESHOLD_MS = 30000; // 30 seconds
 
 interface PendingExtraction {
   conversationId: string;
@@ -26,6 +30,7 @@ const MAX_RETRIES = 3;
 
 class ExtractionQueueImpl {
   private queue: PendingExtraction[] = [];
+  private isProcessing = false;
 
   /**
    * Load queue from MMKV storage
@@ -67,46 +72,118 @@ class ExtractionQueueImpl {
   }
 
   /**
-   * Process all pending extractions in the queue
-   * Should be called after LLM is ready on app startup
+   * Check if queue is currently being processed
    */
-  async processQueue(): Promise<void> {
-    if (this.queue.length === 0) return;
+  isCurrentlyProcessing(): boolean {
+    return this.isProcessing;
+  }
 
-    console.log('[ExtractionQueue] Processing', this.queue.length, 'pending extractions');
+  /**
+   * Check if user is currently active (chatting or LLM generating)
+   */
+  private isUserActive(): boolean {
+    const chatState = useChatStore.getState();
 
-    // Process each pending extraction
-    for (const pending of [...this.queue]) {
-      try {
-        // Load conversation from storage
-        const conversation = useConversationStore.getState().getConversation(pending.conversationId);
+    // If LLM is currently generating, user is active
+    if (chatState.isGenerating) {
+      return true;
+    }
 
-        if (!conversation || conversation.messages.length < 2) {
-          console.log('[ExtractionQueue] Conversation', pending.conversationId, 'no longer exists or too few messages - removing from queue');
-          this.remove(pending.conversationId);
-          continue;
-        }
-
-        // Attempt extraction
-        console.log('[ExtractionQueue] Attempting extraction for conversation', pending.conversationId);
-        const conversationText = formatConversationForExtraction(conversation.messages);
-        const memories = await extractMemories(conversationText);
-
-        if (memories.length > 0) {
-          useMemoryStore.getState().addMemories(memories);
-          console.log('[ExtractionQueue] Successfully extracted', memories.length, 'memories from queued conversation');
-          this.remove(pending.conversationId);
-        } else {
-          console.log('[ExtractionQueue] No memories extracted - incrementing retry count');
-          this.incrementRetry(pending.conversationId);
-        }
-      } catch (error) {
-        console.error('[ExtractionQueue] Extraction failed for', pending.conversationId, error);
-        this.incrementRetry(pending.conversationId);
+    // Check if recent message was sent (within idle threshold)
+    const conversation = chatState.getCurrentConversation();
+    if (conversation?.lastMessageAt) {
+      const timeSinceLastMessage = Date.now() - conversation.lastMessageAt;
+      if (timeSinceLastMessage < IDLE_THRESHOLD_MS) {
+        return true;
       }
     }
 
-    console.log('[ExtractionQueue] Queue processing complete. Remaining items:', this.queue.length);
+    return false;
+  }
+
+  /**
+   * Process all pending extractions in the queue
+   * Should be called after LLM is ready on app startup
+   *
+   * Guards against:
+   * - Concurrent processing (only one processQueue at a time)
+   * - Active user (generating or recent message)
+   * - Cancellations by high-priority tasks (doesn't count as retry)
+   */
+  async processQueue(): Promise<void> {
+    // Guard against concurrent processing
+    if (this.isProcessing) {
+      if (__DEV__) {
+        console.log('[ExtractionQueue] Already processing, skipping duplicate call');
+      }
+      return;
+    }
+
+    if (this.queue.length === 0) return;
+
+    // Check if user is actively chatting
+    if (this.isUserActive()) {
+      if (__DEV__) {
+        console.log('[ExtractionQueue] User is active, deferring extraction');
+      }
+      return;
+    }
+
+    this.isProcessing = true;
+    console.log('[ExtractionQueue] Processing', this.queue.length, 'pending extractions');
+
+    try {
+      // Process each pending extraction
+      for (const pending of [...this.queue]) {
+        // Check if user became active during processing
+        if (this.isUserActive()) {
+          console.log('[ExtractionQueue] User became active, pausing extraction');
+          break;
+        }
+
+        try {
+          // Load conversation from storage
+          const conversation = useConversationStore.getState().getConversation(pending.conversationId);
+
+          if (!conversation || conversation.messages.length < 2) {
+            console.log('[ExtractionQueue] Conversation', pending.conversationId, 'no longer exists or too few messages - removing from queue');
+            this.remove(pending.conversationId);
+            continue;
+          }
+
+          // Attempt extraction
+          console.log('[ExtractionQueue] Attempting extraction for conversation', pending.conversationId);
+          const conversationText = formatConversationForExtraction(conversation.messages);
+          const memories = await extractMemories(conversationText);
+
+          if (memories.length > 0) {
+            useMemoryStore.getState().addMemories(memories);
+            console.log('[ExtractionQueue] Successfully extracted', memories.length, 'memories from queued conversation');
+            this.remove(pending.conversationId);
+          } else {
+            console.log('[ExtractionQueue] No memories extracted - incrementing retry count');
+            this.incrementRetry(pending.conversationId);
+          }
+        } catch (error) {
+          // Check if this was a cancellation by high-priority task
+          const errorMessage = error instanceof Error ? error.message : '';
+          if (errorMessage.includes('Cancelled by higher priority task')) {
+            // Don't count cancellation as a retry - just log and continue
+            // The item stays in queue for next attempt
+            console.log('[ExtractionQueue] Extraction cancelled by chat - will retry later');
+            // Break out of loop - user is actively chatting, don't keep trying
+            break;
+          }
+
+          console.error('[ExtractionQueue] Extraction failed for', pending.conversationId, error);
+          this.incrementRetry(pending.conversationId);
+        }
+      }
+
+      console.log('[ExtractionQueue] Queue processing complete. Remaining items:', this.queue.length);
+    } finally {
+      this.isProcessing = false;
+    }
   }
 
   /**

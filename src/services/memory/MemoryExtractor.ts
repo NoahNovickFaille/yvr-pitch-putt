@@ -50,25 +50,29 @@ async function retryExtraction(
           type: 'json_schema',
           json_schema: { schema: MEMORY_EXTRACTION_SCHEMA }
         },
-        n_predict: 512,
-        temperature: 0.3,
+        n_predict: 256, // Reduced for simpler schema
+        temperature: 0.5, // Slightly higher to avoid constraint gridlock
         top_p: 0.9,
       },
       undefined, // No streaming for extraction
       'low' // Memory extraction has LOW priority
     );
 
+    console.log('[MemoryExtractor] Retry raw LLM output:', result.text);
+
     const parsed: ExtractionResult = parseJsonWithUnwrap<ExtractionResult>(result.text);
-    return parsed.memories || [];
+    const memories = parsed.memories || [];
+    console.log('[MemoryExtractor] Retry extraction complete - memories:', memories.length);
+    return memories;
   } catch (error) {
     console.error('[MemoryExtractor] Retry failed - returning empty array:', error);
-    console.error('[MemoryExtractor] Raw retry output:', error instanceof Error ? error.message : 'Unknown error');
     return [];
   }
 }
 
 /**
  * Extract memories from conversation using LLM with JSON schema
+ * Optimized for small (3B) models with simplified prompt and schema
  * @param conversationText - Formatted conversation text (use formatConversationForExtraction)
  * @returns Promise resolving to array of extracted memories
  */
@@ -76,6 +80,7 @@ export async function extractMemories(
   conversationText: string
 ): Promise<ExtractionResult['memories']> {
   console.log('[MemoryExtractor] Starting extraction, text length:', conversationText.length);
+  console.log('[MemoryExtractor] Conversation text:', conversationText.substring(0, 500) + (conversationText.length > 500 ? '...' : ''));
 
   // Check if LLM is ready
   if (!LLMService.isReady()) {
@@ -95,23 +100,34 @@ export async function extractMemories(
           type: 'json_schema',
           json_schema: { schema: MEMORY_EXTRACTION_SCHEMA }
         },
-        n_predict: 512,        // Enough for ~8 memories
-        temperature: 0.3,      // Lower for consistent extraction
+        n_predict: 256, // Reduced for simpler output
+        temperature: 0.5, // Slightly higher to avoid constraint gridlock
         top_p: 0.9,
       },
       undefined, // No streaming for extraction
       'low' // Memory extraction has LOW priority (can be preempted by chat)
     );
 
+    // Log raw output for debugging
+    console.log('[MemoryExtractor] Raw LLM output:', result.text);
+
     // Parse result with try-catch and markdown unwrapping
     try {
       const parsed: ExtractionResult = parseJsonWithUnwrap<ExtractionResult>(result.text);
       const memories = parsed.memories || [];
       console.log('[MemoryExtractor] Extraction complete - memories:', memories.length);
+
+      // Log extracted memories for debugging
+      if (memories.length > 0) {
+        console.log('[MemoryExtractor] Extracted memories:', JSON.stringify(memories, null, 2));
+      } else {
+        console.log('[MemoryExtractor] No memories extracted from conversation');
+      }
+
       return memories;
     } catch (parseError) {
       console.error('[MemoryExtractor] JSON parse failed:', parseError);
-      console.error('[MemoryExtractor] Raw output:', result.text);
+      console.error('[MemoryExtractor] Raw output was:', result.text);
 
       // Retry once with explicit JSON instruction
       return await retryExtraction(conversationText);
