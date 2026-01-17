@@ -1,5 +1,5 @@
 import { initLlama, LlamaContext } from 'llama.rn';
-import * as FileSystem from 'expo-file-system';
+import { getInfoAsync } from 'expo-file-system/legacy';
 import { MODEL_CONFIG } from '../../constants/model';
 import { getModelPath } from '../download/ModelDownloadService';
 
@@ -70,7 +70,7 @@ class LLMServiceImpl {
       const modelPath = getModelPath();
 
       // Verify file exists before attempting initialization
-      const info = await FileSystem.getInfoAsync(modelPath);
+      const info = await getInfoAsync(modelPath);
       if (!info.exists) {
         throw new Error(
           'Model file not found. Please download the model first.'
@@ -89,7 +89,7 @@ class LLMServiceImpl {
 
       // Initialize with conservative settings
       const context = await initLlama({
-        model: `file://${modelPath}`,
+        model: modelPath,
         n_ctx: MODEL_CONFIG.llm.n_ctx,
         n_gpu_layers: MODEL_CONFIG.llm.n_gpu_layers,
         use_mlock: MODEL_CONFIG.llm.use_mlock,

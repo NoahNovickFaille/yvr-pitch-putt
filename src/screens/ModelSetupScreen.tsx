@@ -10,6 +10,7 @@ import {
 import { useModelDownload } from '../hooks/useModelDownload';
 import { useLLM } from '../hooks/useLLM';
 import { MODEL_CONFIG } from '../constants/model';
+import { deleteModelFile } from '../services/download/ModelDownloadService';
 
 interface ModelSetupScreenProps {
   onReady: () => void;
@@ -48,6 +49,12 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
       onReady();
     }
   }, [isReady, onReady]);
+
+  // Handle deleting corrupted model file
+  const handleDeleteModel = async () => {
+    await deleteModelFile();
+    // State will automatically reset to 'not_downloaded' since file is gone
+  };
 
   // Format bytes for display
   const formatBytes = (bytes: number): string => {
@@ -188,6 +195,12 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
           <Text style={styles.errorText}>{llmErrorMessage}</Text>
           <TouchableOpacity style={styles.button} onPress={retryInit}>
             <Text style={styles.buttonText}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.dangerButton, { marginTop: 12 }]}
+            onPress={handleDeleteModel}
+          >
+            <Text style={styles.dangerButtonText}>Delete Model & Re-download</Text>
           </TouchableOpacity>
         </View>
       );
