@@ -115,15 +115,13 @@ class ChatServiceImpl {
       { role: 'user' as const, content: userMessage },
     ];
 
-    // Step 4: Get context and generate response with streaming
+    // Step 4: Generate response with streaming (via queue for concurrency safety)
     try {
-      const context = LLMService.getContext();
-
       console.log('[ChatService] Starting completion with', messages.length, 'messages');
 
-      const result = await context.completion(
+      const result = await LLMService.queuedCompletion(
+        messages,
         {
-          messages,
           n_predict: 512,        // Max tokens to generate
           stop: STOP_WORDS,      // Clean endings
           temperature: 0.7,      // Slightly creative for empathy
@@ -133,7 +131,8 @@ class ChatServiceImpl {
         (data) => {
           // Partial completion callback - fires for each token
           onToken(data.token);
-        }
+        },
+        'high' // Chat messages have HIGH priority
       );
 
       console.log('[ChatService] Completion finished:', result.text.length, 'chars');
@@ -173,11 +172,9 @@ class ChatServiceImpl {
     ];
 
     try {
-      const context = LLMService.getContext();
-
-      const result = await context.completion(
+      const result = await LLMService.queuedCompletion(
+        messages,
         {
-          messages,
           n_predict: 512,
           stop: STOP_WORDS,
           temperature: 0.7,
@@ -186,7 +183,8 @@ class ChatServiceImpl {
         },
         (data) => {
           onToken(data.token);
-        }
+        },
+        'high' // Chat messages have HIGH priority
       );
 
       onComplete(result.text);

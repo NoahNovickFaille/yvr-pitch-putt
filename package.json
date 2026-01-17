@@ -8,7 +8,9 @@
 		"android": "expo run:android --device",
 		"ios": "expo run:ios --device",
 		"dev": "expo start --clear",
-		"expo:lint": "expo lint"
+		"expo:lint": "expo lint",
+    "lfg:ios": "npm run prebuild --clean && npm run ios",
+    "lfg:android": "npm run prebuild --clean && npm run android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

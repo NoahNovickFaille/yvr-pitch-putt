@@ -2,6 +2,7 @@ import { initLlama, LlamaContext } from 'llama.rn';
 import { getInfoAsync } from 'expo-file-system/legacy';
 import { MODEL_CONFIG } from '../../constants/model';
 import { getModelPath } from '../download/ModelDownloadService';
+import { CompletionQueueManager, Priority } from './CompletionQueue';
 
 export type LLMStatus =
   | 'idle'
@@ -24,6 +25,7 @@ class LLMServiceImpl {
   private state: LLMState = { status: 'idle' };
   private listeners: Set<StateListener> = new Set();
   private initPromise: Promise<void> | null = null;
+  private completionQueue = new CompletionQueueManager();
 
   static getInstance(): LLMServiceImpl {
     if (!LLMServiceImpl.instance) {
@@ -140,6 +142,9 @@ class LLMServiceImpl {
     if (this.state.status === 'ready' && this.state.context) {
       console.log('[LLMService] Releasing context due to memory pressure');
 
+      // Clear any pending completions
+      this.completionQueue.clear();
+
       // The context will be garbage collected
       // llama.rn handles native cleanup internally
       this.setState({ status: 'unloaded' });
@@ -158,6 +163,33 @@ class LLMServiceImpl {
       throw new Error('LLM not initialized. Call initialize() first.');
     }
     return this.state.context;
+  }
+
+  /**
+   * Queue a completion request with priority handling
+   * Prevents "Context is busy" errors by serializing all completion calls
+   *
+   * @param messages - Chat messages array
+   * @param options - Completion options (n_predict, temperature, etc.)
+   * @param onToken - Optional streaming callback
+   * @param priority - 'high' for chat messages, 'low' for background tasks
+   */
+  async queuedCompletion(
+    messages: any[],
+    options: any,
+    onToken?: (data: any) => void,
+    priority: Priority = 'high'
+  ): Promise<any> {
+    if (!this.isReady() || !this.state.context) {
+      throw new Error('LLM not initialized.');
+    }
+    return this.completionQueue.enqueue(
+      this.state.context,
+      messages,
+      options,
+      onToken,
+      priority
+    );
   }
 
   // Reset error state (to allow retry)

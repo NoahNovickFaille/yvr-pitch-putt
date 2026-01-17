@@ -1,8 +1,8 @@
-import { LLMService } from '../llm/LLMService';
 import { ChatMessage } from '../../types/chat';
-import { ExtractionResult, MemoryType, MemoryCategory } from '../../types/memory';
+import { ExtractionResult, } from '../../types/memory';
+import { parseJsonWithUnwrap } from '../llm/JsonUtils';
+import { LLMService } from '../llm/LLMService';
 import { MEMORY_EXTRACTION_PROMPT, MEMORY_EXTRACTION_SCHEMA } from './extractionPrompt';
-import { LlamaContext } from 'llama.rn';
 
 /**
  * Format conversation messages for memory extraction
@@ -29,34 +29,36 @@ export function formatConversationForExtraction(
 /**
  * Retry extraction with explicit JSON instruction
  * @param conversationText - Formatted conversation text
- * @param context - LlamaContext for completion
  * @returns Array of extracted memories or empty array on failure
  */
 async function retryExtraction(
-  conversationText: string,
-  context: LlamaContext
+  conversationText: string
 ): Promise<ExtractionResult['memories']> {
   console.log('[MemoryExtractor] Retrying extraction with explicit JSON instruction');
 
   try {
-    const result = await context.completion({
-      messages: [
+    const result = await LLMService.queuedCompletion(
+      [
         { role: 'system', content: MEMORY_EXTRACTION_PROMPT },
         {
           role: 'user',
           content: `${conversationText}\n\nOutput valid JSON only. Your previous response was not valid JSON.`
         }
       ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: { schema: MEMORY_EXTRACTION_SCHEMA }
+      {
+        response_format: {
+          type: 'json_schema',
+          json_schema: { schema: MEMORY_EXTRACTION_SCHEMA }
+        },
+        n_predict: 512,
+        temperature: 0.3,
+        top_p: 0.9,
       },
-      n_predict: 512,
-      temperature: 0.3,
-      top_p: 0.9,
-    });
+      undefined, // No streaming for extraction
+      'low' // Memory extraction has LOW priority
+    );
 
-    const parsed: ExtractionResult = JSON.parse(result.text);
+    const parsed: ExtractionResult = parseJsonWithUnwrap<ExtractionResult>(result.text);
     return parsed.memories || [];
   } catch (error) {
     console.error('[MemoryExtractor] Retry failed - returning empty array:', error);
@@ -82,27 +84,28 @@ export async function extractMemories(
   }
 
   try {
-    // Get context
-    const context = LLMService.getContext();
-
-    // Call completion with json_schema
-    const result = await context.completion({
-      messages: [
+    // Call completion with json_schema via queue for concurrency safety
+    const result = await LLMService.queuedCompletion(
+      [
         { role: 'system', content: MEMORY_EXTRACTION_PROMPT },
         { role: 'user', content: conversationText }
       ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: { schema: MEMORY_EXTRACTION_SCHEMA }
+      {
+        response_format: {
+          type: 'json_schema',
+          json_schema: { schema: MEMORY_EXTRACTION_SCHEMA }
+        },
+        n_predict: 512,        // Enough for ~8 memories
+        temperature: 0.3,      // Lower for consistent extraction
+        top_p: 0.9,
       },
-      n_predict: 512,        // Enough for ~8 memories
-      temperature: 0.3,      // Lower for consistent extraction
-      top_p: 0.9,
-    });
+      undefined, // No streaming for extraction
+      'low' // Memory extraction has LOW priority (can be preempted by chat)
+    );
 
-    // Parse result with try-catch
+    // Parse result with try-catch and markdown unwrapping
     try {
-      const parsed: ExtractionResult = JSON.parse(result.text);
+      const parsed: ExtractionResult = parseJsonWithUnwrap<ExtractionResult>(result.text);
       const memories = parsed.memories || [];
       console.log('[MemoryExtractor] Extraction complete - memories:', memories.length);
       return memories;
@@ -111,7 +114,7 @@ export async function extractMemories(
       console.error('[MemoryExtractor] Raw output:', result.text);
 
       // Retry once with explicit JSON instruction
-      return await retryExtraction(conversationText, context);
+      return await retryExtraction(conversationText);
     }
   } catch (error) {
     console.error('[MemoryExtractor] Extraction error:', error);
