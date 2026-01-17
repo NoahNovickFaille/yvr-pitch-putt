@@ -25,9 +25,9 @@ This roadmap delivers Confidant in four phases ordered by technical dependency a
 **Plans:** 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Create Expo project with dependencies and config
-- [ ] 01-02-PLAN.md — Download service with pause/resume and MMKV persistence
-- [ ] 01-03-PLAN.md — LLM service with memory pressure handling
+- [x] 01-01-PLAN.md — Create Expo project with dependencies and config
+- [x] 01-02-PLAN.md — Download service with pause/resume and MMKV persistence
+- [x] 01-03-PLAN.md — LLM service with memory pressure handling
 - [ ] 01-04-PLAN.md — Setup screen UI with visual verification
 
 ---
@@ -45,7 +45,16 @@ Plans:
 4. Crisis language triggers non-dismissable modal with hotline resources before AI responds
 5. AI personality feels warm and empathetic (qualitative: "sounds like someone who cares")
 
-**Plans:** (created by /gsd:plan-phase)
+**Plans:** 7 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Define chat types and empathetic system prompt
+- [ ] 02-02-PLAN.md — Create crisis detection with keyword matching
+- [ ] 02-03-PLAN.md — Integrate on-device speech recognition
+- [ ] 02-04-PLAN.md — Create chat store with MMKV persistence
+- [ ] 02-05-PLAN.md — Create ChatService with streaming and crisis detection
+- [ ] 02-06-PLAN.md — Build chat UI components and crisis modal
+- [ ] 02-07-PLAN.md — Integrate ChatScreen and add navigation
 
 ---
 
@@ -87,8 +96,8 @@ Plans:
 
 | Phase | Status | Completed |
 |-------|--------|-----------|
-| 1 - Foundation | Planned | - |
-| 2 - Core Chat | Not started | - |
+| 1 - Foundation | In Progress | 3/4 plans |
+| 2 - Core Chat | Planned | - |
 | 3 - Memory System | Not started | - |
 | 4 - Polish | Not started | - |
 
