@@ -10,16 +10,16 @@ See: .planning/PROJECT.md
 ## Current Position
 
 Phase: 2 of 4 (Core Chat)
-Plan: 2 of 7 complete
+Plan: 3 of 7 complete
 Status: In progress
-Last activity: 2026-01-17 - Completed 02-02-PLAN.md (Crisis Detection)
+Last activity: 2026-01-17 - Completed 02-03-PLAN.md (Speech Recognition)
 
-Progress: [#####-----] 45%
+Progress: [######----] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 3.0 min
 
 **By Phase:**
@@ -27,7 +27,7 @@ Progress: [#####-----] 45%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 11 min | 3.7 min |
-| 02-core-chat | 2/7 | 4 min | 2.0 min |
+| 02-core-chat | 3/7 | 7 min | 2.3 min |
 
 ## Accumulated Context
 
@@ -47,6 +47,10 @@ Progress: [#####-----] 45%
 | Phrase-based crisis matching | 02-02 | Phrase matching over single words reduces false positives (slang vs crisis) |
 | Two-tier severity system | 02-02 | High-severity (any match) vs medium-severity (2+ matches) balances sensitivity/specificity |
 | 15-character negation window | 02-02 | Handles "I don't want to die" while being performant |
+| requiresOnDeviceRecognition: true | 02-03 | Enforces local processing, no cloud dependency, aligns with privacy focus |
+| iosTaskHint: 'dictation' | 02-03 | Optimizes iOS SFSpeechRecognizer for natural speech vs short commands |
+| interimResults: true | 02-03 | Enables real-time transcript updates as user speaks for responsive UX |
+| Service wrapper pattern for native modules | 02-03 | Separates imperative native module control from React state management |
 
 ### Pending Todos
 
@@ -59,5 +63,5 @@ Progress: [#####-----] 45%
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed 02-02-PLAN.md (Crisis Detection)
+Stopped at: Completed 02-03-PLAN.md (Speech Recognition)
 Resume file: None
