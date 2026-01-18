@@ -11,7 +11,9 @@
     "expo:lint": "expo lint",
     "lfg:ios": "npm run prebuild --clean && npm run ios",
     "lfg:android": "npm run prebuild --clean && npm run android",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:ios": "eas build --platform ios --profile production",
+    "submit:ios": "eas submit --platform ios --latest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

@@ -20,6 +20,7 @@ module.exports = {
         UIBackgroundModes: ['fetch'], // For background downloads
         NSMicrophoneUsageDescription: 'Cove needs microphone access to hear your voice messages.',
         NSSpeechRecognitionUsageDescription: 'Cove uses on-device speech recognition to transcribe your voice.',
+        NSPhotoLibraryUsageDescription: 'Cove does not access your photos.',
         ITSAppUsesNonExemptEncryption: false, // App does not use custom encryption
       },
     },
@@ -41,7 +42,7 @@ module.exports = {
       [
         './plugins/withLlamaRN',
         {
-          enableEntitlements: true,
+          enableEntitlements: false,
           entitlementsProfile: 'production',
           forceCxx20: true,
         },

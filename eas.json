@@ -12,11 +12,7 @@
   },
   "submit": {
     "production": {
-      "ios": {
-        "appleId": "NEEDS_USER_INPUT",
-        "ascAppId": "NEEDS_USER_INPUT",
-        "appleTeamId": "NEEDS_USER_INPUT"
-      }
+      "ios": {}
     }
   }
 }
