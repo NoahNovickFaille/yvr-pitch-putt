@@ -8,7 +8,6 @@ Cove is a warm, empathetic AI companion that remembers your conversations and bu
 
 - **On-Device LLM**: Uses llama.rn with Metal GPU acceleration
 - **Persistent Memory**: Remembers facts, emotions, and events across sessions
-- **Voice Input**: On-device speech recognition (no cloud transcription)
 - **Crisis Detection**: Safety-first design with immediate crisis resource display
 - **Complete Privacy**: Zero network calls for AI inference
 
@@ -56,18 +55,18 @@ On first launch, the app downloads a ~1.8GB model file. This happens once and su
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Services                                 │
-│  ┌───────────┐  ┌────────────┐  ┌────────┐  ┌────────────────┐  │
-│  │    LLM    │  │   Memory   │  │ Safety │  │    Speech      │  │
-│  │  Service  │  │  Service   │  │Service │  │   Service      │  │
-│  └─────┬─────┘  └──────┬─────┘  └───┬────┘  └───────┬────────┘  │
-│        │               │            │               │            │
-│        │       ┌───────┴───────┐    │               │            │
-│        │       │               │    │               │            │
-│        ▼       ▼               ▼    │               │            │
-│  ┌──────────────────┐  ┌──────────┐ │  ┌────────────────────┐   │
-│  │ CompletionQueue  │  │Extraction│ │  │  iOS Speech        │   │
-│  │ (Priority-based) │  │  Queue   │ │  │  Framework         │   │
-│  └────────┬─────────┘  └──────────┘ │  └────────────────────┘   │
+│  ┌───────────┐  ┌────────────┐  ┌────────┐                      │
+│  │    LLM    │  │   Memory   │  │ Safety │                      │
+│  │  Service  │  │  Service   │  │Service │                      │
+│  └─────┬─────┘  └──────┬─────┘  └───┬────┘                      │
+│        │               │            │                            │
+│        │       ┌───────┴───────┐    │                            │
+│        │       │               │    │                            │
+│        ▼       ▼               ▼    │                            │
+│  ┌──────────────────┐  ┌──────────┐ │                            │
+│  │ CompletionQueue  │  │Extraction│ │                            │
+│  │ (Priority-based) │  │  Queue   │ │                            │
+│  └────────┬─────────┘  └──────────┘ │                            │
 │           │                         │                            │
 │           ▼                         │                            │
 │  ┌──────────────────┐               │                            │
@@ -98,13 +97,12 @@ src/
 │   ├── useChat.ts         # Chat interaction logic
 │   ├── useLLM.ts          # LLM lifecycle management
 │   ├── useModelDownload.ts # Download progress tracking
-│   └── useSpeech.ts       # Voice input handling
+│   └── useMemoryExtraction.ts # Memory extraction triggers
 ├── services/               # Core services (each has README.md)
 │   ├── llm/               # LLM inference and chat
 │   ├── memory/            # Persistent memory with decay
 │   ├── safety/            # Crisis detection
 │   ├── download/          # Model download management
-│   ├── speech/            # Voice recognition
 │   └── conversation/      # Title generation
 ├── storage/                # MMKV configuration
 ├── stores/                 # Zustand state management
@@ -182,18 +180,6 @@ Manages ~1.8GB model acquisition.
 - MD5 verification after download
 - Background download (within iOS limits)
 
-### [Speech Service](src/services/speech/README.md)
-
-On-device voice-to-text transcription.
-
-**Key components:**
-- `SpeechService` - Wrapper for expo-speech-recognition
-
-**Quick facts:**
-- On-device only (no cloud transcription)
-- Interim results for real-time feedback
-- Dictation-optimized for natural speech
-
 ### [Conversation Service](src/services/conversation/README.md)
 
 Multi-conversation management and persistence.
@@ -212,9 +198,7 @@ Multi-conversation management and persistence.
 ## Data Flow: User Message → Response
 
 ```
-1. User types/speaks message
-   │
-   ├── [Speech] Convert voice to text (if voice input)
+1. User types message
    │
    ▼
 2. Crisis Detection (instant, no LLM)
@@ -303,7 +287,6 @@ npm run lint       # Run ESLint
 - **State**: Zustand
 - **Storage**: react-native-mmkv
 - **LLM**: llama.rn (llama.cpp bindings)
-- **Speech**: @jamsch/expo-speech-recognition
 - **Download**: @kesha-antonov/react-native-background-downloader
 
 ## Privacy
@@ -311,7 +294,6 @@ npm run lint       # Run ESLint
 Cove is designed with privacy as a core principle:
 
 - **No cloud inference**: LLM runs entirely on-device
-- **No cloud speech**: Voice recognition uses iOS on-device engine
 - **No analytics**: No tracking or telemetry
 - **Local storage**: All data stored in app sandbox
 - **No network**: AI features work completely offline
