@@ -14,20 +14,22 @@ The memory system that makes conversations feel continuous across sessions — a
 
 ### Validated
 
-(None yet — ship to validate)
+*Requirements shipped and validated through user testing.*
+
+- [x] Model downloads and initializes on-device (~1.8GB Llama 3.2 3B) — v1.0
+- [x] Chat interface with streaming token-by-token responses — v1.0
+- [x] Speech-to-text input via microphone button — v1.0
+- [x] Conversations persist to local storage (MMKV) — v1.0
+- [x] Memory extraction runs after conversations end — v1.0
+- [x] Memory retrieval injects relevant context into prompts — v1.0
+- [x] Crisis detection shows resources for distress signals — v1.0
+- [x] Onboarding flow with privacy explanation and disclaimer — v1.0
+- [x] Settings screen with crisis resources and disclaimer access — v1.0
+- [x] App ready for TestFlight beta distribution — v1.0
 
 ### Active
 
-- [ ] Model downloads and initializes on-device (~1.8GB Llama 3.2 3B)
-- [ ] Chat interface with streaming token-by-token responses
-- [ ] Speech-to-text input via microphone button
-- [ ] Conversations persist to local storage (MMKV)
-- [ ] Memory extraction runs after conversations end
-- [ ] Memory retrieval injects relevant context into prompts
-- [ ] Crisis detection shows resources for distress signals
-- [ ] Onboarding flow with privacy explanation and disclaimer
-- [ ] Settings screen with crisis resources and disclaimer access
-- [ ] App ready for TestFlight beta distribution
+*TBD — define for next milestone via /gsd:define-requirements*
 
 ### Out of Scope
 
@@ -54,6 +56,12 @@ The memory system that makes conversations feel continuous across sessions — a
 - Response time under 10 seconds on iPhone 12
 - Friends/testers say "this actually feels helpful"
 
+**Current state (v1.0):**
+- ~7,200 lines TypeScript
+- On TestFlight for beta testing
+- 4 phases, 21 plans complete
+- See [MILESTONES.md](./MILESTONES.md) for full history
+
 ## Constraints
 
 - **Tech stack**: React Native (Expo), llama.rn, react-native-mmkv, Uniwind, react-native-voice, React Navigation — locked per user specification
@@ -66,10 +74,10 @@ The memory system that makes conversations feel continuous across sessions — a
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| llama.rn over ExecuTorch | GGUF ecosystem more flexible for model swapping; ExecuTorch considered for future if performance needed | — Pending |
-| MMKV over SQLite | Synchronous, fast key-value storage; simpler for JSON documents than relational DB | — Pending |
-| Uniwind over NativeWind | Build-time optimized, near-StyleSheet performance with Tailwind DX | — Pending |
-| 3B model as default | Balance of quality and speed; 1B available as fallback | — Pending |
+| llama.rn over ExecuTorch | GGUF ecosystem more flexible for model swapping; ExecuTorch considered for future if performance needed | Validated in v1.0 |
+| MMKV over SQLite | Synchronous, fast key-value storage; simpler for JSON documents than relational DB | Validated in v1.0 |
+| Uniwind over NativeWind | Build-time optimized, near-StyleSheet performance with Tailwind DX | Validated in v1.0 |
+| 3B model as default | Balance of quality and speed; 1B available as fallback | Validated in v1.0 |
 
 ---
-*Last updated: 2026-01-16 after initialization*
+*Last updated: 2026-01-17 after v1.0 milestone completion*
