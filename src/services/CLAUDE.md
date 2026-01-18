@@ -47,9 +47,13 @@ Most services are stateless singletons. LLMService maintains context but can rel
 
 ### Context Window Management
 CRITICAL: 4096 token budget shared between:
-1. System prompt with memories (~800-1200 tokens)
-2. Conversation history (~1500-2000 tokens)
-3. Response buffer (~500-1000 tokens)
+1. System prompt: 500 tokens
+2. Memories: 600 tokens (10-15 memories)
+3. Conversation history: 2000 tokens (~20-30 messages)
+4. Response buffer: 900 tokens
+5. Overhead: 96 tokens
+
+Note: Llama 3.2 3B supports 128K context, but 4K balances memory usage and capacity on mobile.
 
 TokenBudget.ts calculates token counts and truncates history if needed.
 

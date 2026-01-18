@@ -7,7 +7,7 @@ export const MODEL_CONFIG = {
   sha256: '6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff',
   // LLM initialization config
   llm: {
-    n_ctx: 2048, // Conservative context size for memory
+    n_ctx: 4096, // Context window size (Llama 3.2 supports 128K, but 4K balances memory/capacity)
     n_gpu_layers: 99, // Use Metal on iOS
     use_mlock: true, // Lock model in memory
   },

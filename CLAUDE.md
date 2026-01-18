@@ -19,8 +19,8 @@ React Native/Expo iOS app using on-device LLM for private emotional conversation
 - See `src/storage/storage.ts` for the configured MMKV instance
 
 ### LLM Context Management
-- 4096 token context window shared between system prompt, memories, and conversation history
-- Rolling window: Last 8 messages + top 10 relevant memories
+- 4096 token context window (Llama 3.2 supports 128K, but 4K balances memory/capacity on mobile)
+- Rolling window: ~20-30 recent messages + 10-15 relevant memories
 - Token budget managed by `src/services/llm/TokenBudget.ts`
 - Memory extraction runs AFTER conversation ends (not real-time)
 
@@ -69,7 +69,7 @@ npm run lint
 ## Development Guidelines
 
 - Test memory extraction with multi-day conversation scenarios
-- Monitor token usage - context window fills fast
+- Monitor token usage - 4096 context provides good headroom but still limited
 - Crisis detection runs on every user message (see `src/services/safety/`)
 - Streaming responses use callback-based token emission from llama.rn
 - Model downloads can be interrupted - use background downloader with resume support

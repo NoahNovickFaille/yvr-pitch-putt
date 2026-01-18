@@ -3,18 +3,18 @@ import { Memory } from '../../types/memory';
 import { ChatMessage } from '../../types/chat';
 
 /**
- * Token budget allocation for 2048 context window
+ * Token budget allocation for 4096 context window
  *
- * Total budget must stay under n_ctx (2048) to prevent truncation.
- * Allocations based on 03-RESEARCH.md testing.
+ * Total budget must stay under n_ctx (4096) to prevent truncation.
+ * Llama 3.2 3B supports 128K context, but 4K balances memory usage and capacity.
  */
 export const TOKEN_BUDGET = {
-  total: 2048, // n_ctx from model config
-  systemPrompt: 400, // Base personality prompt
-  memories: 300, // 3-6 memories typically
-  conversation: 800, // Recent conversation turns
-  response: 512, // Max response tokens (n_predict)
-  overhead: 36, // Formatting overhead buffer
+  total: 4096, // n_ctx from model config
+  systemPrompt: 500, // Base personality prompt
+  memories: 600, // 10-15 memories typically
+  conversation: 2000, // Recent conversation turns (~20-30 messages)
+  response: 900, // Max response tokens (n_predict)
+  overhead: 96, // Formatting overhead buffer
 } as const;
 
 /**

@@ -34,7 +34,7 @@ The LLM service manages on-device inference using [llama.rn](https://github.com/
 | `LLMService.ts` | Singleton managing LlamaContext lifecycle |
 | `ChatService.ts` | High-level chat orchestration with safety and memory |
 | `CompletionQueue.ts` | Priority queue preventing "context busy" errors |
-| `TokenBudget.ts` | Context window management (2048 tokens) |
+| `TokenBudget.ts` | Context window management (4096 tokens) |
 | `systemPrompt.ts` | Cove's personality and behavior definition |
 | `memoryMonitor.ts` | iOS memory pressure handling |
 | `JsonUtils.ts` | LLM response parsing utilities |
@@ -95,7 +95,7 @@ The service validates the model file before loading:
 1. Checks file exists at provided path
 2. Verifies file size is non-zero
 3. Initializes LlamaContext with parameters:
-   - `n_ctx: 2048` - Context window size
+   - `n_ctx: 4096` - Context window size (Llama 3.2 supports 128K, but 4K balances memory/capacity)
    - `n_gpu_layers: 99` - Offload all layers to Metal GPU
 
 ## ChatService
@@ -209,17 +209,17 @@ The queue ensures clean serialization with appropriate preemption.
 
 ## TokenBudget
 
-Manages the 2048 token context window shared between all components.
+Manages the 4096 token context window shared between all components. Note: Llama 3.2 3B supports 128K context, but 4K provides a good balance between capacity and mobile memory usage.
 
 ### Budget Allocation
 
 ```
-Total Context: 2048 tokens
-├── System Prompt:      400 tokens
-├── Memory Context:     300 tokens
-├── Conversation:       800 tokens
-└── Response Buffer:    512 tokens (n_predict)
-    + Overhead:          36 tokens
+Total Context: 4096 tokens
+├── System Prompt:      500 tokens
+├── Memory Context:     600 tokens
+├── Conversation:      2000 tokens (~20-30 messages)
+└── Response Buffer:    900 tokens (n_predict)
+    + Overhead:          96 tokens
 ```
 
 ### Key Functions
@@ -237,13 +237,13 @@ const count = countTokens("Hello, world!");
 // Build memory section that fits budget
 const memorySection = buildMemorySectionWithinBudget(
   memories,
-  300 // max tokens
+  600 // max tokens
 );
 
 // Truncate conversation to fit budget (keeps recent messages)
 const truncatedHistory = truncateConversationHistory(
   messages,
-  800 // max tokens
+  2000 // max tokens
 );
 ```
 
@@ -352,7 +352,7 @@ The service is designed to degrade gracefully:
 
 ## Performance Considerations
 
-1. **Context Size**: 2048 is small - budget carefully
+1. **Context Size**: 4096 tokens allows ~20-30 messages of history
 2. **Metal Acceleration**: All layers on GPU via `n_gpu_layers: 99`
 3. **Token Streaming**: Enables responsive UI during generation
 4. **Priority Queue**: Chat never blocked by background tasks
