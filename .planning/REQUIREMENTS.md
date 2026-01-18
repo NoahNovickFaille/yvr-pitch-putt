@@ -101,39 +101,39 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODEL-01 | Phase 1 | Pending |
-| MODEL-02 | Phase 1 | Pending |
-| MODEL-03 | Phase 1 | Pending |
-| MODEL-04 | Phase 1 | Pending |
-| MODEL-05 | Phase 1 | Pending |
-| CHAT-01 | Phase 2 | Pending |
-| CHAT-02 | Phase 2 | Pending |
-| CHAT-03 | Phase 2 | Pending |
-| CHAT-04 | Phase 2 | Pending |
-| CHAT-05 | Phase 2 | Pending |
-| CHAT-06 | Phase 2 | Pending |
-| CHAT-07 | Phase 2 | Pending |
-| CHAT-08 | Phase 2 | Pending |
-| CHAT-09 | Phase 2 | Pending |
+| MODEL-01 | Phase 1 | Complete |
+| MODEL-02 | Phase 1 | Complete |
+| MODEL-03 | Phase 1 | Complete |
+| MODEL-04 | Phase 1 | Complete |
+| MODEL-05 | Phase 1 | Complete |
+| CHAT-01 | Phase 2 | Complete |
+| CHAT-02 | Phase 2 | Complete |
+| CHAT-03 | Phase 2 | Complete |
+| CHAT-04 | Phase 2 | Complete |
+| CHAT-05 | Phase 2 | Complete |
+| CHAT-06 | Phase 2 | Complete |
+| CHAT-07 | Phase 2 | Complete |
+| CHAT-08 | Phase 2 | Complete |
+| CHAT-09 | Phase 2 | Complete |
 | MEM-01 | Phase 3 | Complete |
 | MEM-02 | Phase 3 | Complete |
 | MEM-03 | Phase 3 | Complete |
 | MEM-04 | Phase 3 | Complete |
 | MEM-05 | Phase 3 | Complete |
 | MEM-06 | Phase 3 | Complete |
-| SAFE-01 | Phase 2 | Pending |
-| SAFE-02 | Phase 2 | Pending |
-| SAFE-03 | Phase 2 | Pending |
-| SAFE-04 | Phase 2 | Pending |
-| SAFE-05 | Phase 4 | Pending |
-| SAFE-06 | Phase 4 | Pending |
-| POLISH-01 | Phase 4 | Pending |
-| POLISH-02 | Phase 4 | Pending |
-| POLISH-03 | Phase 4 | Pending |
-| POLISH-04 | Phase 4 | Pending |
-| POLISH-05 | Phase 4 | Pending |
-| POLISH-06 | Phase 4 | Pending |
-| POLISH-07 | Phase 4 | Pending |
+| SAFE-01 | Phase 2 | Complete |
+| SAFE-02 | Phase 2 | Complete |
+| SAFE-03 | Phase 2 | Complete |
+| SAFE-04 | Phase 2 | Complete |
+| SAFE-05 | Phase 4 | Complete |
+| SAFE-06 | Phase 4 | Complete |
+| POLISH-01 | Phase 4 | Complete |
+| POLISH-02 | Phase 4 | Complete |
+| POLISH-03 | Phase 4 | Complete |
+| POLISH-04 | Phase 4 | Complete |
+| POLISH-05 | Phase 4 | Complete |
+| POLISH-06 | Phase 4 | Complete |
+| POLISH-07 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 33 total

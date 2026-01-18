@@ -99,9 +99,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Onboarding flow with privacy, name, and disclaimer
-- [ ] 04-02-PLAN.md — Settings screen with crisis resources and data management
-- [ ] 04-03-PLAN.md — App assets and TestFlight submission
+- [x] 04-01-PLAN.md — Onboarding flow with privacy, name, and disclaimer
+- [x] 04-02-PLAN.md — Settings screen with crisis resources and data management
+- [x] 04-03-PLAN.md — App icon and splash screen
+- [x] 04-04-PLAN.md — TestFlight submission
 
 ---
 
@@ -109,10 +110,10 @@ Plans:
 
 | Phase | Status | Completed |
 |-------|--------|-----------|
-| 1 - Foundation | In Progress | 3/4 plans |
-| 2 - Core Chat | Planned | - |
+| 1 - Foundation | ✓ Complete | 4/4 plans |
+| 2 - Core Chat | ✓ Complete | 7/7 plans |
 | 3 - Memory System | ✓ Complete | 6/6 plans |
-| 4 - Polish | Planned | 0/3 plans |
+| 4 - Polish | ✓ Complete | 4/4 plans |
 
 ---
 
