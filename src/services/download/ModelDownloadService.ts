@@ -5,35 +5,38 @@ import {
 } from '@kesha-antonov/react-native-background-downloader';
 import { documentDirectory, getInfoAsync, deleteAsync } from 'expo-file-system/legacy';
 import { MODEL_CONFIG, DOWNLOAD_TASK_ID, STORAGE_KEYS, AVAILABLE_MODELS } from '../../constants/model';
+import type { ModelDefinition } from '../../constants/model';
 import { storage } from '../../storage/storage';
 import type { DownloadState, DownloadControls } from '../../types/model';
 
 // Get path where model will be stored
-export function getModelPath(): string {
-  return `${documentDirectory}${MODEL_CONFIG.filename}`;
+export function getModelPath(model?: ModelDefinition): string {
+  const filename = model?.filename ?? MODEL_CONFIG.filename;
+  return `${documentDirectory}${filename}`;
 }
 
 // Check if model file exists and is approximately correct size
-export async function isModelDownloaded(): Promise<boolean> {
-  const path = getModelPath();
+export async function isModelDownloaded(model?: ModelDefinition): Promise<boolean> {
+  const targetModel = model ?? { filename: MODEL_CONFIG.filename, sizeBytes: MODEL_CONFIG.expectedSizeBytes };
+  const path = getModelPath(model);
   const info = await getInfoAsync(path);
 
   if (!info.exists) return false;
 
   // Check if file is at least 99% of expected size
-  const minSize = MODEL_CONFIG.expectedSizeBytes * 0.99;
+  const minSize = targetModel.sizeBytes * 0.99;
   return info.size !== undefined && info.size >= minSize;
 }
 
 // Verify model integrity using MD5 (from expo-file-system)
-export async function verifyModelChecksum(): Promise<boolean> {
+export async function verifyModelChecksum(model?: ModelDefinition): Promise<boolean> {
   // Check if already verified (avoid re-hashing 2GB file)
   const alreadyVerified = storage.getString(STORAGE_KEYS.CHECKSUM_VERIFIED);
   if (alreadyVerified === 'true') {
     return true;
   }
 
-  const path = getModelPath();
+  const path = getModelPath(model);
   const info = await getInfoAsync(path, { md5: true });
 
   if (!info.exists || !info.md5) {
@@ -48,8 +51,8 @@ export async function verifyModelChecksum(): Promise<boolean> {
 }
 
 // Delete model file (for re-download after corruption)
-export async function deleteModelFile(): Promise<void> {
-  const path = getModelPath();
+export async function deleteModelFile(model?: ModelDefinition): Promise<void> {
+  const path = getModelPath(model);
   const info = await getInfoAsync(path);
   if (info.exists) {
     await deleteAsync(path);
@@ -103,13 +106,19 @@ let activeTask: DownloadTask | null = null;
 export function downloadModel(
   onProgress: (bytesWritten: number, totalBytes: number) => void,
   onComplete: () => void,
-  onError: (error: Error) => void
+  onError: (error: Error) => void,
+  model?: ModelDefinition
 ): DownloadControls {
-  const destination = getModelPath();
+  const targetModel = model ?? {
+    url: MODEL_CONFIG.url,
+    filename: MODEL_CONFIG.filename,
+    sizeBytes: MODEL_CONFIG.expectedSizeBytes,
+  };
+  const destination = getModelPath(model);
 
   activeTask = createDownloadTask({
     id: DOWNLOAD_TASK_ID,
-    url: MODEL_CONFIG.url,
+    url: targetModel.url,
     destination,
     headers: {
       'User-Agent': 'Cove-iOS/1.0',
@@ -149,8 +158,8 @@ export function downloadModel(
       console.log('[Download] Complete');
       persistDownloadState({
         taskId: DOWNLOAD_TASK_ID,
-        bytesWritten: MODEL_CONFIG.expectedSizeBytes,
-        totalBytes: MODEL_CONFIG.expectedSizeBytes,
+        bytesWritten: targetModel.sizeBytes,
+        totalBytes: targetModel.sizeBytes,
         status: 'completed',
       });
       activeTask = null;
@@ -206,9 +215,11 @@ export function reattachToDownload(
   task: DownloadTask,
   onProgress: (bytesWritten: number, totalBytes: number) => void,
   onComplete: () => void,
-  onError: (error: Error) => void
+  onError: (error: Error) => void,
+  model?: ModelDefinition
 ): DownloadControls {
   activeTask = task;
+  const expectedSize = model?.sizeBytes ?? MODEL_CONFIG.expectedSizeBytes;
 
   task
     .progress(({ bytesDownloaded, bytesTotal }) => {
@@ -217,8 +228,8 @@ export function reattachToDownload(
     .done(() => {
       persistDownloadState({
         taskId: DOWNLOAD_TASK_ID,
-        bytesWritten: MODEL_CONFIG.expectedSizeBytes,
-        totalBytes: MODEL_CONFIG.expectedSizeBytes,
+        bytesWritten: expectedSize,
+        totalBytes: expectedSize,
         status: 'completed',
       });
       activeTask = null;

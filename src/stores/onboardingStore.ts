@@ -12,6 +12,7 @@ interface OnboardingState {
   completeOnboarding: (name: string, bio?: string) => void;
   updateProfile: (name: string, bio: string) => void;
   checkOnboardingStatus: () => void;
+  resetOnboarding: () => void;
 }
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
@@ -57,5 +58,18 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
     }
 
     set({ completed, userName, userBio });
+  },
+
+  resetOnboarding: () => {
+    // CRITICAL: Remove from MMKV BEFORE updating state
+    storage.remove(ONBOARDING_COMPLETED_KEY);
+    storage.remove(USER_NAME_KEY);
+    storage.remove(USER_BIO_KEY);
+
+    if (__DEV__) {
+      console.log('[OnboardingStore] Onboarding reset - all data cleared');
+    }
+
+    set({ completed: false, userName: null, userBio: null });
   },
 }));

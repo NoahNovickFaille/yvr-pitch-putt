@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useDownloadStore } from '../services/download/downloadStore';
+import { useModelStore } from '../stores/modelStore';
+import { getModelById } from '../constants/model';
+import type { ModelDefinition } from '../constants/model';
 import {
   downloadModel,
   reattachToDownload,
@@ -13,21 +16,31 @@ import type { DownloadControls } from '../types/model';
 
 export function useModelDownload() {
   const { modelState, setModelState } = useDownloadStore();
+  const selectedModelId = useModelStore((s) => s.selectedModelId);
+  const model = getModelById(selectedModelId);
   const controlsRef = useRef<DownloadControls | null>(null);
+  const modelRef = useRef<ModelDefinition | undefined>(model);
+
+  // Keep model ref in sync
+  useEffect(() => {
+    modelRef.current = model;
+  }, [model]);
 
   // Check initial state on mount
   useEffect(() => {
     async function checkInitialState() {
+      const currentModel = modelRef.current;
+
       // Check if model already downloaded
-      const downloaded = await isModelDownloaded();
+      const downloaded = await isModelDownloaded(currentModel);
       if (downloaded) {
-        const verified = await verifyModelChecksum();
+        const verified = await verifyModelChecksum(currentModel);
         if (verified) {
           setModelState({ status: 'ready_to_initialize' });
           return;
         } else {
           // Corrupted file, delete and re-download
-          await deleteModelFile();
+          await deleteModelFile(currentModel);
         }
       }
 
@@ -51,11 +64,11 @@ export function useModelDownload() {
           },
           async () => {
             setModelState({ status: 'verifying' });
-            const verified = await verifyModelChecksum();
+            const verified = await verifyModelChecksum(currentModel);
             if (verified) {
               setModelState({ status: 'ready_to_initialize' });
             } else {
-              await deleteModelFile();
+              await deleteModelFile(currentModel);
               setModelState({
                 status: 'error',
                 error: 'Download verification failed. Please try again.',
@@ -64,7 +77,8 @@ export function useModelDownload() {
           },
           (error) => {
             setModelState({ status: 'error', error: error.message });
-          }
+          },
+          currentModel
         );
         return;
       }
@@ -88,6 +102,7 @@ export function useModelDownload() {
 
   // Start download
   const startDownload = useCallback(() => {
+    const currentModel = modelRef.current;
     setModelState({ status: 'downloading', progress: 0 });
 
     controlsRef.current = downloadModel(
@@ -99,11 +114,11 @@ export function useModelDownload() {
       },
       async () => {
         setModelState({ status: 'verifying' });
-        const verified = await verifyModelChecksum();
+        const verified = await verifyModelChecksum(currentModel);
         if (verified) {
           setModelState({ status: 'ready_to_initialize' });
         } else {
-          await deleteModelFile();
+          await deleteModelFile(currentModel);
           setModelState({
             status: 'error',
             error: 'Download verification failed. Please try again.',
@@ -112,7 +127,8 @@ export function useModelDownload() {
       },
       (error) => {
         setModelState({ status: 'error', error: error.message });
-      }
+      },
+      currentModel
     );
   }, [setModelState]);
 
@@ -150,18 +166,19 @@ export function useModelDownload() {
       controlsRef.current.cancel();
       controlsRef.current = null;
     }
-    await deleteModelFile();
+    await deleteModelFile(modelRef.current);
     setModelState({ status: 'not_downloaded' });
   }, [setModelState]);
 
   // Retry after error
   const retryDownload = useCallback(async () => {
-    await deleteModelFile();
+    await deleteModelFile(modelRef.current);
     startDownload();
   }, [startDownload]);
 
   return {
     modelState,
+    model,
     startDownload,
     pauseDownload,
     resumeDownload,

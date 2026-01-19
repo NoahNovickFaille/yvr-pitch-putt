@@ -15,6 +15,7 @@ interface ModelState {
   // Actions
   selectModel: (modelId: string) => void;
   markModelDownloaded: (modelId: string) => void;
+  removeModelFromDownloaded: (modelId: string) => void;
   isModelDownloaded: (modelId: string) => boolean;
   loadFromStorage: () => void;
   clearAllModelData: () => void;
@@ -47,6 +48,25 @@ export const useModelStore = create<ModelState>((set, get) => ({
     }
 
     const newDownloadedIds = [...state.downloadedModelIds, modelId];
+
+    // Persist to MMKV first
+    storage.set(STORAGE_KEYS.DOWNLOADED_MODEL_IDS, JSON.stringify(newDownloadedIds));
+
+    // Then update state
+    set({ downloadedModelIds: newDownloadedIds });
+  },
+
+  removeModelFromDownloaded: (modelId: string) => {
+    const state = get();
+    if (!state.downloadedModelIds.includes(modelId)) {
+      return; // Not in the list
+    }
+
+    if (__DEV__) {
+      console.log('[ModelStore] Removing model from downloaded:', modelId);
+    }
+
+    const newDownloadedIds = state.downloadedModelIds.filter((id) => id !== modelId);
 
     // Persist to MMKV first
     storage.set(STORAGE_KEYS.DOWNLOADED_MODEL_IDS, JSON.stringify(newDownloadedIds));

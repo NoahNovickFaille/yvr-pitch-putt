@@ -33,7 +33,7 @@ export function ProfileScreen() {
   const navigation = useNavigation();
   const { removeAllConversations, conversationIds } = useConversationStore();
   const { memories, clearAll } = useMemoryStore();
-  const { userName, userBio, updateProfile } = useOnboardingStore();
+  const { userName, userBio, updateProfile, resetOnboarding } = useOnboardingStore();
   const { clearAllModelData } = useModelStore();
   const { setModelState } = useDownloadStore();
 
@@ -109,6 +109,9 @@ export function ProfileScreen() {
             // 5. Clear conversations and memories
             removeAllConversations();
             clearAll();
+
+            // 6. Reset onboarding state (redirects to onboarding flow)
+            resetOnboarding();
 
             Alert.alert('Cleared', 'All conversations, memories, and AI models have been deleted.');
           },
