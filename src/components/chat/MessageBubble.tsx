@@ -24,7 +24,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: DarkSpacing.lg,
-    paddingVertical: DarkSpacing.xs,
+    paddingVertical: DarkSpacing.sm,
   },
   userContainer: {
     alignItems: 'flex-end',

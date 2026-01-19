@@ -4,7 +4,7 @@ import {
   type DownloadTask,
 } from '@kesha-antonov/react-native-background-downloader';
 import { documentDirectory, getInfoAsync, deleteAsync } from 'expo-file-system/legacy';
-import { MODEL_CONFIG, DOWNLOAD_TASK_ID, STORAGE_KEYS } from '../../constants/model';
+import { MODEL_CONFIG, DOWNLOAD_TASK_ID, STORAGE_KEYS, AVAILABLE_MODELS } from '../../constants/model';
 import { storage } from '../../storage/storage';
 import type { DownloadState, DownloadControls } from '../../types/model';
 
@@ -56,6 +56,21 @@ export async function deleteModelFile(): Promise<void> {
   }
   storage.remove(STORAGE_KEYS.CHECKSUM_VERIFIED);
   storage.remove(STORAGE_KEYS.DOWNLOAD_STATE);
+}
+
+// Delete ALL downloaded model files (for "Clear All Data")
+export async function deleteAllModels(): Promise<void> {
+  for (const model of AVAILABLE_MODELS) {
+    const path = `${documentDirectory}${model.filename}`;
+    const info = await getInfoAsync(path);
+    if (info.exists) {
+      await deleteAsync(path);
+    }
+  }
+  // Clear all model-related MMKV keys
+  storage.remove(STORAGE_KEYS.CHECKSUM_VERIFIED);
+  storage.remove(STORAGE_KEYS.DOWNLOAD_STATE);
+  storage.remove(STORAGE_KEYS.MODEL_INITIALIZED_ONCE);
 }
 
 // Persist download state to MMKV

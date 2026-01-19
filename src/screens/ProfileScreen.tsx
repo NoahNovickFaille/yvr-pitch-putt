@@ -17,9 +17,13 @@ import { Menu, Shield, Trash2, Phone, MessageCircle, AlertTriangle, Pencil, Chec
 import { useConversationStore } from '../stores/conversationStore';
 import { useMemoryStore } from '../stores/memoryStore';
 import { useOnboardingStore } from '../stores/onboardingStore';
+import { useModelStore } from '../stores/modelStore';
+import { useDownloadStore } from '../services/download/downloadStore';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 import { DISCLAIMER_TEXT } from '../constants/disclaimer';
 import { ModelSelector } from '../components/settings/ModelSelector';
+import { deleteAllModels } from '../services/download/ModelDownloadService';
+import { LLMService } from '../services/llm/LLMService';
 
 type SettingsTab = 'general' | 'nerds';
 
@@ -30,6 +34,8 @@ export function ProfileScreen() {
   const { removeAllConversations, conversationIds } = useConversationStore();
   const { memories, clearAll } = useMemoryStore();
   const { userName, userBio, updateProfile } = useOnboardingStore();
+  const { clearAllModelData } = useModelStore();
+  const { setModelState } = useDownloadStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(userName || '');
@@ -79,17 +85,32 @@ export function ProfileScreen() {
   const handleClearAllData = () => {
     Alert.alert(
       'Clear All Data',
-      'This will permanently delete all conversations and memories. This cannot be undone.',
+      'This will permanently delete all conversations, memories, and downloaded AI models (~2GB). This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Clear All Data',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // 1. Release LLM context first (prevents crashes during file deletion)
+            LLMService.release();
+
+            // 2. Delete all model files from disk
+            await deleteAllModels();
+
+            // 3. Reset model store state
+            clearAllModelData();
+
+            // 4. Reset download store state
+            setModelState({ status: 'not_downloaded' });
+
+            // 5. Clear conversations and memories
             removeAllConversations();
             clearAll();
-            Alert.alert('Cleared', 'All conversations and memories have been deleted.');
+
+            Alert.alert('Cleared', 'All conversations, memories, and AI models have been deleted.');
           },
         },
       ]
@@ -387,7 +408,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: DarkSpacing.sm,
     paddingHorizontal: DarkSpacing.md,
-    borderRadius: DarkSpacing.radiusFull,
+    borderRadius: DarkSpacing.radiusSm,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',

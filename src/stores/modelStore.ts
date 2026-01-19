@@ -17,6 +17,7 @@ interface ModelState {
   markModelDownloaded: (modelId: string) => void;
   isModelDownloaded: (modelId: string) => boolean;
   loadFromStorage: () => void;
+  clearAllModelData: () => void;
 }
 
 export const useModelStore = create<ModelState>((set, get) => ({
@@ -92,5 +93,18 @@ export const useModelStore = create<ModelState>((set, get) => ({
     }
 
     set({ selectedModelId, downloadedModelIds });
+  },
+
+  clearAllModelData: () => {
+    if (__DEV__) {
+      console.log('[ModelStore] Clearing all model data');
+    }
+
+    // Remove from storage first
+    storage.remove(STORAGE_KEYS.SELECTED_MODEL_ID);
+    storage.remove(STORAGE_KEYS.DOWNLOADED_MODEL_IDS);
+
+    // Reset state to defaults
+    set({ selectedModelId: DEFAULT_MODEL_ID, downloadedModelIds: [] });
   },
 }));
