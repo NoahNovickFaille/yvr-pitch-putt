@@ -50,20 +50,49 @@ export const STOP_WORDS = [
 ];
 
 /**
- * Builds system prompt with injected memories.
+ * Builds user context section for the system prompt.
+ */
+export function buildUserContext(userName: string | null, userBio: string | null): string | null {
+  if (!userName) {
+    return null;
+  }
+
+  let context = `\n\nYou are talking with ${userName}.`;
+
+  if (userBio && userBio.trim()) {
+    context += ` About them: ${userBio.trim()}`;
+  }
+
+  return context;
+}
+
+/**
+ * Builds system prompt with user context and injected memories.
  *
  * Memories are added naturally - the AI should reference them
  * organically without explicitly saying "I remember."
  */
-export function buildSystemPromptWithMemories(memorySection: string | null): string {
-  if (!memorySection) {
-    return SYSTEM_PROMPT;
+export function buildSystemPromptWithMemories(
+  memorySection: string | null,
+  userName: string | null = null,
+  userBio: string | null = null
+): string {
+  let prompt = SYSTEM_PROMPT;
+
+  // Add user context first
+  const userContext = buildUserContext(userName, userBio);
+  if (userContext) {
+    prompt += userContext;
   }
 
-  const instruction = `
+  // Add memories section
+  if (memorySection) {
+    const instruction = `
 ${memorySection}
 
 Use these memories naturally in conversation when relevant. Don't explicitly say "I remember" - just reference the information naturally as if you know them.`;
+    prompt += instruction;
+  }
 
-  return `${SYSTEM_PROMPT}${instruction}`;
+  return prompt;
 }

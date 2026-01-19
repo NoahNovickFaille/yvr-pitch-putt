@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, Settings, MessageCircle } from 'lucide-react-native';
+import { Plus, User, MessageCircle } from 'lucide-react-native';
 import { useConversationStore } from '@/src/stores/conversationStore';
 import { ConversationListItem } from './ConversationListItem';
 import { IconButton, PressableButton } from '@/src/components/ui';
@@ -50,9 +50,9 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
     [removeConversation]
   );
 
-  const handleSettingsPress = useCallback(() => {
+  const handleProfilePress = useCallback(() => {
     closeDrawer();
-    router.push('/(drawer)/settings');
+    router.push('/(drawer)/profile');
   }, [closeDrawer]);
 
   const renderConversation = useCallback(
@@ -115,15 +115,15 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Footer with Settings */}
+      {/* Footer with Profile */}
       <View style={styles.footer}>
         <PressableButton
-          style={styles.settingsButton}
-          onPress={handleSettingsPress}
-          accessibilityLabel="Open settings"
+          style={styles.profileButton}
+          onPress={handleProfilePress}
+          accessibilityLabel="Open profile"
         >
-          <Settings size={20} color={DarkColors.textSecondary} />
-          <Text style={styles.settingsText}>Settings</Text>
+          <User size={20} color={DarkColors.textSecondary} />
+          <Text style={styles.profileText}>Profile</Text>
         </PressableButton>
       </View>
     </SafeAreaView>
@@ -198,13 +198,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: DarkSpacing.lg,
     paddingVertical: DarkSpacing.md,
   },
-  settingsButton: {
+  profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: DarkSpacing.sm,
     gap: DarkSpacing.md,
   },
-  settingsText: {
+  profileText: {
     fontSize: DarkTypography.callout,
     color: DarkColors.textSecondary,
     fontWeight: DarkTypography.weightMedium,

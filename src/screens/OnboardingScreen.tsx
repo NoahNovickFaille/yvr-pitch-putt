@@ -3,38 +3,40 @@ import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkColors } from '@/constants/darkTheme';
 import { PrivacyStep } from '@/src/components/onboarding/PrivacyStep';
-import { NameStep } from '@/src/components/onboarding/NameStep';
+import { ProfileStep } from '@/src/components/onboarding/ProfileStep';
 import { DisclaimerStep } from '@/src/components/onboarding/DisclaimerStep';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
 
-type OnboardingStep = 'privacy' | 'name' | 'disclaimer';
+type OnboardingStep = 'privacy' | 'profile' | 'disclaimer';
 
 export function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('privacy');
   const [userName, setUserName] = useState('');
+  const [userBio, setUserBio] = useState('');
   const completeOnboarding = useOnboardingStore((state) => state.completeOnboarding);
   const insets = useSafeAreaInsets();
 
   const handlePrivacyNext = () => {
-    setCurrentStep('name');
+    setCurrentStep('profile');
   };
 
-  const handleNameNext = (name: string) => {
+  const handleProfileNext = (name: string, bio: string) => {
     setUserName(name);
+    setUserBio(bio);
     setCurrentStep('disclaimer');
   };
 
   const handleDisclaimerNext = () => {
-    // Complete onboarding with the collected name
-    completeOnboarding(userName);
+    // Complete onboarding with the collected name and bio
+    completeOnboarding(userName, userBio);
   };
 
   const renderStep = () => {
     switch (currentStep) {
       case 'privacy':
         return <PrivacyStep onNext={handlePrivacyNext} />;
-      case 'name':
-        return <NameStep onNext={handleNameNext} />;
+      case 'profile':
+        return <ProfileStep onNext={handleProfileNext} />;
       case 'disclaimer':
         return <DisclaimerStep onNext={handleDisclaimerNext} />;
     }

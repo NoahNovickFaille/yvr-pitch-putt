@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   Pressable,
   StyleSheet,
@@ -12,19 +13,53 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { Menu, Cpu, MessageSquare, Brain, Shield, Trash2, Phone, MessageCircle, AlertTriangle } from 'lucide-react-native';
+import { Menu, Cpu, MessageSquare, Brain, Shield, Trash2, Phone, MessageCircle, AlertTriangle, Pencil, Check, X } from 'lucide-react-native';
 import { useConversationStore } from '../stores/conversationStore';
 import { useMemoryStore } from '../stores/memoryStore';
+import { useOnboardingStore } from '../stores/onboardingStore';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 import { DISCLAIMER_TEXT } from '../constants/disclaimer';
 
-export function SettingsScreen() {
+const BIO_MAX_LENGTH = 500;
+
+export function ProfileScreen() {
   const navigation = useNavigation();
   const { removeAllConversations, conversationIds } = useConversationStore();
   const { memories, clearAll } = useMemoryStore();
+  const { userName, userBio, updateProfile } = useOnboardingStore();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(userName || '');
+  const [editBio, setEditBio] = useState(userBio || '');
+
+  useEffect(() => {
+    setEditName(userName || '');
+    setEditBio(userBio || '');
+  }, [userName, userBio]);
 
   const handleMenuPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
+  };
+
+  const handleEditPress = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(userName || '');
+    setEditBio(userBio || '');
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = () => {
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      Alert.alert('Name Required', 'Please enter a name.');
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    updateProfile(trimmedName, editBio.trim());
+    setIsEditing(false);
   };
 
   const handleCall988 = () => {
@@ -105,12 +140,81 @@ export function SettingsScreen() {
           >
             <Menu size={24} color={DarkColors.textSecondary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerTitle}>Profile</Text>
           <View style={styles.rightSpacer} />
         </View>
       </SafeAreaView>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        {/* Profile Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Your Profile</Text>
+            {!isEditing && (
+              <TouchableOpacity onPress={handleEditPress} style={styles.editButton}>
+                <Pencil size={16} color={DarkColors.accent} />
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.card}>
+            {isEditing ? (
+              <>
+                <View style={styles.editField}>
+                  <Text style={styles.fieldLabel}>Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Your name"
+                    placeholderTextColor={DarkColors.textTertiary}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+                <View style={styles.editField}>
+                  <Text style={styles.fieldLabel}>About you</Text>
+                  <TextInput
+                    style={[styles.input, styles.bioInput]}
+                    value={editBio}
+                    onChangeText={(text) => setEditBio(text.slice(0, BIO_MAX_LENGTH))}
+                    placeholder="Tell me a bit about yourself..."
+                    placeholderTextColor={DarkColors.textTertiary}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                  <Text style={styles.charCount}>{editBio.length}/{BIO_MAX_LENGTH}</Text>
+                </View>
+                <View style={styles.editActions}>
+                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
+                    <X size={18} color={DarkColors.textSecondary} />
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.saveButton} onPress={handleSaveEdit}>
+                    <Check size={18} color={DarkColors.userMessageText} />
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.profileField}>
+                  <Text style={styles.fieldLabel}>Name</Text>
+                  <Text style={styles.fieldValue}>{userName || 'Not set'}</Text>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.profileField}>
+                  <Text style={styles.fieldLabel}>About you</Text>
+                  <Text style={[styles.fieldValue, !userBio && styles.fieldValueEmpty]}>
+                    {userBio || 'No bio added yet'}
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
         {/* Crisis Resources Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Crisis Resources</Text>
@@ -314,6 +418,12 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: DarkSpacing.sectionSpacing,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: DarkSpacing.itemSpacing,
+  },
   sectionTitle: {
     fontSize: DarkTypography.footnote,
     fontWeight: DarkTypography.weightMedium,
@@ -322,10 +432,89 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: DarkSpacing.itemSpacing,
   },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editButtonText: {
+    fontSize: DarkTypography.footnote,
+    color: DarkColors.accent,
+    fontWeight: DarkTypography.weightMedium,
+  },
   card: {
     backgroundColor: DarkColors.surface,
     borderRadius: DarkSpacing.radiusMd,
     padding: DarkSpacing.cardPadding,
+  },
+  profileField: {
+    paddingVertical: DarkSpacing.sm,
+  },
+  fieldLabel: {
+    fontSize: DarkTypography.footnote,
+    color: DarkColors.textSecondary,
+    marginBottom: DarkSpacing.xs,
+  },
+  fieldValue: {
+    fontSize: DarkTypography.callout,
+    color: DarkColors.text,
+    lineHeight: 22,
+  },
+  fieldValueEmpty: {
+    color: DarkColors.textTertiary,
+    fontStyle: 'italic',
+  },
+  editField: {
+    marginBottom: DarkSpacing.lg,
+  },
+  input: {
+    fontSize: DarkTypography.callout,
+    color: DarkColors.text,
+    backgroundColor: DarkColors.surfaceElevated,
+    padding: DarkSpacing.md,
+    borderRadius: DarkSpacing.radiusSm,
+    borderWidth: 1,
+    borderColor: DarkColors.border,
+  },
+  bioInput: {
+    minHeight: 100,
+    paddingTop: DarkSpacing.md,
+  },
+  charCount: {
+    fontSize: DarkTypography.caption1,
+    color: DarkColors.textTertiary,
+    textAlign: 'right',
+    marginTop: DarkSpacing.xs,
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: DarkSpacing.md,
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: DarkSpacing.sm,
+    paddingHorizontal: DarkSpacing.md,
+  },
+  cancelButtonText: {
+    fontSize: DarkTypography.callout,
+    color: DarkColors.textSecondary,
+  },
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: DarkColors.accent,
+    paddingVertical: DarkSpacing.sm,
+    paddingHorizontal: DarkSpacing.lg,
+    borderRadius: DarkSpacing.radiusSm,
+  },
+  saveButtonText: {
+    fontSize: DarkTypography.callout,
+    fontWeight: DarkTypography.weightSemibold,
+    color: DarkColors.userMessageText,
   },
   infoRow: {
     flexDirection: 'row',
@@ -349,7 +538,7 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: DarkColors.border,
-    marginLeft: 44,
+    marginLeft: 0,
   },
   dangerCard: {
     marginBottom: DarkSpacing.itemSpacing,
@@ -399,7 +588,6 @@ const styles = StyleSheet.create({
     fontSize: DarkTypography.caption1,
     color: DarkColors.textTertiary,
   },
-  // Crisis Resources Styles
   crisisButton: {
     backgroundColor: '#DC2626',
     paddingVertical: DarkSpacing.lg,
@@ -428,7 +616,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: DarkSpacing.lg,
   },
-  // Disclaimer Styles
   disclaimerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -450,7 +637,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: DarkSpacing.sm,
   },
-  // Danger Zone Styles
   dangerSectionTitle: {
     color: DarkColors.danger,
   },

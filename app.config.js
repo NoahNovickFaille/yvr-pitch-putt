@@ -9,7 +9,7 @@ module.exports = {
     splash: {
       image: './assets/images/splash-icon.png',
       resizeMode: 'contain',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#0F0F0F',
     },
     scheme: 'cove',
     platforms: ['ios'],
@@ -33,10 +33,7 @@ module.exports = {
           image: './assets/images/splash-icon.png',
           imageWidth: 200,
           resizeMode: 'contain',
-          backgroundColor: '#ffffff',
-          dark: {
-            backgroundColor: '#000000',
-          },
+          backgroundColor: '#0F0F0F',
         },
       ],
       [

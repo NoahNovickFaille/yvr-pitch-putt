@@ -1,8 +1,9 @@
 import { LLMService } from './LLMService';
 import { detectCrisis, CrisisResult } from '../safety/CrisisDetector';
-import { SYSTEM_PROMPT, STOP_WORDS, buildSystemPromptWithMemories } from './systemPrompt';
+import { STOP_WORDS, buildSystemPromptWithMemories } from './systemPrompt';
 import { ChatMessage } from '../../types/chat';
 import { useMemoryStore } from '../../stores/memoryStore';
+import { useOnboardingStore } from '../../stores/onboardingStore';
 import {
   TOKEN_BUDGET,
   truncateConversationHistory,
@@ -35,10 +36,13 @@ class ChatServiceImpl {
     systemPrompt: string;
     messages: { role: 'user' | 'assistant'; content: string }[];
   }> {
-    // Step 1: Get relevant memories
+    // Step 1: Get user profile from onboarding store
+    const { userName, userBio } = useOnboardingStore.getState();
+
+    // Step 2: Get relevant memories
     const memories = useMemoryStore.getState().getTopMemories(6, userMessage);
 
-    // Step 2: Mark memories as accessed (reinforces them)
+    // Step 3: Mark memories as accessed (reinforces them)
     if (memories.length > 0) {
       useMemoryStore.getState().markAccessed(memories.map((m) => m.id));
       if (__DEV__) {
@@ -51,16 +55,16 @@ class ChatServiceImpl {
       }
     }
 
-    // Step 3: Build memory section within budget
+    // Step 4: Build memory section within budget
     const memorySection = await buildMemorySectionWithinBudget(
       memories,
       TOKEN_BUDGET.memories
     );
 
-    // Step 4: Build system prompt with memories
-    const systemPrompt = buildSystemPromptWithMemories(memorySection);
+    // Step 5: Build system prompt with user context and memories
+    const systemPrompt = buildSystemPromptWithMemories(memorySection, userName, userBio);
 
-    // Step 5: Truncate conversation history to fit budget
+    // Step 6: Truncate conversation history to fit budget
     const truncatedHistory = await truncateConversationHistory(
       conversationHistory,
       TOKEN_BUDGET.conversation
@@ -73,6 +77,8 @@ class ChatServiceImpl {
         system: systemTokens,
         memories: memories.length,
         history: truncatedHistory.length,
+        userName,
+        userBio: userBio ? `${userBio.length} chars` : null,
       });
     }
 

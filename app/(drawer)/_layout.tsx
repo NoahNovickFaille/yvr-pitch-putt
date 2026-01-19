@@ -34,10 +34,10 @@ export default function DrawerLayout() {
         }}
       />
       <Drawer.Screen
-        name="settings"
+        name="profile"
         options={{
-          drawerLabel: 'Settings',
-          title: 'Settings',
+          drawerLabel: 'Profile',
+          title: 'Profile',
         }}
       />
     </Drawer>
