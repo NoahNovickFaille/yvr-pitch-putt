@@ -2,31 +2,29 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md
+See: .planning/PROJECT.md (updated 2026-01-19)
 
 **Core value:** Memory system that makes conversations feel continuous across sessions
-**Current focus:** v1.1 Memory Revamp
+**Current focus:** Phase 5 — Embedding Infrastructure
 
 ## Current Position
 
-Phase: Not started
-Plan: —
-Status: Milestone v1.1 defined, ready for roadmap
-Last activity: 2026-01-19 — Started v1.1 Memory Revamp milestone
+Phase: 5 of 7 (Embedding Infrastructure)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-19 — Roadmap created for v1.1
 
-Progress: 0/3 phases
+Progress: ████████████████░░░░ 80% (v1.0) | v1.1: 0/3 phases
 
 ## Next Steps
 
-To create the roadmap for v1.1:
-
 ```
-/gsd:create-roadmap
+/gsd:plan-phase 5
 ```
 
-Or if you want to research embedding options first:
+Or research embedding options first:
 ```
-/gsd:research-project
+/gsd:research-phase 5
 ```
 
 ## Performance Metrics
@@ -57,10 +55,11 @@ Or if you want to research embedding options first:
 
 ### Blockers/Concerns
 
-(None)
+- **Embedding model selection**: Need to validate all-MiniLM-L6-v2 works in React Native environment
+- **Background thread execution**: Embedding inference must not block UI — research needed
 
 ## Session Continuity
 
 Last session: 2026-01-19
-Stopped at: Milestone v1.1 initialized
+Stopped at: v1.1 roadmap created
 Resume file: None
