@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, User, MessageCircle } from 'lucide-react-native';
+import { Plus, Settings, MessageCircle } from 'lucide-react-native';
 import { useConversationStore } from '@/src/stores/conversationStore';
 import { ConversationListItem } from './ConversationListItem';
 import { IconButton, PressableButton } from '@/src/components/ui';
@@ -50,7 +50,7 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
     [removeConversation]
   );
 
-  const handleProfilePress = useCallback(() => {
+  const handleSettingsPress = useCallback(() => {
     closeDrawer();
     router.push('/(drawer)/profile');
   }, [closeDrawer]);
@@ -115,15 +115,15 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Footer with Profile */}
+      {/* Footer with Settings */}
       <View style={styles.footer}>
         <PressableButton
-          style={styles.profileButton}
-          onPress={handleProfilePress}
-          accessibilityLabel="Open profile"
+          style={styles.settingsButton}
+          onPress={handleSettingsPress}
+          accessibilityLabel="Open settings"
         >
-          <User size={20} color={DarkColors.textSecondary} />
-          <Text style={styles.profileText}>Profile</Text>
+          <Settings size={20} color={DarkColors.textSecondary} />
+          <Text style={styles.settingsText}>Settings</Text>
         </PressableButton>
       </View>
     </SafeAreaView>
@@ -198,13 +198,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: DarkSpacing.lg,
     paddingVertical: DarkSpacing.md,
   },
-  profileButton: {
+  settingsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: DarkSpacing.sm,
     gap: DarkSpacing.md,
   },
-  profileText: {
+  settingsText: {
     fontSize: DarkTypography.callout,
     color: DarkColors.textSecondary,
     fontWeight: DarkTypography.weightMedium,

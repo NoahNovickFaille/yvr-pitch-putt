@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from 'react';
-import { FlatList, StyleSheet, Keyboard } from 'react-native';
+import { FlatList, StyleSheet, Keyboard, View } from 'react-native';
 import { ChatMessage } from '../../types/chat';
 import { MessageBubble } from './MessageBubble';
 import { StreamingMessage } from './StreamingMessage';
 import { TypingIndicator } from './TypingIndicator';
+import { WelcomeMessage } from './WelcomeMessage';
 import { DarkColors, DarkSpacing } from '@/constants/darkTheme';
 
 interface MessageListProps {
@@ -56,15 +57,18 @@ export function MessageList({ messages, isGenerating, partialResponse }: Message
     return null;
   };
 
+  const isEmpty = messages.length === 0 && !isGenerating && !partialResponse;
+
   return (
     <FlatList
       ref={listRef}
       style={styles.list}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, isEmpty && styles.contentEmpty]}
       data={messages}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       ListFooterComponent={ListFooter}
+      ListEmptyComponent={!isGenerating && !partialResponse ? WelcomeMessage : null}
       showsVerticalScrollIndicator={false}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
@@ -79,5 +83,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingVertical: DarkSpacing.lg,
+  },
+  contentEmpty: {
+    flexGrow: 1,
   },
 });

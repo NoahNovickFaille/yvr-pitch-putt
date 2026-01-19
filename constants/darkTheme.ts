@@ -34,8 +34,8 @@ export const DarkColors = {
   assistantMessageText: '#FFFFFF', // White text on assistant message
 
   // Semantic colors
-  danger: '#FF453A',               // iOS red
-  dangerMuted: 'rgba(255, 69, 58, 0.15)',
+  danger: '#CD5C5C',               // Soft muted red (Indian Red)
+  dangerMuted: 'rgba(205, 92, 92, 0.15)',
   success: '#32D74B',              // iOS green
   warning: '#FF9F0A',              // iOS orange
 

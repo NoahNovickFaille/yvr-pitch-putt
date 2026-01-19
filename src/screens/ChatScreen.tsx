@@ -49,6 +49,7 @@ export function ChatScreen() {
           disabled={false}
           isGenerating={isGenerating}
           bottomInset={insets.bottom}
+          autoFocus={messages.length === 0}
         />
       </KeyboardAvoidingView>
 

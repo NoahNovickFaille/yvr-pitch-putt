@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { Menu, Cpu, MessageSquare, Brain, Shield, Trash2, Phone, MessageCircle, AlertTriangle, Pencil, Check, X } from 'lucide-react-native';
+import { Menu, Cpu, MessageSquare, Shield, Trash2, Phone, MessageCircle, AlertTriangle, Pencil, Check, X } from 'lucide-react-native';
 import { useConversationStore } from '../stores/conversationStore';
 import { useMemoryStore } from '../stores/memoryStore';
 import { useOnboardingStore } from '../stores/onboardingStore';
@@ -110,24 +110,6 @@ export function ProfileScreen() {
     );
   };
 
-  const handleDeleteAllMemories = () => {
-    Alert.alert(
-      'Delete All Memories',
-      `Are you sure you want to delete all ${memories.length} memories? This will reset Cove's knowledge of you. This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete All',
-          style: 'destructive',
-          onPress: () => {
-            clearAll();
-            Alert.alert('Deleted', 'All memories have been deleted.');
-          },
-        },
-      ]
-    );
-  };
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -140,7 +122,7 @@ export function ProfileScreen() {
           >
             <Menu size={24} color={DarkColors.textSecondary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>Settings</Text>
           <View style={styles.rightSpacer} />
         </View>
       </SafeAreaView>
@@ -215,6 +197,28 @@ export function ProfileScreen() {
           </View>
         </View>
 
+        {/* Model Information Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Model Information</Text>
+          <View style={styles.card}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Cpu size={18} color={DarkColors.accent} />
+              </View>
+              <Text style={styles.infoLabel}>Model</Text>
+              <Text style={styles.infoValue}>Llama 3.2 3B</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <MessageSquare size={18} color={DarkColors.accent} />
+              </View>
+              <Text style={styles.infoLabel}>Conversations</Text>
+              <Text style={styles.infoValue}>{conversationIds.length}</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Crisis Resources Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Crisis Resources</Text>
@@ -246,89 +250,6 @@ export function ProfileScreen() {
           </View>
         </View>
 
-        {/* Model Information Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Model Information</Text>
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Cpu size={18} color={DarkColors.accent} />
-              </View>
-              <Text style={styles.infoLabel}>Model</Text>
-              <Text style={styles.infoValue}>Llama 3.2 3B</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <MessageSquare size={18} color={DarkColors.accent} />
-              </View>
-              <Text style={styles.infoLabel}>Conversations</Text>
-              <Text style={styles.infoValue}>{conversationIds.length}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Brain size={18} color={DarkColors.accent} />
-              </View>
-              <Text style={styles.infoLabel}>Stored Memories</Text>
-              <Text style={styles.infoValue}>{memories.length}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Data Management Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Management</Text>
-
-          <TouchableOpacity
-            style={[styles.card, styles.dangerCard]}
-            onPress={handleDeleteAllConversations}
-            activeOpacity={0.7}
-            disabled={conversationIds.length === 0}
-          >
-            <View style={styles.dangerRow}>
-              <Trash2 size={20} color={DarkColors.danger} />
-              <View style={styles.dangerContent}>
-                <Text style={styles.dangerText}>Delete All Conversations</Text>
-                <Text style={styles.dangerSubtext}>
-                  Remove all {conversationIds.length} conversation{conversationIds.length !== 1 ? 's' : ''}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.card, styles.dangerCard]}
-            onPress={handleDeleteAllMemories}
-            activeOpacity={0.7}
-            disabled={memories.length === 0}
-          >
-            <View style={styles.dangerRow}>
-              <Trash2 size={20} color={DarkColors.danger} />
-              <View style={styles.dangerContent}>
-                <Text style={styles.dangerText}>Delete All Memories</Text>
-                <Text style={styles.dangerSubtext}>
-                  Remove all {memories.length} stored memor{memories.length !== 1 ? 'ies' : 'y'}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Privacy Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy</Text>
-          <View style={styles.card}>
-            <View style={styles.privacyRow}>
-              <Shield size={20} color={DarkColors.success} />
-              <Text style={styles.privacyText}>
-                All conversations and memories are stored locally on your device using on-device AI.
-                No data is sent to external servers.
-              </Text>
-            </View>
-          </View>
-        </View>
-
         {/* About This App / Disclaimer Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About This App</Text>
@@ -347,9 +268,39 @@ export function ProfileScreen() {
           </View>
         </View>
 
+        {/* Privacy Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Privacy</Text>
+          <View style={styles.card}>
+            <View style={styles.privacyRow}>
+              <Shield size={20} color={DarkColors.success} />
+              <Text style={styles.privacyText}>
+                All conversations and memories are stored locally on your device using on-device AI.
+                No data is sent to external servers.
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Danger Zone Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>Danger Zone</Text>
+          <TouchableOpacity
+            style={[styles.card, styles.dangerCard]}
+            onPress={handleDeleteAllConversations}
+            activeOpacity={0.7}
+            disabled={conversationIds.length === 0}
+          >
+            <View style={styles.dangerRow}>
+              <Trash2 size={20} color={DarkColors.danger} />
+              <View style={styles.dangerContent}>
+                <Text style={styles.dangerText}>Delete All Conversations</Text>
+                <Text style={styles.dangerSubtext}>
+                  Remove all {conversationIds.length} conversation{conversationIds.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.clearAllCard}
             onPress={handleClearAllData}
@@ -436,6 +387,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingVertical: DarkSpacing.sm,
+    paddingHorizontal: DarkSpacing.md,
   },
   editButtonText: {
     fontSize: DarkTypography.footnote,
@@ -589,7 +542,7 @@ const styles = StyleSheet.create({
     color: DarkColors.textTertiary,
   },
   crisisButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: '#CD5C5C',
     paddingVertical: DarkSpacing.lg,
     paddingHorizontal: DarkSpacing.lg,
     borderRadius: DarkSpacing.radiusSm,

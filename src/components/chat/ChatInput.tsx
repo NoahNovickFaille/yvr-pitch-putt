@@ -13,9 +13,10 @@ interface ChatInputProps {
   disabled?: boolean;
   isGenerating?: boolean;
   bottomInset?: number;
+  autoFocus?: boolean;
 }
 
-export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0, autoFocus = false }: ChatInputProps) {
   const [text, setText] = useState('');
   const inputRef = useRef<TextInput>(null);
 
@@ -48,6 +49,7 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0 }: C
             multiline
             maxLength={2000}
             editable={!disabled && !isGenerating}
+            autoFocus={autoFocus}
           />
         </View>
 
