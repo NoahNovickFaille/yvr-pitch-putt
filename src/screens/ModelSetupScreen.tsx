@@ -12,7 +12,7 @@ import { useModelDownload } from '../hooks/useModelDownload';
 import { useLLM } from '../hooks/useLLM';
 import { MODEL_CONFIG } from '../constants/model';
 import { deleteModelFile } from '../services/download/ModelDownloadService';
-import { WarmColors, WarmSpacing } from '../../constants/warmTheme';
+import { DarkColors, DarkSpacing } from '../../constants/darkTheme';
 
 interface ModelSetupScreenProps {
   onReady: () => void;
@@ -155,7 +155,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
       return (
         <View style={styles.section}>
           <Text style={styles.title}>Verifying Download...</Text>
-          <ActivityIndicator size="large" color={WarmColors.primary} />
+          <ActivityIndicator size="large" color={DarkColors.accent} />
           <Text style={styles.description}>
             Checking file integrity...
           </Text>
@@ -176,16 +176,19 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
       );
     }
 
-    // Ready to initialize or initializing
+    // Ready to initialize or initializing - match native splash layout
     if (modelState.status === 'ready_to_initialize' || isInitializing) {
       return (
-        <View style={styles.section}>
+        <View style={styles.splashContainer}>
           <Image
             source={require('../../assets/images/splash-icon.png')}
-            style={styles.logo}
+            style={styles.splashLogo}
           />
-          <Text style={styles.appName}>Cove</Text>
-          <ActivityIndicator size="large" color={WarmColors.primary} />
+          <ActivityIndicator
+            size="small"
+            color={DarkColors.accent}
+            style={styles.splashSpinner}
+          />
         </View>
       );
     }
@@ -214,7 +217,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
       return (
         <View style={styles.section}>
           <Text style={styles.title}>Ready!</Text>
-          <ActivityIndicator size="large" color={WarmColors.success} />
+          <ActivityIndicator size="large" color={DarkColors.success} />
         </View>
       );
     }
@@ -222,7 +225,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
     // Fallback
     return (
       <View style={styles.section}>
-        <ActivityIndicator size="large" color={WarmColors.primary} />
+        <ActivityIndicator size="large" color={DarkColors.accent} />
       </View>
     );
   };
@@ -237,81 +240,83 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: WarmColors.background,
+    backgroundColor: DarkColors.background,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: WarmSpacing.sectionSpacing,
+    padding: DarkSpacing.sectionSpacing,
   },
   section: {
     width: '100%',
     maxWidth: 320,
     alignItems: 'center',
   },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 16,
+  splashContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  appName: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: WarmColors.text,
-    marginBottom: 24,
-    textAlign: 'center',
+  splashLogo: {
+    width: 200,
+    height: 200,
+    resizeMode: 'contain',
+  },
+  splashSpinner: {
+    position: 'absolute',
+    bottom: '25%',
   },
   title: {
     fontSize: 24,
     fontWeight: '600',
-    color: WarmColors.text,
+    color: DarkColors.text,
     marginBottom: 16,
     textAlign: 'center',
   },
   description: {
     fontSize: 16,
-    color: WarmColors.textSecondary,
+    color: DarkColors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 22,
   },
   note: {
     fontSize: 14,
-    color: WarmColors.textSecondary,
+    color: DarkColors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     fontStyle: 'italic',
   },
   button: {
-    backgroundColor: WarmColors.primary,
+    backgroundColor: DarkColors.accent,
     paddingVertical: 14,
     paddingHorizontal: 32,
-    borderRadius: WarmSpacing.buttonRadius,
+    borderRadius: DarkSpacing.radiusLg,
     minWidth: 140,
     alignItems: 'center',
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: DarkColors.textOnAccent,
     fontSize: 17,
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: WarmColors.cardBackground,
+    backgroundColor: DarkColors.surfaceElevated,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: WarmColors.border,
+    borderColor: DarkColors.border,
   },
   secondaryButtonText: {
-    color: WarmColors.primary,
+    color: DarkColors.accent,
     fontSize: 17,
     fontWeight: '600',
   },
   dangerButton: {
-    backgroundColor: WarmColors.dangerLight,
+    backgroundColor: DarkColors.dangerMuted,
   },
   dangerButtonText: {
-    color: WarmColors.danger,
+    color: DarkColors.danger,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -322,24 +327,24 @@ const styles = StyleSheet.create({
   progressContainer: {
     width: '100%',
     height: 8,
-    backgroundColor: WarmColors.border,
+    backgroundColor: DarkColors.border,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: WarmColors.primary,
+    backgroundColor: DarkColors.accent,
     borderRadius: 4,
   },
   progressText: {
     fontSize: 14,
-    color: WarmColors.textSecondary,
+    color: DarkColors.textSecondary,
     marginBottom: 16,
   },
   errorText: {
     fontSize: 16,
-    color: WarmColors.danger,
+    color: DarkColors.danger,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,

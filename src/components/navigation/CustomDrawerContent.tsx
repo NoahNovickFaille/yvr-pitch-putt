@@ -21,18 +21,18 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
   const {
     conversationIds,
     activeConversationId,
-    createConversation,
     switchConversation,
+    getOrCreateEmptyConversation,
     removeConversation,
     getConversation,
   } = useConversationStore();
 
   const handleNewChat = useCallback(() => {
-    const newId = createConversation();
-    switchConversation(newId);
+    // Reuse existing empty conversation or create new one
+    getOrCreateEmptyConversation();
     closeDrawer();
     router.replace('/(drawer)/chat');
-  }, [createConversation, switchConversation, closeDrawer]);
+  }, [getOrCreateEmptyConversation, closeDrawer]);
 
   const handleConversationPress = useCallback(
     (conversationId: string) => {

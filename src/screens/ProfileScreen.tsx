@@ -13,12 +13,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { Menu, Cpu, MessageSquare, Shield, Trash2, Phone, MessageCircle, AlertTriangle, Pencil, Check, X } from 'lucide-react-native';
+import { Menu, Shield, Trash2, Phone, MessageCircle, AlertTriangle, Pencil, Check, X } from 'lucide-react-native';
 import { useConversationStore } from '../stores/conversationStore';
 import { useMemoryStore } from '../stores/memoryStore';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 import { DISCLAIMER_TEXT } from '../constants/disclaimer';
+import { ModelSelector } from '../components/settings/ModelSelector';
+
+type SettingsTab = 'general' | 'nerds';
 
 const BIO_MAX_LENGTH = 500;
 
@@ -31,6 +34,7 @@ export function ProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(userName || '');
   const [editBio, setEditBio] = useState(userBio || '');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
 
   useEffect(() => {
     setEditName(userName || '');
@@ -110,6 +114,12 @@ export function ProfileScreen() {
     );
   };
 
+  const handleTabSwitch = (tab: SettingsTab) => {
+    if (tab === activeTab) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveTab(tab);
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -127,7 +137,31 @@ export function ProfileScreen() {
         </View>
       </SafeAreaView>
 
+      {/* Tab Toggle */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'general' && styles.tabActive]}
+          onPress={() => handleTabSwitch('general')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabText, activeTab === 'general' && styles.tabTextActive]}>
+            General
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'nerds' && styles.tabActive]}
+          onPress={() => handleTabSwitch('nerds')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabText, activeTab === 'nerds' && styles.tabTextActive]}>
+            For Nerds
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        {activeTab === 'general' ? (
+          <>
         {/* Profile Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -194,28 +228,6 @@ export function ProfileScreen() {
                 </View>
               </>
             )}
-          </View>
-        </View>
-
-        {/* Model Information Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Model Information</Text>
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Cpu size={18} color={DarkColors.accent} />
-              </View>
-              <Text style={styles.infoLabel}>Model</Text>
-              <Text style={styles.infoValue}>Llama 3.2 3B</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <MessageSquare size={18} color={DarkColors.accent} />
-              </View>
-              <Text style={styles.infoLabel}>Conversations</Text>
-              <Text style={styles.infoValue}>{conversationIds.length}</Text>
-            </View>
           </View>
         </View>
 
@@ -326,6 +338,10 @@ export function ProfileScreen() {
             Your private emotional companion
           </Text>
         </View>
+          </>
+        ) : (
+          <ModelSelector />
+        )}
       </ScrollView>
     </View>
   );
@@ -359,6 +375,33 @@ const styles = StyleSheet.create({
   },
   rightSpacer: {
     width: 44,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: DarkSpacing.screenPadding,
+    paddingVertical: DarkSpacing.md,
+    gap: DarkSpacing.sm,
+    backgroundColor: DarkColors.background,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: DarkSpacing.sm,
+    paddingHorizontal: DarkSpacing.md,
+    borderRadius: DarkSpacing.radiusFull,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabActive: {
+    backgroundColor: DarkColors.accent,
+  },
+  tabText: {
+    fontSize: DarkTypography.callout,
+    fontWeight: DarkTypography.weightMedium,
+    color: DarkColors.textSecondary,
+  },
+  tabTextActive: {
+    color: DarkColors.userMessageText,
   },
   scrollView: {
     flex: 1,
@@ -468,25 +511,6 @@ const styles = StyleSheet.create({
     fontSize: DarkTypography.callout,
     fontWeight: DarkTypography.weightSemibold,
     color: DarkColors.userMessageText,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: DarkSpacing.md,
-  },
-  infoIcon: {
-    width: 32,
-    marginRight: DarkSpacing.md,
-  },
-  infoLabel: {
-    flex: 1,
-    fontSize: DarkTypography.callout,
-    color: DarkColors.text,
-  },
-  infoValue: {
-    fontSize: DarkTypography.callout,
-    fontWeight: DarkTypography.weightSemibold,
-    color: DarkColors.accent,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

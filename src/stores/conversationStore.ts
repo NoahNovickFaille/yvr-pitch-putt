@@ -31,6 +31,10 @@ interface ConversationStoreState {
   ) => void;
   getConversation: (conversationId: string) => Conversation | null;
   saveConversation: (conversation: Conversation) => void;
+  // Empty conversation management
+  findEmptyConversation: () => string | null;
+  getOrCreateEmptyConversation: () => string;
+  cleanupEmptyConversations: () => void;
 }
 
 export const useConversationStore = create<ConversationStoreState>(
@@ -170,6 +174,59 @@ export const useConversationStore = create<ConversationStoreState>(
     saveConversation: (conversation: Conversation) => {
       const conversationKey = `${CONVERSATION_PREFIX}${conversation.id}`;
       storage.set(conversationKey, JSON.stringify(conversation));
+    },
+
+    findEmptyConversation: (): string | null => {
+      const { conversationIds, getConversation } = get();
+      for (const id of conversationIds) {
+        const conversation = getConversation(id);
+        if (conversation && conversation.messages.length === 0) {
+          return id;
+        }
+      }
+      return null;
+    },
+
+    getOrCreateEmptyConversation: (): string => {
+      const { findEmptyConversation, createConversation, switchConversation } = get();
+
+      // Try to find an existing empty conversation
+      const existingEmptyId = findEmptyConversation();
+      if (existingEmptyId) {
+        switchConversation(existingEmptyId);
+        return existingEmptyId;
+      }
+
+      // No empty conversation exists, create a new one
+      return createConversation();
+    },
+
+    cleanupEmptyConversations: () => {
+      const { conversationIds, getConversation, activeConversationId } = get();
+
+      // Find all empty conversations except the active one
+      const emptyIds: string[] = [];
+      for (const id of conversationIds) {
+        if (id === activeConversationId) continue; // Keep active conversation
+        const conversation = getConversation(id);
+        if (conversation && conversation.messages.length === 0) {
+          emptyIds.push(id);
+        }
+      }
+
+      // Remove empty conversations from storage
+      for (const id of emptyIds) {
+        const conversationKey = `${CONVERSATION_PREFIX}${id}`;
+        storage.remove(conversationKey);
+      }
+
+      // Update index if any were removed
+      if (emptyIds.length > 0) {
+        const updatedIds = conversationIds.filter(id => !emptyIds.includes(id));
+        storage.set(CONVERSATIONS_INDEX_KEY, JSON.stringify(updatedIds));
+        set({ conversationIds: updatedIds });
+        console.log(`[ConversationStore] Cleaned up ${emptyIds.length} empty conversation(s)`);
+      }
     },
   })
 );

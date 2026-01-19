@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: DarkSpacing.xxl,
-    paddingBottom: 80, // Offset to account for keyboard
+    paddingBottom: 40, // Slight offset for visual balance
   },
   iconContainer: {
     marginBottom: DarkSpacing.xl,
