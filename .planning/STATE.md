@@ -5,26 +5,28 @@
 See: .planning/PROJECT.md
 
 **Core value:** Memory system that makes conversations feel continuous across sessions
-**Current focus:** Ready for next milestone
+**Current focus:** v1.1 Memory Revamp
 
 ## Current Position
 
-Phase: Milestone complete
-Plan: None active
-Status: v1.0 shipped, awaiting v1.1 direction
-Last activity: 2026-01-17 - Completed v1.0 milestone
+Phase: Not started
+Plan: —
+Status: Milestone v1.1 defined, ready for roadmap
+Last activity: 2026-01-19 — Started v1.1 Memory Revamp milestone
 
-Progress: Milestone complete
+Progress: 0/3 phases
 
 ## Next Steps
 
-To start the next milestone, run one of:
+To create the roadmap for v1.1:
 
 ```
-/gsd:discuss-milestone  — thinking partner for v1.1 goals
-/gsd:new-milestone      — update PROJECT.md with new direction
-/gsd:define-requirements — create fresh REQUIREMENTS.md
-/gsd:create-roadmap     — plan phases for v1.1
+/gsd:create-roadmap
+```
+
+Or if you want to research embedding options first:
+```
+/gsd:research-project
 ```
 
 ## Performance Metrics
@@ -47,7 +49,7 @@ To start the next milestone, run one of:
 
 ### Decisions
 
-Moved to PROJECT.md Key Decisions section after v1.0 completion.
+(None yet for v1.1)
 
 ### Pending Todos
 
@@ -59,6 +61,6 @@ Moved to PROJECT.md Key Decisions section after v1.0 completion.
 
 ## Session Continuity
 
-Last session: 2026-01-17
-Stopped at: v1.0 milestone completed and archived
+Last session: 2026-01-19
+Stopped at: Milestone v1.1 initialized
 Resume file: None

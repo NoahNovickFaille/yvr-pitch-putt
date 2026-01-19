@@ -10,6 +10,19 @@ Inspired by How We Feel's design sensibility but differentiated by being convers
 
 The memory system that makes conversations feel continuous across sessions — a mediocre model with good memory beats a great model with no context.
 
+## Current Milestone: v1.1 Memory Revamp
+
+**Goal:** Transform memory from keyword matching to semantic understanding with organized memory structure.
+
+**Target features:**
+- Embedding infrastructure for semantic similarity
+- Deduplication on extraction (merge duplicates)
+- Semantic retrieval replacing keyword matching
+- Hierarchical memory categories (identity, relationship, situation, preference, event, emotion)
+- Structured retrieval (always include identity + topic-relevant + recent)
+
+**Reference:** See `MEMORY_SYSTEM_AUDIT.md` for detailed implementation plan (Phases 1-3).
+
 ## Requirements
 
 ### Validated
@@ -29,7 +42,24 @@ The memory system that makes conversations feel continuous across sessions — a
 
 ### Active
 
-*TBD — define for next milestone via /gsd:define-requirements*
+*v1.1 Memory Revamp — Phases 1-3 from MEMORY_SYSTEM_AUDIT.md*
+
+**Phase 1: Embedding Infrastructure & Deduplication**
+- [ ] Integrate small embedding model (all-MiniLM-L6-v2 or similar, ~23MB)
+- [ ] Generate embeddings at memory extraction time
+- [ ] Store embeddings in MMKV alongside memories
+- [ ] Deduplicate on extraction (similarity > 0.85 = merge)
+- [ ] Migrate existing memories (background embedding generation)
+
+**Phase 2: Semantic Retrieval**
+- [ ] Replace keyword matching with embedding similarity
+- [ ] New scoring: 50% semantic + 30% decay + 20% importance
+- [ ] Structured retrieval: identity + topic-relevant + recent memories
+
+**Phase 3: Hierarchical Memory Structure**
+- [ ] Expand memory categories (identity, relationship, situation, preference, event, emotion)
+- [ ] Enhanced extraction prompt with category awareness
+- [ ] Structured memory injection (organized sections in prompt)
 
 ### Out of Scope
 
@@ -80,4 +110,4 @@ The memory system that makes conversations feel continuous across sessions — a
 | 3B model as default | Balance of quality and speed; 1B available as fallback | Validated in v1.0 |
 
 ---
-*Last updated: 2026-01-17 after v1.0 milestone completion*
+*Last updated: 2026-01-19 after v1.1 milestone start*
