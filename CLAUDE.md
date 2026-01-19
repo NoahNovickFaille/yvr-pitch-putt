@@ -19,30 +19,43 @@ React Native/Expo iOS app using on-device LLM for private emotional conversation
 - See `src/storage/storage.ts` for the configured MMKV instance
 
 ### LLM Context Management
-- 4096 token context window (Llama 3.2 supports 128K, but 4K balances memory/capacity on mobile)
-- Rolling window: ~20-30 recent messages + 10-15 relevant memories
-- Token budget managed by `src/services/llm/TokenBudget.ts`
+- Rolling window of recent messages + relevant memories (managed by `src/services/llm/TokenBudget.ts`)
 - Memory extraction runs AFTER conversation ends (not real-time)
+- Crisis detection runs on every user message (see `src/services/safety/`)
 
 ### Memory System
-- Memories decay over time using exponential decay formula
-- Three decay rates: 0.1 (persistent facts), 0.3 (medium-term), 0.7 (ephemeral)
-- Memory extraction uses LLM to parse conversations into structured facts
-- See `src/services/memory/MemoryExtractor.ts` and `MemoryDecay.ts`
+- Memories decay over time using exponential decay (see `src/services/memory/MemoryDecay.ts`)
+- Memory extraction uses LLM to parse conversations into structured facts (see `src/services/memory/MemoryExtractor.ts`)
 
 ### iOS Memory Pressure
-- App monitors iOS memory warnings via `memoryMonitor.ts`
-- LLM context released immediately on memory warning to prevent app termination
-- Context re-initialized when user returns to chat
+- LLM context released on iOS memory warning to prevent termination; re-initialized when user returns
+
+## Code Quality Standards
+
+IMPORTANT: Apply these standards to ALL code changes.
+
+### TypeScript
+- Use strict typing - avoid `any`, prefer explicit types/interfaces
+- Define interfaces for props, state, and API responses in `src/types/`
+- Use type guards for runtime type narrowing
+
+### React Native
+- Memoize expensive computations with `useMemo`, callbacks with `useCallback`
+- Use `FlatList` for lists (never `ScrollView` with `.map()`)
+- Avoid inline styles - use `StyleSheet.create()`
+- Keep components small and focused (<150 lines)
+
+### DRY Principles
+- Extract repeated logic into custom hooks in `src/hooks/`
+- Shared UI patterns go in `src/components/`
+- Constants and magic values go in `src/constants/`
+- Before writing new code, check if similar functionality exists
 
 ## Directory Structure
 
 ```
 app/                    # Expo Router pages (file-based routing)
   (tabs)/              # Tab navigation screens
-components/            # Expo template components (themed, reusable UI)
-constants/             # Expo template constants (theme colors)
-hooks/                 # Expo template hooks (color scheme, theme)
 src/
   components/          # App-specific components (chat UI, modals)
   constants/           # Model definitions and app constants
@@ -53,30 +66,12 @@ src/
   types/               # TypeScript type definitions
 ```
 
+Note: Root `components/`, `constants/`, `hooks/` are Expo template files (rarely modified). Active development happens in `src/`.
+
 ## Common Commands
 
 ```bash
-# Start development server
-npm start
-
-# Run on iOS simulator
-npm run ios
-
-# Lint
-npm run lint
+npm start      # Start development server
+npm run ios    # Run on iOS simulator
+npm run lint   # Lint
 ```
-
-## Development Guidelines
-
-- Test memory extraction with multi-day conversation scenarios
-- Monitor token usage - 4096 context provides good headroom but still limited
-- Crisis detection runs on every user message (see `src/services/safety/`)
-- Streaming responses use callback-based token emission from llama.rn
-- Model downloads can be interrupted - use background downloader with resume support
-
-## Important Notes
-
-- Root `components/`, `constants/`, `hooks/` = Expo template files (rarely modified)
-- Active development happens in `src/` subdirectories
-- All LLM operations run on device - no network calls for inference
-- App bundles without model - downloads on first launch (~1.8GB)
