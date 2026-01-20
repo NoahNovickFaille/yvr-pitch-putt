@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-19)
 ## Current Position
 
 Phase: 5 of 7 (Embedding Infrastructure)
-Plan: 3 of 5 complete
+Plan: 4 of 5 complete
 Status: In progress
-Last activity: 2026-01-20 — Completed 05-02-PLAN.md (embedding service integration)
+Last activity: 2026-01-20 — Completed 05-04-PLAN.md (deduplication service)
 
-Progress: ████████████████░░░░ 80% (v1.0) | v1.1: ██████░░░░ 3/5 plans (Phase 5)
+Progress: ████████████████░░░░ 80% (v1.0) | v1.1: ████████░░ 4/5 plans (Phase 5)
 
 ## Next Steps
 
@@ -22,7 +22,7 @@ Progress: ████████████████░░░░ 80% (v1.0
 /gsd:execute-phase 5
 ```
 
-Continue with plan 05-04 (deduplication service).
+Continue with plan 05-05 (semantic retrieval).
 
 ## Performance Metrics
 
@@ -32,9 +32,9 @@ Continue with plan 05-04 (deduplication service).
 - Timeline: 2 days (2026-01-16 to 2026-01-17)
 
 **v1.1 Velocity:**
-- Plans completed: 3
-- Duration: 8 min
-- Average: 2.7 min/plan
+- Plans completed: 4
+- Duration: 11 min
+- Average: 2.75 min/plan
 
 **By Phase:**
 
@@ -44,7 +44,7 @@ Continue with plan 05-04 (deduplication service).
 | 02-core-chat | 5/7 | 12.4 min | 2.5 min |
 | 03-memory-system | 6/6 | 10.0 min | 1.7 min |
 | 04-polish | 4/4 | 22 min | 5.5 min |
-| 05-embedding-infrastructure | 3/5 | 8 min | 2.7 min |
+| 05-embedding-infrastructure | 4/5 | 11 min | 2.75 min |
 
 ## Accumulated Context
 
@@ -59,6 +59,9 @@ Continue with plan 05-04 (deduplication service).
 | Dual cosine similarity functions | General + optimized for unit vectors | 05-03 |
 | EmbeddingService separate from LLMService | Embedding models require separate llama.rn context | 05-02 |
 | Auto-init after download | useEmbeddingModel hook auto-initializes service | 05-02 |
+| Keep existing content on merge | Start simple, can enhance later | 05-04 |
+| Background embedding generation | requestIdleCallback with setTimeout fallback | 05-04 |
+| Duplicate boost importance by 1 | Repetition signals significance, capped at 10 | 05-04 |
 
 ### Pending Todos
 
@@ -68,9 +71,10 @@ Continue with plan 05-04 (deduplication service).
 
 - ~~**Embedding model selection**: Need to validate all-MiniLM-L6-v2 works in React Native environment (will be tested in 05-02)~~ EmbeddingService ready
 - ~~**Background thread execution**: Embedding inference must not block UI (addressed in 05-03)~~ Storage utilities ready
+- ~~**Deduplication integration**: Need to integrate into memory extraction pipeline (addressed in 05-04)~~ Deduplication active
 
 ## Session Continuity
 
-Last session: 2026-01-20 00:17:36Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-01-20 00:21:57Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
