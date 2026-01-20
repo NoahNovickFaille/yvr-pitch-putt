@@ -5,24 +5,24 @@
 See: .planning/PROJECT.md (updated 2026-01-19)
 
 **Core value:** Memory system that makes conversations feel continuous across sessions
-**Current focus:** Phase 6 Complete - Semantic Retrieval
+**Current focus:** Phase 7 - Hierarchical Memory (in progress)
 
 ## Current Position
 
-Phase: 6 of 7 (Semantic Retrieval) - COMPLETE
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-01-20 - Completed 06-03-PLAN.md (Integration with ChatService)
+Phase: 7 of 7 (Hierarchical Memory)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-20 - Completed 07-01-PLAN.md (Memory Types)
 
-Progress: ████████████████████ 100% (v1.0) | v1.1: █████████████ 8/8 plans
+Progress: ████████████████████ 100% (v1.0) | v1.1: ███████████████ 9/11 plans
 
 ## Next Steps
 
 ```
-/gsd:plan-phase 7
+/gsd:execute-plan .planning/phases/07-hierarchical-memory/07-02-PLAN.md
 ```
 
-Phase 6 complete. Begin planning Phase 7 (Hierarchical Memory).
+Continue with 07-02: Memory extraction prompt updates.
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Phase 6 complete. Begin planning Phase 7 (Hierarchical Memory).
 | 04-polish | 4/4 | 22 min | 5.5 min |
 | 05-embedding-infrastructure | 5/5 | 13 min | 2.6 min |
 | 06-semantic-retrieval | 3/3 | 6 min | 2.0 min |
+| 07-hierarchical-memory | 1/3 | 3 min | 3.0 min |
 
 ## Accumulated Context
 
@@ -72,6 +73,9 @@ Phase 6 complete. Begin planning Phase 7 (Hierarchical Memory).
 | Pre-computed query embedding | Generate once, reuse for all memory comparisons | 06-02 |
 | Keep getTopMemories() as sync fallback | Backward compatibility for synchronous use cases | 06-03 |
 | ChatService uses semantic by default | Embedding-based retrieval is now primary path | 06-03 |
+| 6 semantic categories | identity, relationship, situation, preference, event, emotion | 07-01 |
+| Category decay rates (720h to 24h) | identity slowest (30d), emotion fastest (1d) | 07-01 |
+| Legacy memories default to identity | Longest decay preserves existing memories | 07-01 |
 
 ### Pending Todos
 
@@ -88,6 +92,6 @@ All blockers resolved:
 
 ## Session Continuity
 
-Last session: 2026-01-20 00:51:33Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-01-20 05:11:30Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
