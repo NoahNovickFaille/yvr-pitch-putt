@@ -5,24 +5,24 @@
 See: .planning/PROJECT.md (updated 2026-01-19)
 
 **Core value:** Memory system that makes conversations feel continuous across sessions
-**Current focus:** Phase 5 Complete - Embedding Infrastructure
+**Current focus:** Phase 6 - Semantic Retrieval
 
 ## Current Position
 
-Phase: 5 of 7 (Embedding Infrastructure) - COMPLETE
-Plan: 5 of 5 complete
-Status: Phase complete
-Last activity: 2026-01-20 - Completed 05-05-PLAN.md (embedding migration)
+Phase: 6 of 7 (Semantic Retrieval)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-20 - Completed 06-01-PLAN.md (retrieval constants and types)
 
-Progress: ████████████████░░░░ 80% (v1.0) | v1.1: ██████████ 5/5 plans (Phase 5 COMPLETE)
+Progress: ████████████████░░░░ 80% (v1.0) | v1.1: ███████████░ 6/8 plans
 
 ## Next Steps
 
 ```
-/gsd:plan-phase 6
+/gsd:execute-phase 6
 ```
 
-Phase 5 complete. Begin planning Phase 6 (Semantic Retrieval).
+Continue Phase 6 execution (06-02: SemanticRetrieval service).
 
 ## Performance Metrics
 
@@ -32,9 +32,9 @@ Phase 5 complete. Begin planning Phase 6 (Semantic Retrieval).
 - Timeline: 2 days (2026-01-16 to 2026-01-17)
 
 **v1.1 Velocity:**
-- Plans completed: 5
-- Duration: 13 min
-- Average: 2.6 min/plan
+- Plans completed: 6
+- Duration: 15 min
+- Average: 2.5 min/plan
 
 **By Phase:**
 
@@ -45,6 +45,7 @@ Phase 5 complete. Begin planning Phase 6 (Semantic Retrieval).
 | 03-memory-system | 6/6 | 10.0 min | 1.7 min |
 | 04-polish | 4/4 | 22 min | 5.5 min |
 | 05-embedding-infrastructure | 5/5 | 13 min | 2.6 min |
+| 06-semantic-retrieval | 1/3 | 2 min | 2.0 min |
 
 ## Accumulated Context
 
@@ -64,6 +65,9 @@ Phase 5 complete. Begin planning Phase 6 (Semantic Retrieval).
 | Duplicate boost importance by 1 | Repetition signals significance, capped at 10 | 05-04 |
 | Batch size 5 for migration | Balance throughput and UI responsiveness | 05-05 |
 | Non-blocking migration | initializeEmbeddingSystem fires migration without await | 05-05 |
+| Semantic threshold 0.4 for retrieval | Lower than deduplication (0.85) to capture related content | 06-01 |
+| Weights 50/30/20 | Prioritize relevance, then recency, then importance | 06-01 |
+| Include scoredMemories in result | Enables debugging and parameter tuning | 06-01 |
 
 ### Pending Todos
 
@@ -75,9 +79,10 @@ Phase 5 complete. Begin planning Phase 6 (Semantic Retrieval).
 - ~~**Background thread execution**: Embedding inference must not block UI (addressed in 05-03)~~ Storage utilities ready
 - ~~**Deduplication integration**: Need to integrate into memory extraction pipeline (addressed in 05-04)~~ Deduplication active
 - ~~**Migration for existing memories**: Need to embed pre-existing memories on upgrade (addressed in 05-05)~~ Migration service ready
+- **Optimal semantic threshold**: Starting with 0.4, may need tuning based on observed matches (to validate in 06-02)
 
 ## Session Continuity
 
-Last session: 2026-01-20 00:25:33Z
-Stopped at: Completed 05-05-PLAN.md (Phase 5 complete)
+Last session: 2026-01-20 00:43:32Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
