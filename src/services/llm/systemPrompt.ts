@@ -1,3 +1,6 @@
+import { Memory } from '../../types/memory';
+import { buildStructuredMemorySection } from './TokenBudget';
+
 /**
  * System prompt for Cove - the emotionally intelligent companion
  *
@@ -101,6 +104,50 @@ ${memorySection}
 
 Use these memories naturally in conversation when relevant. Don't explicitly say "I remember" - just reference the information naturally as if you know them.`;
     prompt += instruction;
+  }
+
+  return prompt;
+}
+
+/**
+ * Builds system prompt with structured memory sections.
+ *
+ * Uses hierarchical organization (HIE-03):
+ * - About them (identity + relationship)
+ * - Current situation (situation + emotion)
+ * - Relevant context (preference + event)
+ *
+ * This async version should be preferred when structured sections are available.
+ *
+ * @param memories - Retrieved memories to inject
+ * @param userName - Optional user name
+ * @param userBio - Optional user bio
+ * @returns Complete system prompt with structured memory context
+ */
+export async function buildSystemPromptWithStructuredMemories(
+  memories: Memory[],
+  userName: string | null = null,
+  userBio: string | null = null
+): Promise<string> {
+  let prompt = SYSTEM_PROMPT;
+
+  // Add user context first
+  const userContext = buildUserContext(userName, userBio);
+  if (userContext) {
+    prompt += userContext;
+  }
+
+  // Add structured memory sections
+  if (memories.length > 0) {
+    const structuredSection = await buildStructuredMemorySection(memories);
+    if (structuredSection) {
+      const instruction = `
+
+${structuredSection}
+
+Use this information naturally in conversation when relevant. Don't explicitly say "I remember" - reference details as if you know them.`;
+      prompt += instruction;
+    }
   }
 
   return prompt;
