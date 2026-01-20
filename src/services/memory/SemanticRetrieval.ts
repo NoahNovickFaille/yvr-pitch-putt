@@ -70,29 +70,36 @@ export function scoreMemory(
  * Identity memories are always included in retrieval regardless of
  * semantic similarity to the query (SEM-03).
  *
- * Identity indicators:
- * - Type 'person' (user's relationships)
- * - Type 'fact' with identity content patterns
+ * With new category system (HIE-01):
+ * - 'identity' category: core facts (name, age, job)
+ * - 'relationship' category: people connections
+ *
+ * Falls back to content-based detection for legacy memories.
  *
  * @param memory - Memory to check
  * @returns True if this is an identity memory
  */
 export function isIdentityMemory(memory: Memory): boolean {
-  // All 'person' type memories are identity
+  // Direct category check (new system - HIE-01)
+  if (memory.category === 'identity' || memory.category === 'relationship') {
+    return true;
+  }
+
+  // Fallback for legacy memories without new category
+  // Check type first
   if (memory.type === 'person') {
     return true;
   }
 
-  // Check 'fact' type for identity patterns
+  // Content-based detection for legacy 'fact' type
   if (memory.type === 'fact') {
     const content = memory.content.toLowerCase();
-    // Identity patterns: name, occupation, location, identity statements
     return (
       content.includes('name is') ||
       content.includes('works as') ||
       content.includes('job is') ||
       content.includes('lives in') ||
-      content.includes('is a ') // Identity statement like "User is a teacher"
+      content.includes('is a ')
     );
   }
 
