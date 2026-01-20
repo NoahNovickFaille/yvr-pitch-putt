@@ -53,12 +53,12 @@ v1.1 transforms the memory system from keyword matching to semantic understandin
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EMB-01 | Phase 5 | Pending |
-| EMB-02 | Phase 5 | Pending |
-| EMB-03 | Phase 5 | Pending |
-| EMB-04 | Phase 5 | Pending |
-| EMB-05 | Phase 5 | Pending |
-| EMB-06 | Phase 5 | Pending |
+| EMB-01 | Phase 5 | Complete |
+| EMB-02 | Phase 5 | Complete |
+| EMB-03 | Phase 5 | Complete |
+| EMB-04 | Phase 5 | Complete |
+| EMB-05 | Phase 5 | Complete |
+| EMB-06 | Phase 5 | Complete |
 | SEM-01 | Phase 6 | Pending |
 | SEM-02 | Phase 6 | Pending |
 | SEM-03 | Phase 6 | Pending |

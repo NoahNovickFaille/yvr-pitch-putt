@@ -40,7 +40,7 @@ See [v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.md) for details.
 
 **Milestone Goal:** Transform memory from keyword matching to semantic understanding with organized memory structure.
 
-- [ ] **Phase 5: Embedding Infrastructure** - Add embedding model, deduplication, migrate memories
+- [x] **Phase 5: Embedding Infrastructure** - Add embedding model, deduplication, migrate memories
 - [ ] **Phase 6: Semantic Retrieval** - Replace keyword matching with embedding similarity
 - [ ] **Phase 7: Hierarchical Memory** - New categories, structured extraction and injection
 
@@ -62,11 +62,11 @@ See [v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.md) for details.
 **Plans**: 5 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Embedding constants and type definitions
-- [ ] 05-02-PLAN.md — EmbeddingService singleton and download hook
-- [ ] 05-03-PLAN.md — Storage utilities and cosine similarity
-- [ ] 05-04-PLAN.md — Deduplication and MemoryOrchestrator integration
-- [ ] 05-05-PLAN.md — Migration for existing memories
+- [x] 05-01-PLAN.md — Embedding constants and type definitions
+- [x] 05-02-PLAN.md — EmbeddingService singleton and download hook
+- [x] 05-03-PLAN.md — Storage utilities and cosine similarity
+- [x] 05-04-PLAN.md — Deduplication and MemoryOrchestrator integration
+- [x] 05-05-PLAN.md — Migration for existing memories
 
 **Wave Structure:**
 - Wave 1: 05-01 (foundation)
@@ -127,7 +127,7 @@ Plans:
 | 2. Core Chat | v1.0 | 7/7 | Complete | 2026-01-16 |
 | 3. Memory System | v1.0 | 6/6 | Complete | 2026-01-17 |
 | 4. Polish | v1.0 | 4/4 | Complete | 2026-01-17 |
-| 5. Embedding Infrastructure | v1.1 | 0/5 | Planned | - |
+| 5. Embedding Infrastructure | v1.1 | 5/5 | Complete | 2026-01-19 |
 | 6. Semantic Retrieval | v1.1 | 0/? | Not started | - |
 | 7. Hierarchical Memory | v1.1 | 0/? | Not started | - |
 
