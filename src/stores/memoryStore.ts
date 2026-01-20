@@ -12,6 +12,7 @@ import {
   calculateRelevanceScore,
   calculateKeywordMatch,
 } from '../services/memory/MemoryDecay';
+import { retrieveMemories } from '../services/memory/SemanticRetrieval';
 
 const MEMORIES_KEY = 'stored_memories';
 
@@ -35,6 +36,7 @@ interface MemoryState {
   markAccessed: (memoryIds: string[]) => void;
   pruneDecayed: (threshold: number) => void;
   getTopMemories: (count: number, context?: string) => Memory[];
+  retrieveMemoriesSemantic: (query: string) => Promise<Memory[]>;
   loadFromStorage: () => void;
   clearAll: () => void;
 }
@@ -148,6 +150,10 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   },
 
   getTopMemories: (count: number, context?: string) => {
+    if (__DEV__) {
+      console.log('[MemoryStore] getTopMemories (keyword-based):', count);
+    }
+
     const now = Date.now();
     const state = get();
 
@@ -167,6 +173,11 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     // Sort by score descending and return top N
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, count).map((item) => item.memory);
+  },
+
+  retrieveMemoriesSemantic: async (query: string) => {
+    const state = get();
+    return retrieveMemories(query, state.memories);
   },
 
   loadFromStorage: () => {
