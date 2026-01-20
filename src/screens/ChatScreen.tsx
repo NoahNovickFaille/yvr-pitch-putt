@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,11 @@ import { DarkColors } from '@/constants/darkTheme';
 
 export function ChatScreen() {
   const insets = useSafeAreaInsets();
+  const [inputHeight, setInputHeight] = useState(0);
+
+  const handleInputHeightChange = useCallback((height: number) => {
+    setInputHeight(height);
+  }, []);
   const {
     messages,
     isGenerating,
@@ -42,6 +47,7 @@ export function ChatScreen() {
           messages={messages}
           isGenerating={isGenerating}
           partialResponse={partialResponse}
+          bottomPadding={inputHeight}
         />
 
         <ChatInput
@@ -50,6 +56,7 @@ export function ChatScreen() {
           isGenerating={isGenerating}
           bottomInset={insets.bottom}
           autoFocus={messages.length === 0}
+          onHeightChange={handleInputHeightChange}
         />
       </KeyboardAvoidingView>
 

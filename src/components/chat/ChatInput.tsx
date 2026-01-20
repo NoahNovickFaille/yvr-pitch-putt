@@ -3,6 +3,7 @@ import {
   View,
   TextInput,
   StyleSheet,
+  LayoutChangeEvent,
 } from 'react-native';
 import { Send } from 'lucide-react-native';
 import { IconButton } from '@/src/components/ui';
@@ -14,11 +15,17 @@ interface ChatInputProps {
   isGenerating?: boolean;
   bottomInset?: number;
   autoFocus?: boolean;
+  onHeightChange?: (height: number) => void;
 }
 
-export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0, autoFocus = false }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0, autoFocus = false, onHeightChange }: ChatInputProps) {
   const [text, setText] = useState('');
   const inputRef = useRef<TextInput>(null);
+
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    onHeightChange?.(height);
+  }, [onHeightChange]);
 
   const handleSend = useCallback(() => {
     const message = text.trim();
@@ -35,7 +42,7 @@ export function ChatInput({ onSend, disabled, isGenerating, bottomInset = 0, aut
   const bottomPadding = Math.max(8, bottomInset);
 
   return (
-    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]} onLayout={handleLayout}>
       <View style={styles.inputRow}>
         <View style={styles.inputContainer}>
           <TextInput
