@@ -6,10 +6,16 @@
 export type MemoryType = 'person' | 'event' | 'emotion' | 'fact' | 'preference';
 
 /**
- * Memory category - determines decay rate
- * Made optional since simplified extraction doesn't produce this
+ * Memory categories - semantic grouping for hierarchical organization
+ * Replaces basic 'persistent' | 'temporal' | 'contextual' with semantic categories
  */
-export type MemoryCategory = 'persistent' | 'temporal' | 'contextual';
+export type MemoryCategory =
+  | 'identity'      // Core identity: name, age, occupation, traits
+  | 'relationship'  // People: family, friends, partners, pets
+  | 'situation'     // Ongoing circumstances: challenges, life changes
+  | 'preference'    // Likes/dislikes: activities, foods, habits
+  | 'event'         // Time-bound: appointments, milestones, incidents
+  | 'emotion';      // Current state: feelings, moods
 
 export interface Memory {
   id: string;
@@ -56,21 +62,23 @@ export function inferImportance(type: MemoryType): number {
 }
 
 /**
- * Infer decay category from memory type
- * Facts are persistent, emotions/events are temporal
+ * Infer category from memory type for legacy compatibility
+ * New extraction will provide category directly
  */
 export function inferCategory(type: MemoryType): MemoryCategory {
   switch (type) {
-    case 'fact':
     case 'person':
+      return 'relationship';
+    case 'fact':
+      return 'identity';     // Most facts are identity-related
     case 'preference':
-      return 'persistent'; // Long-lasting memories
-    case 'emotion':
-      return 'temporal'; // Current emotional state changes
+      return 'preference';
     case 'event':
-      return 'temporal'; // Events are time-bound
+      return 'event';
+    case 'emotion':
+      return 'emotion';
     default:
-      return 'persistent';
+      return 'identity';
   }
 }
 
