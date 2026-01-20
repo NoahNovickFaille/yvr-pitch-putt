@@ -216,10 +216,10 @@ Manages the 4096 token context window shared between all components. Note: Llama
 ```
 Total Context: 4096 tokens
 ├── System Prompt:      500 tokens
-├── Memory Context:     600 tokens
+├── Memory Context:     650 tokens (605 content + 45 headers)
 ├── Conversation:      2000 tokens (~20-30 messages)
 └── Response Buffer:    900 tokens (n_predict)
-    + Overhead:          96 tokens
+    + Overhead:          46 tokens
 ```
 
 ### Key Functions
@@ -228,13 +228,18 @@ Total Context: 4096 tokens
 import {
   countTokens,
   buildMemorySectionWithinBudget,
+  buildStructuredMemorySection,
   truncateConversationHistory
 } from './TokenBudget';
 
 // Count tokens (uses actual tokenizer when model ready)
 const count = countTokens("Hello, world!");
 
-// Build memory section that fits budget
+// Build structured memory section (recommended)
+// Organizes into About them / Current situation / Relevant context
+const memorySection = await buildStructuredMemorySection(memories);
+
+// Build simple memory section that fits budget (legacy)
 const memorySection = buildMemorySectionWithinBudget(
   memories,
   600 // max tokens
@@ -246,6 +251,26 @@ const truncatedHistory = truncateConversationHistory(
   2000 // max tokens
 );
 ```
+
+### Structured Memory Format
+
+The `buildStructuredMemorySection()` function organizes memories into three sections to mitigate the "Lost in the Middle" effect:
+
+```
+### About them
+- [identity memories]
+- [relationship memories]
+
+### Current situation
+- [situation memories]
+- [emotion memories]
+
+### Relevant context
+- [preference memories]
+- [event memories]
+```
+
+Section headers act as attention anchors, helping the LLM weight identity information appropriately.
 
 ### Token Counting Strategy
 
@@ -264,16 +289,27 @@ You are Cove, a warm and empathetic companion...
 [personality definition, ~400 tokens]
 `;
 
-// Dynamic memory injection
-function buildSystemPromptWithMemories(memories: Memory[]): string {
+// Dynamic memory injection with structured sections
+async function buildSystemPromptWithStructuredMemories(memories: Memory[]): Promise<string> {
   if (memories.length === 0) return BASE_SYSTEM_PROMPT;
 
-  return BASE_SYSTEM_PROMPT + `\n\nYou know these things about the user:
-${memorySection}
+  // Uses buildStructuredMemorySection from TokenBudget
+  const structuredSection = await buildStructuredMemorySection(memories);
+
+  return BASE_SYSTEM_PROMPT + `\n\nWhat you know about them:
+${structuredSection}
 
 Reference these memories naturally in conversation...`;
 }
 ```
+
+### Structured Memory Sections
+
+Memories are organized into three sections for optimal LLM attention:
+
+1. **About them** - Identity and relationship memories (placed FIRST for primacy effect)
+2. **Current situation** - Situation and emotion memories
+3. **Relevant context** - Preference and event memories
 
 ### Key Personality Traits
 

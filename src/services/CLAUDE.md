@@ -1,6 +1,6 @@
 # Core Services
 
-Business logic layer for LLM inference, memory management, model downloads, safety checks, and speech recognition.
+Business logic layer for LLM inference, memory management, model downloads, safety checks, speech recognition, and semantic embeddings.
 
 ## Directory Structure
 
@@ -8,16 +8,25 @@ Business logic layer for LLM inference, memory management, model downloads, safe
 Core LLM functionality:
 - **LLMService** - Singleton managing llama.rn context lifecycle (init, release, inference)
 - **ChatService** - High-level chat orchestration (user message → memory retrieval → LLM → response)
-- **systemPrompt** - Constructs system prompt with memory context injection
+- **systemPrompt** - Constructs system prompt with structured memory context injection
 - **TokenBudget** - Calculates and enforces 4096 token context window limits
 - **memoryMonitor** - iOS memory pressure monitoring (releases LLM on warning)
 
 ### memory/
-Persistent memory system:
-- **MemoryExtractor** - Uses LLM to parse conversations into structured Memory objects
-- **MemoryDecay** - Exponential decay calculations (reduces importance over time)
+Persistent memory system with semantic retrieval:
+- **MemoryExtractor** - Uses LLM to parse conversations into structured Memory objects (6 semantic categories)
+- **MemoryDecay** - Exponential decay calculations with category-specific half-lives
 - **MemoryOrchestrator** - Coordinates extraction, storage, and retrieval
-- **extractionPrompt** - LLM prompt for memory extraction (JSON schema output)
+- **SemanticRetrieval** - 3-bucket memory retrieval (identity + topic-relevant + recent)
+- **extractionPrompt** - LLM prompt for memory extraction (JSON schema with categories)
+
+### embedding/
+On-device semantic similarity:
+- **EmbeddingService** - Singleton managing llama.rn context for embeddings (all-MiniLM-L6-v2)
+- **EmbeddingStorage** - Binary storage for 256-dim embedding vectors in MMKV
+- **CosineSimilarity** - Optimized cosine similarity for normalized vectors
+- **Deduplicator** - Semantic duplicate detection (0.85 threshold) with memory merging
+- **EmbeddingMigration** - Migrates pre-embedding memories by generating embeddings
 
 ### download/
 Model file download management:
@@ -43,15 +52,15 @@ Voice input integration:
 ## Key Patterns
 
 ### Service Initialization
-Most services are stateless singletons. LLMService maintains context but can release/re-init.
+Most services are stateless singletons. LLMService and EmbeddingService maintain contexts but can release/re-init.
 
 ### Context Window Management
 CRITICAL: 4096 token budget shared between:
 1. System prompt: 500 tokens
-2. Memories: 600 tokens (10-15 memories)
+2. Memories: 650 tokens (605 content + 45 headers for structured sections)
 3. Conversation history: 2000 tokens (~20-30 messages)
 4. Response buffer: 900 tokens
-5. Overhead: 96 tokens
+5. Overhead: ~46 tokens
 
 Note: Llama 3.2 3B supports 128K context, but 4K balances memory usage and capacity on mobile.
 
@@ -59,25 +68,39 @@ TokenBudget.ts calculates token counts and truncates history if needed.
 
 ### Memory Extraction Flow
 1. Conversation ends (app backgrounded or user leaves chat)
-2. MemoryOrchestrator reads conversation messages
+2. MemoryOrchestrator checks guards (LLM ready, cooldown, user idle)
 3. MemoryExtractor sends to LLM with extraction prompt
-4. LLM returns JSON with entities, emotions, facts
-5. Memories stored in MMKV with importance + decay rate
-6. Future chats retrieve top 10 memories by effective importance
+4. LLM returns JSON with 6 semantic categories (identity, relationship, preference, situation, event, emotion)
+5. Deduplicator checks each memory against existing via embeddings (0.85 threshold)
+6. Duplicate memories merged (importance boosted); new memories get embeddings generated
+7. Memories stored in MMKV with category-based importance + decay rate
+
+### Memory Retrieval Flow
+1. SemanticRetrieval uses 3-bucket architecture:
+   - Identity bucket (3): Always-included core facts
+   - Topic-relevant bucket (4): Semantically similar to query (≥0.4 threshold)
+   - Recent bucket (2): Most recently accessed
+2. Weighted scoring: semantic×0.5 + decay×0.3 + importance×0.2
+3. TokenBudget.buildStructuredMemorySection organizes into About/Situation/Context headers
+4. Falls back to keyword matching if EmbeddingService not ready
 
 ### iOS Memory Management
 App monitors iOS memory warnings:
 - Immediate LLM context release (prevents app termination)
+- EmbeddingService can also release on memory pressure
 - Re-initialization on next user message
 - Graceful degradation (shows loading state during re-init)
 
 ## Important Notes
 
 - LLMService is thread-safe but llama.rn operations block the JS thread during inference
+- EmbeddingService uses separate context from LLMService (embedding: true required)
 - Memory extraction runs in background (not real-time during chat)
 - All persistence uses synchronous MMKV operations
 - Safety checks use simple regex patterns (no ML-based detection)
-- Model files stored in app Documents directory (~1.8GB for Q4_K_M quantization)
+- Model files stored in app Documents directory:
+  - Chat model: ~1.8GB for Q4_K_M quantization
+  - Embedding model: ~21MB for all-MiniLM-L6-v2
 
 ## Testing Considerations
 
@@ -86,3 +109,5 @@ App monitors iOS memory warnings:
 - Monitor token budget - logs warnings when approaching 4096 limit
 - Test memory pressure handling on older devices (iPhone 12 or older)
 - Validate decay calculations produce reasonable memory rankings over time
+- Test deduplication with semantically similar but not identical memories
+- Verify semantic retrieval performance target (<50ms)

@@ -7,7 +7,7 @@ A local-first emotional companion app for iOS. All AI processing happens on-devi
 Cove is a warm, empathetic AI companion that remembers your conversations and builds context over time. Unlike cloud-based chatbots, everything runs locally:
 
 - **On-Device LLM**: Uses llama.rn with Metal GPU acceleration
-- **Persistent Memory**: Remembers facts, emotions, and events across sessions
+- **Persistent Memory**: Remembers facts, emotions, and events across sessions with semantic retrieval
 - **Crisis Detection**: Safety-first design with immediate crisis resource display
 - **Complete Privacy**: Zero network calls for AI inference
 
@@ -24,7 +24,11 @@ npm start
 npm run ios
 ```
 
-On first launch, the app downloads a ~1.8GB model file. This happens once and supports resume if interrupted.
+On first launch, the app downloads two model files:
+- Chat model: ~1.8GB (Llama 3.2 3B Q4_K_M)
+- Embedding model: ~21MB (all-MiniLM-L6-v2)
+
+Both downloads support resume if interrupted.
 
 ## Architecture Overview
 
@@ -55,24 +59,24 @@ On first launch, the app downloads a ~1.8GB model file. This happens once and su
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Services                                 │
-│  ┌───────────┐  ┌────────────┐  ┌────────┐                      │
-│  │    LLM    │  │   Memory   │  │ Safety │                      │
-│  │  Service  │  │  Service   │  │Service │                      │
-│  └─────┬─────┘  └──────┬─────┘  └───┬────┘                      │
-│        │               │            │                            │
-│        │       ┌───────┴───────┐    │                            │
-│        │       │               │    │                            │
-│        ▼       ▼               ▼    │                            │
-│  ┌──────────────────┐  ┌──────────┐ │                            │
-│  │ CompletionQueue  │  │Extraction│ │                            │
-│  │ (Priority-based) │  │  Queue   │ │                            │
-│  └────────┬─────────┘  └──────────┘ │                            │
-│           │                         │                            │
-│           ▼                         │                            │
-│  ┌──────────────────┐               │                            │
-│  │   LlamaContext   │◀──────────────┘                            │
-│  │   (llama.rn)     │                                            │
-│  └──────────────────┘                                            │
+│  ┌───────────┐  ┌────────────┐  ┌─────────────┐  ┌────────┐    │
+│  │    LLM    │  │   Memory   │  │  Embedding  │  │ Safety │    │
+│  │  Service  │  │  Service   │  │   Service   │  │Service │    │
+│  └─────┬─────┘  └──────┬─────┘  └──────┬──────┘  └───┬────┘    │
+│        │               │               │             │          │
+│        │       ┌───────┴───────┐       │             │          │
+│        │       │               │       │             │          │
+│        ▼       ▼               ▼       ▼             │          │
+│  ┌──────────────────┐  ┌──────────┐  ┌───────────┐   │          │
+│  │ CompletionQueue  │  │Extraction│  │ Embedding │   │          │
+│  │ (Priority-based) │  │  Queue   │  │  Storage  │   │          │
+│  └────────┬─────────┘  └──────────┘  └───────────┘   │          │
+│           │                                          │          │
+│           ▼                                          │          │
+│  ┌──────────────────┐                                │          │
+│  │   LlamaContext   │◀───────────────────────────────┘          │
+│  │   (llama.rn)     │                                           │
+│  └──────────────────┘                                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -92,15 +96,17 @@ src/
 ├── components/              # App-specific components
 │   ├── chat/               # Chat UI components
 │   └── ...
-├── constants/              # Model definitions, app constants
+├── constants/              # Model definitions, memory constants
 ├── hooks/                  # Custom React hooks
 │   ├── useChat.ts         # Chat interaction logic
 │   ├── useLLM.ts          # LLM lifecycle management
 │   ├── useModelDownload.ts # Download progress tracking
+│   ├── useEmbeddingModel.ts # Embedding model lifecycle
 │   └── useMemoryExtraction.ts # Memory extraction triggers
 ├── services/               # Core services (each has README.md)
 │   ├── llm/               # LLM inference and chat
-│   ├── memory/            # Persistent memory with decay
+│   ├── memory/            # Persistent memory with semantic retrieval
+│   ├── embedding/         # Semantic similarity (dedup, retrieval)
 │   ├── safety/            # Crisis detection
 │   ├── download/          # Model download management
 │   └── conversation/      # Title generation
@@ -119,7 +125,7 @@ hooks/                       # Expo template hooks
 
 ## Core Services
 
-The app is built around six core services. Each service folder contains a README.md with detailed documentation:
+The app is built around seven core services. Each service folder contains a README.md with detailed documentation:
 
 ### [LLM Service](src/services/llm/README.md)
 
@@ -129,28 +135,45 @@ Manages on-device inference using llama.rn with Metal GPU acceleration.
 - `LLMService` - Singleton managing LlamaContext lifecycle
 - `ChatService` - Orchestrates user message → response flow
 - `CompletionQueue` - Priority queue (chat HIGH, extraction LOW)
-- `TokenBudget` - Manages 2048 token context window
+- `TokenBudget` - Manages 4096 token context window
 
 **Quick facts:**
-- 2048 token context (400 system + 300 memory + 800 history + 512 response)
+- 4096 token context (500 system + 650 memory + 2000 history + 900 response)
 - Streaming responses via token callbacks
 - Auto-releases on iOS memory pressure
 
 ### [Memory Service](src/services/memory/README.md)
 
-Persistent memory system with Ebbinghaus-inspired decay.
+Persistent memory system with semantic retrieval and deduplication.
 
 **Key components:**
 - `MemoryOrchestrator` - Coordinates extraction timing
-- `MemoryExtractor` - LLM-based conversation parsing
-- `MemoryDecay` - Relevance scoring with decay + reinforcement
+- `MemoryExtractor` - LLM-based conversation parsing (6 semantic categories)
+- `SemanticRetrieval` - 3-bucket memory retrieval (identity + topic + recent)
+- `MemoryDecay` - Relevance scoring with category-specific decay
 - `ExtractionQueue` - Persists failed extractions for retry
 
 **Quick facts:**
-- Three memory types: fact, emotion, event
-- Decay half-lives: 1 week (persistent), 1 day (temporal), 4 hours (contextual)
-- Access count reinforcement boosts frequently-used memories
+- Six categories: identity (720h), relationship (336h), preference (168h), situation (72h), event (48h), emotion (24h)
+- Weighted scoring: semantic×0.5 + decay×0.3 + importance×0.2
+- 3-bucket retrieval: 3 identity + 4 topic-relevant + 2 recent = ~9 memories
 - Extraction runs when user is idle (never blocks chat)
+
+### [Embedding Service](src/services/embedding/CLAUDE.md)
+
+On-device semantic similarity using all-MiniLM-L6-v2.
+
+**Key components:**
+- `EmbeddingService` - Singleton for embedding generation
+- `EmbeddingStorage` - Binary vector storage in MMKV
+- `Deduplicator` - Semantic duplicate detection (0.85 threshold)
+- `CosineSimilarity` - Fast similarity calculation
+
+**Quick facts:**
+- 256-dimension embeddings
+- ~21MB model (Q4_K_M quantization)
+- Separate context from chat LLM
+- Powers both deduplication and semantic retrieval
 
 ### [Safety Service](src/services/safety/README.md)
 
@@ -168,7 +191,7 @@ Crisis detection for mental health safety.
 
 ### [Download Service](src/services/download/README.md)
 
-Manages ~1.8GB model acquisition.
+Manages model acquisition.
 
 **Key components:**
 - `ModelDownloadService` - Download, verify, resume
@@ -206,16 +229,19 @@ Multi-conversation management and persistence.
    ├── Crisis detected? → Show resources, stop
    │
    ▼
-3. Memory Retrieval
+3. Semantic Memory Retrieval
    │
-   ├── Get top 6 relevant memories
-   ├── Apply decay + keyword scoring
+   ├── Get identity memories (always included, 3 max)
+   ├── Score remaining by embedding similarity
+   ├── Get topic-relevant (above 0.4 threshold, 4 max)
+   ├── Get recent (most recently accessed, 2 max)
    │
    ▼
 4. Token Budgeting
    │
-   ├── Build system prompt with memories
-   ├── Truncate conversation history
+   ├── Build structured system prompt (About/Situation/Context)
+   ├── Fit memories within 650 tokens
+   ├── Truncate conversation history to 2000 tokens
    │
    ▼
 5. LLM Completion (HIGH priority)
@@ -234,7 +260,8 @@ Multi-conversation management and persistence.
    │
    ├── When user idle
    ├── LOW priority queue
-   └── Persist extracted memories
+   ├── Deduplicate via embeddings
+   └── Persist extracted memories + embeddings
 ```
 
 ## Key Design Patterns
@@ -248,9 +275,15 @@ Chat (HIGH) preempts memory extraction (LOW), ensuring responsive UX.
 ### 3. Graceful Degradation
 - Memory pressure → release LLM context → reinit on next message
 - Extraction cancelled → queue for retry → process when idle
+- Embedding model not ready → fall back to keyword matching
 
 ### 4. Safety First
 Crisis detection runs before any LLM call, showing resources immediately.
+
+### 5. Semantic Intelligence
+- Memory deduplication prevents bloat from repeated mentions
+- Semantic retrieval finds topically relevant memories, not just keyword matches
+- Identity memories always surface regardless of topic
 
 ## Development
 
@@ -261,6 +294,8 @@ All services log with prefixes in `__DEV__` mode:
 - `[ChatService]` - Message flow
 - `[MemoryStore]` - Memory operations
 - `[MemoryExtractor]` - Extraction process
+- `[SemanticRetrieval]` - Retrieval operations
+- `[Deduplicator]` - Duplicate detection
 - `[ExtractionQueue]` - Queue operations
 - `[CrisisDetector]` - Safety checks
 
@@ -279,6 +314,8 @@ npm run lint       # Run ESLint
 3. **Token budgeting**: Long conversations should truncate correctly
 4. **Download resume**: Kill app mid-download, restart
 5. **Memory pressure**: Simulate iOS memory warning
+6. **Semantic retrieval**: Verify topic-relevant memories surface
+7. **Deduplication**: Test similar but not identical memory content
 
 ## Tech Stack
 
@@ -287,6 +324,7 @@ npm run lint       # Run ESLint
 - **State**: Zustand
 - **Storage**: react-native-mmkv
 - **LLM**: llama.rn (llama.cpp bindings)
+- **Embeddings**: llama.rn with all-MiniLM-L6-v2 (256-dim)
 - **Download**: @kesha-antonov/react-native-background-downloader
 
 ## Privacy

@@ -1,6 +1,6 @@
 # Memory Service
 
-The memory service provides persistent, context-aware memory that allows Cove to remember facts, emotions, and events from past conversations. It uses an Ebbinghaus-inspired decay model to prioritize recent and frequently-accessed memories.
+The memory service provides persistent, context-aware memory that allows Cove to remember facts, emotions, and events from past conversations. It uses semantic retrieval with embedding-based similarity and an Ebbinghaus-inspired decay model.
 
 ## Architecture Overview
 
@@ -20,6 +20,12 @@ The memory service provides persistent, context-aware memory that allows Cove to
            │
            ▼
 ┌──────────────────────────────────────────────────────────────┐
+│                     Deduplicator                             │
+│  (Semantic duplicate detection using embeddings)             │
+└──────────────────────────────────────────────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────────────────────────────────┐
 │                      MemoryDecay                             │
 │  (Relevance scoring with exponential decay + reinforcement)  │
 └──────────────────────────────────────────────────────────────┘
@@ -28,6 +34,12 @@ The memory service provides persistent, context-aware memory that allows Cove to
 ┌──────────────────────────────────────────────────────────────┐
 │                    MemoryStore (Zustand)                     │
 │  (State management + MMKV persistence)                       │
+└──────────────────────────────────────────────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────────────────────────────────┐
+│                   SemanticRetrieval                          │
+│  (3-bucket retrieval: identity + topic + recent)             │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -38,30 +50,37 @@ The memory service provides persistent, context-aware memory that allows Cove to
 | `MemoryOrchestrator.ts` | Coordinates when extraction runs (guards, cooldowns) |
 | `MemoryExtractor.ts` | Uses LLM to parse conversations into structured memories |
 | `MemoryDecay.ts` | Calculates memory relevance using decay + reinforcement |
+| `SemanticRetrieval.ts` | Semantic 3-bucket memory retrieval with weighted scoring |
 | `ExtractionQueue.ts` | Persists failed extractions, retries on app restart |
 | `extractionPrompt.ts` | LLM instructions and schema for extraction |
 
-## Memory Types
+## Memory Categories
 
-Memories are categorized by type, which affects their importance and decay rate:
+Memories are categorized into 6 semantic categories, which determine both importance and decay rate:
 
-| Type | Description | Base Importance | Decay Category |
-|------|-------------|-----------------|----------------|
-| `fact` | Personal facts: name, job, relationships | 0.9 | `persistent` |
-| `emotion` | Emotional states and feelings | 0.6 | `temporal` |
-| `event` | Life events, activities, experiences | 0.7 | `temporal` |
+| Category | Description | Importance | Decay Half-Life |
+|----------|-------------|------------|-----------------|
+| `identity` | Core facts: name, age, job | 9 | 720h (30 days) |
+| `relationship` | People: family, friends, pets | 8 | 336h (14 days) |
+| `preference` | Likes/dislikes: hobbies, tastes | 7 | 168h (7 days) |
+| `situation` | Current life context: work stress, moving | 6 | 72h (3 days) |
+| `event` | Upcoming or recent: meetings, trips | 5 | 48h (2 days) |
+| `emotion` | Transient feelings: anxious, happy | 4 | 24h (1 day) |
+
+### Examples
+
+```
+"My name is Sarah"              → identity (720h decay)
+"I have a sister named Emma"    → relationship (336h decay)
+"I love hiking"                 → preference (168h decay)
+"Work has been stressful"       → situation (72h decay)
+"I have a meeting Friday"       → event (48h decay)
+"I'm feeling anxious"           → emotion (24h decay)
+```
 
 ## Memory Decay Model
 
-Memories decay over time using an Ebbinghaus-inspired forgetting curve.
-
-### Decay Categories
-
-| Category | Half-Life | Use Case |
-|----------|-----------|----------|
-| `persistent` | 168 hours (1 week) | Facts, relationships, long-term context |
-| `temporal` | 24 hours (1 day) | Recent events, current emotions |
-| `contextual` | 4 hours | Conversation-specific context |
+Memories decay over time using an Ebbinghaus-inspired forgetting curve with category-specific half-lives.
 
 ### Decay Formula
 
@@ -70,7 +89,7 @@ decayFactor = e^(-t / τ)
 
 where:
   t = time since last access (hours)
-  τ = half-life for memory category
+  τ = half-life for memory category (from CATEGORY_DECAY_RATES)
 ```
 
 ### Access Reinforcement
@@ -86,21 +105,105 @@ This means:
 - 10 accesses: ×2.04 strength
 - 100 accesses: ×3.00 strength
 
-### Final Relevance Score
+## Semantic Retrieval
+
+Memory retrieval uses embedding-based semantic similarity with a 3-bucket architecture.
+
+### 3-Bucket Architecture
+
+| Bucket | Count | Selection Criteria |
+|--------|-------|--------------------|
+| Identity | 3 | Always included (identity + relationship categories) |
+| Topic-relevant | 4 | Highest semantic similarity to query (≥0.4 threshold) |
+| Recent | 2 | Most recently accessed (regardless of topic) |
+
+Total: ~9 memories per retrieval (vs old system's 6).
+
+### Weighted Scoring
+
+For topic-relevant retrieval, memories are scored using multi-factor weighted scoring:
 
 ```
-relevanceScore = importance × decayFactor × accessBoost
+finalScore = (semantic × 0.5) + (decay × 0.3) + (importance × 0.2)
 ```
 
-### Keyword Matching
+Where:
+- **semantic** (50%): Cosine similarity between query embedding and memory embedding
+- **decay** (30%): Recency factor from decay calculation
+- **importance** (20%): Normalized 1-10 importance score
 
-When retrieving memories for context, keyword matching adds a bonus:
+### Graceful Degradation
+
+If EmbeddingService is not ready (model not downloaded), retrieval falls back to keyword matching using the legacy algorithm.
+
+### Usage
+
+```typescript
+import { useMemoryStore } from '@/src/stores/memoryStore';
+
+// Semantic retrieval (recommended)
+const memories = await useMemoryStore.getState().retrieveMemoriesSemantic(userMessage);
+
+// Mark as accessed (reinforces importance)
+useMemoryStore.getState().markAccessed(memories.map(m => m.id));
+```
+
+## Deduplication
+
+Before adding new memories, they are checked for semantic duplicates using embeddings.
+
+### How It Works
+
+1. Generate embedding for new memory content
+2. Compare against all existing memory embeddings
+3. If similarity ≥ 0.85 threshold, it's a duplicate
+4. Duplicate → merge (boost importance, refresh access time)
+5. Not duplicate → add as new memory
+
+### Merge Behavior
+
+When a duplicate is detected:
+- Importance boosted by +1 (capped at 10)
+- `lastAccessed` refreshed to now
+- `accessCount` incremented
+- Content preserved from existing memory
+
+### Note on Thresholds
+
+- **Deduplication threshold (0.85)**: High - finds near-identical content
+- **Retrieval threshold (0.4)**: Low - finds semantically related content
+
+These differ because deduplication needs precision while retrieval needs recall.
+
+## Structured Memory Injection
+
+Memories are injected into the system prompt in three organized sections to mitigate the "Lost in the Middle" effect.
+
+### Section Structure
 
 ```
-finalScore = (relevanceScore × 0.7) + (keywordMatch × 0.3)
+### About them
+- [identity memories]
+- [relationship memories]
+
+### Current situation
+- [situation memories]
+- [emotion memories]
+
+### Relevant context
+- [preference memories]
+- [event memories]
 ```
 
-Keywords are extracted from both the memory content and user's current message (words > 3 characters).
+### Token Budget
+
+| Component | Tokens |
+|-----------|--------|
+| Section headers (~3) | 45 |
+| Content budget | 605 |
+| **Total** | **650** |
+
+The structured format with section headers acts as attention anchors, helping the LLM weight identity information appropriately.
 
 ## Memory Orchestrator
 
@@ -135,7 +238,7 @@ Guards Pass          Guards Fail
 Run Extraction      Queue for Later
    │                (ExtractionQueue)
    ▼
-Store Memories
+Deduplicate & Store
 ```
 
 ### Usage
@@ -154,7 +257,7 @@ await orchestrator.processQueuedExtractions();
 
 ## Memory Extractor
 
-Uses the LLM to parse conversations into structured memories.
+Uses the LLM to parse conversations into structured memories with semantic categories.
 
 ### Extraction Process
 
@@ -162,23 +265,33 @@ Uses the LLM to parse conversations into structured memories.
 2. **Build Prompt**: Combines extraction instructions + conversation
 3. **Call LLM**: Uses LOW priority (yields to chat)
 4. **Parse Response**: Extracts JSON from markdown wrapper
-5. **Validate Schema**: Ensures correct structure
-6. **Return Memories**: Array of extracted memory objects
+5. **Validate Schema**: Ensures correct structure with category field
+6. **Deduplicate**: Check against existing memories via EmbeddingService
+7. **Generate Embeddings**: Create embedding for each new memory
+8. **Return Memories**: Array of extracted memory objects
 
 ### LLM Prompt Strategy
 
-The extraction prompt uses few-shot examples to guide the model:
+The extraction prompt uses few-shot examples with semantic categories:
 
 ```
 You are a memory extraction assistant. Extract key facts, emotions,
-and events from conversations.
+and events from conversations. Categorize each memory:
+
+CATEGORIES:
+- identity: Core facts (name, age, job)
+- relationship: People (family, friends, pets)
+- preference: Likes/dislikes
+- situation: Current life context
+- event: Upcoming/recent happenings
+- emotion: Transient feelings
 
 EXAMPLES:
 User: "I just got promoted to senior engineer!"
-→ [{"type": "event", "content": "User got promoted to senior engineer"}]
+→ [{"category": "event", "content": "User got promoted to senior engineer"}]
 
 User: "My dog Max is my best friend"
-→ [{"type": "fact", "content": "User has a dog named Max"}]
+→ [{"category": "relationship", "content": "User has a dog named Max"}]
 
 Now extract from this conversation:
 [conversation text]
@@ -190,7 +303,7 @@ Now extract from this conversation:
 {
   "memories": [
     {
-      "type": "fact" | "emotion" | "event",
+      "category": "identity" | "relationship" | "preference" | "situation" | "event" | "emotion",
       "content": "string describing the memory"
     }
   ]
@@ -236,7 +349,7 @@ For each queued item:
     │       │
     │       ├── Yes → Attempt extraction
     │       │           │
-    │       │           ├── Success → Remove from queue
+    │       │           ├── Success → Deduplicate → Store → Remove from queue
     │       │           └── Failure → Increment retry, persist
     │       │
     │       └── No → Remove from queue (give up)
@@ -280,9 +393,11 @@ interface MemoryState {
 
   // Actions
   addMemories: (extracted: ExtractedMemory[]) => void;
+  updateMemory: (updatedMemory: Memory) => void;
   markAccessed: (memoryIds: string[]) => void;
   pruneDecayed: (threshold: number) => void;
   getTopMemories: (count: number, context?: string) => Memory[];
+  retrieveMemoriesSemantic: (query: string) => Promise<Memory[]>;
   loadFromStorage: () => void;
   clearAll: () => void;
 }
@@ -305,7 +420,10 @@ persistMemories(updatedMemories); // If this fails, data is lost on restart
 ```typescript
 import { useMemoryStore } from '@/src/stores/memoryStore';
 
-// Get top 6 memories relevant to user's message
+// Semantic retrieval (recommended for chat)
+const memories = await useMemoryStore.getState().retrieveMemoriesSemantic(userMessage);
+
+// Keyword-based (legacy, still available)
 const memories = useMemoryStore.getState().getTopMemories(6, userMessage);
 
 // Mark them as accessed (reinforces importance)
@@ -338,44 +456,74 @@ useMemoryStore.getState().pruneDecayed(0.1);
 4. MemoryExtractor.extractMemories()
    ├── Format conversation (last 20 messages)
    ├── Call LLM with LOW priority
-   ├── Parse JSON response
+   ├── Parse JSON response with semantic categories
    │
    ▼
-5. MemoryStore.addMemories()
-   ├── Infer importance/category from type
+5. Deduplicator.findDuplicate()
+   ├── For each extracted memory:
+   │   ├── Generate embedding
+   │   ├── Compare against existing memories
+   │   ├── If duplicate → merge (boost importance)
+   │   └── If new → continue to storage
+   │
+   ▼
+6. EmbeddingStorage.storeEmbedding()
+   ├── Store embedding vector for new memory
+   │
+   ▼
+7. MemoryStore.addMemories()
+   ├── Infer importance from category
    ├── Persist to MMKV
    ├── Update Zustand state
    │
    ▼
-6. Next conversation starts
+8. Next conversation starts
    │
    ▼
-7. ChatService retrieves memories
-   ├── getTopMemories(6, userMessage)
-   ├── Calculates relevance (decay + keywords)
-   ├── Returns sorted by relevance
+9. SemanticRetrieval.retrieveMemories()
+   ├── Get identity memories (always included)
+   ├── Score remaining by semantic similarity
+   ├── Add topic-relevant (top 4 above threshold)
+   ├── Add recent (last 2 accessed)
    │
    ▼
-8. Memories injected into system prompt
-   │
-   ▼
-9. LLM responds with context awareness
+10. TokenBudget.buildStructuredMemorySection()
+    ├── Organize into About/Situation/Context sections
+    ├── Fit within 650 token budget
+    │
+    ▼
+11. Memories injected into system prompt
+    │
+    ▼
+12. LLM responds with context awareness
 ```
 
 ## Memory Object Structure
 
 ```typescript
 interface Memory {
-  id: string;           // Unique identifier
-  type: MemoryType;     // 'fact' | 'emotion' | 'event'
-  content: string;      // The actual memory text
-  importance: number;   // 0-1, affects base relevance
-  category: MemoryCategory; // 'persistent' | 'temporal' | 'contextual'
-  createdAt: number;    // Timestamp of creation
-  lastAccessed: number; // Timestamp of last retrieval
-  accessCount: number;  // Times retrieved (for reinforcement)
+  id: string;                    // Unique identifier
+  type: MemoryType;              // 'fact' | 'emotion' | 'event' (legacy compatibility)
+  content: string;               // The actual memory text
+  importance: number;            // 1-10, affects retrieval weight
+  category: MemoryCategory;      // 'identity' | 'relationship' | 'preference' | 'situation' | 'event' | 'emotion'
+  createdAt: number;             // Timestamp of creation
+  lastAccessed: number;          // Timestamp of last retrieval
+  accessCount: number;           // Times retrieved (for reinforcement)
+  sourceConversationId?: string; // Optional: conversation this was extracted from
 }
 ```
+
+## Integration with Embedding Service
+
+The memory system integrates with `../embedding/` for semantic operations:
+
+- **EmbeddingService**: Generates 256-dim vectors for memory content
+- **EmbeddingStorage**: Stores vectors in MMKV with binary encoding
+- **CosineSimilarity**: Fast similarity calculation for retrieval
+- **Deduplicator**: Semantic duplicate detection before storage
+
+See `../embedding/CLAUDE.md` for embedding service documentation.
 
 ## Integration with Chat
 
@@ -384,16 +532,16 @@ The chat flow queries memories before each response:
 ```typescript
 // In ChatService.sendMessage()
 
-// 1. Get relevant memories
-const memories = useMemoryStore.getState().getTopMemories(6, userMessage);
+// 1. Get relevant memories (semantic retrieval)
+const memories = await useMemoryStore.getState().retrieveMemoriesSemantic(userMessage);
 
 // 2. Mark as accessed (reinforces them)
 if (memories.length > 0) {
   useMemoryStore.getState().markAccessed(memories.map(m => m.id));
 }
 
-// 3. Build system prompt with memories
-const systemPrompt = buildSystemPromptWithMemories(memories);
+// 3. Build structured system prompt with memories
+const systemPrompt = buildSystemPromptWithStructuredMemories(memories);
 
 // 4. Include in LLM call
 const messages = [
@@ -405,11 +553,13 @@ const messages = [
 
 ## Performance Considerations
 
-1. **Token Budget**: Memory section limited to 300 tokens
-2. **Top N Retrieval**: Only top 6 memories used per response
-3. **LOW Priority**: Extraction never blocks chat
-4. **Lazy Processing**: Extraction runs when user is idle
-5. **Persistent Queue**: Failed extractions survive app restart
+1. **Token Budget**: Memory section limited to 650 tokens (605 content + 45 headers)
+2. **Retrieval Target**: <50ms for typical memory counts
+3. **3-Bucket Retrieval**: ~9 memories (3 identity + 4 topic + 2 recent)
+4. **LOW Priority**: Extraction never blocks chat
+5. **Lazy Processing**: Extraction runs when user is idle
+6. **Persistent Queue**: Failed extractions survive app restart
+7. **Deduplication**: Prevents memory bloat from repeated mentions
 
 ## Debugging
 
@@ -419,7 +569,7 @@ Enable debug logging by checking for `__DEV__`:
 if (__DEV__) {
   console.log('[MemoryStore] Adding memories:', newMemories.length);
   newMemories.forEach((m) => {
-    console.log(`  - [${m.type}] "${m.content}"`);
+    console.log(`  - [${m.category}] "${m.content}" (importance: ${m.importance})`);
   });
 }
 ```
@@ -429,3 +579,5 @@ Key log prefixes:
 - `[MemoryExtractor]` - LLM extraction
 - `[MemoryOrchestrator]` - Coordination/guards
 - `[ExtractionQueue]` - Queue operations
+- `[SemanticRetrieval]` - Retrieval operations
+- `[Deduplicator]` - Duplicate detection

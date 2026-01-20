@@ -6,6 +6,7 @@ React Native/Expo iOS app using on-device LLM for private emotional conversation
 
 - **Frontend**: React Native with Expo Router (file-based routing in `app/`)
 - **LLM**: llama.rn (on-device inference with Metal GPU acceleration)
+- **Embeddings**: llama.rn with all-MiniLM-L6-v2 (on-device semantic similarity)
 - **Storage**: react-native-mmkv (synchronous key-value store for conversations/memories)
 - **State**: Zustand stores in `src/stores/`
 - **Speech**: @jamsch/expo-speech-recognition (on-device voice-to-text)
@@ -24,8 +25,13 @@ React Native/Expo iOS app using on-device LLM for private emotional conversation
 - Crisis detection runs on every user message (see `src/services/safety/`)
 
 ### Memory System
-- Memories decay over time using exponential decay (see `src/services/memory/MemoryDecay.ts`)
-- Memory extraction uses LLM to parse conversations into structured facts (see `src/services/memory/MemoryExtractor.ts`)
+- **6 semantic categories**: identity, relationship, preference, situation, event, emotion
+- **Category-specific decay**: 720h (identity) → 24h (emotion)
+- **Semantic retrieval**: 3-bucket architecture (identity + topic-relevant + recent)
+- **Deduplication**: Embedding-based duplicate detection (0.85 threshold)
+- **Weighted scoring**: semantic×0.5 + decay×0.3 + importance×0.2
+- **Token budget**: 650 tokens (605 content + 45 headers)
+- See `src/services/memory/` and `src/services/embedding/`
 
 ### iOS Memory Pressure
 - LLM context released on iOS memory warning to prevent termination; re-initialized when user returns
@@ -58,9 +64,16 @@ app/                    # Expo Router pages (file-based routing)
   (tabs)/              # Tab navigation screens
 src/
   components/          # App-specific components (chat UI, modals)
-  constants/           # Model definitions and app constants
-  hooks/               # App hooks (useChat, useLLM, useModelDownload, useSpeech)
-  services/            # Core services (llm, memory, download, safety, speech)
+  constants/           # Model definitions, memory constants, app constants
+  hooks/               # App hooks (useChat, useLLM, useModelDownload, useSpeech, useEmbeddingModel)
+  services/            # Core services
+    llm/              # LLM inference and chat
+    memory/           # Memory extraction, decay, semantic retrieval
+    embedding/        # Embedding generation, storage, deduplication
+    download/         # Model download management
+    safety/           # Crisis detection
+    speech/           # Voice input
+    conversation/     # Title generation
   storage/             # MMKV storage configuration
   stores/              # Zustand state management
   types/               # TypeScript type definitions

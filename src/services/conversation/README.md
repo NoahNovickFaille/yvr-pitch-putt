@@ -394,7 +394,9 @@ if (__DEV__) {
 
 When conversation ends (user navigates away):
 - MemoryOrchestrator extracts memories from messages
-- Memories persist independently of conversation
+- Extracted memories are deduplicated via EmbeddingService (0.85 similarity threshold)
+- Duplicate memories get importance boosted; new memories get embeddings generated
+- Memories persist independently of conversation with semantic category and embedding
 
 ### With Chat Service
 
