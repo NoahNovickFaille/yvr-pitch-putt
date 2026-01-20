@@ -10,6 +10,7 @@ import {
   buildMemorySectionWithinBudget,
   countTokens,
 } from './TokenBudget';
+import { retrieveMemories } from '../memory/SemanticRetrieval';
 
 export interface SendMessageOptions {
   conversationHistory: ChatMessage[];
@@ -39,14 +40,16 @@ class ChatServiceImpl {
     // Step 1: Get user profile from onboarding store
     const { userName, userBio } = useOnboardingStore.getState();
 
-    // Step 2: Get relevant memories
-    const memories = useMemoryStore.getState().getTopMemories(6, userMessage);
+    // Step 2: Get relevant memories using semantic retrieval
+    // Falls back to keyword matching if embedding service not ready
+    const allMemories = useMemoryStore.getState().memories;
+    const memories = await retrieveMemories(userMessage, allMemories);
 
     // Step 3: Mark memories as accessed (reinforces them)
     if (memories.length > 0) {
       useMemoryStore.getState().markAccessed(memories.map((m) => m.id));
       if (__DEV__) {
-        console.log('[ChatService] Retrieved memories:', memories.map(m => m.content));
+        console.log('[ChatService] Retrieved memories (semantic):', memories.map(m => m.content));
       }
     } else {
       if (__DEV__) {
