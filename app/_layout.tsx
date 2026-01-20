@@ -3,6 +3,7 @@ import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -45,6 +46,25 @@ export default function RootLayout() {
 
   // Load persisted data on app startup
   useEffect(() => {
+    // Check for OTA updates (non-blocking, production only)
+    async function checkForUpdates() {
+      if (__DEV__) return;
+
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          console.log('[RootLayout] Update available, downloading...');
+          await Updates.fetchUpdateAsync();
+          console.log('[RootLayout] Update downloaded, reloading app...');
+          await Updates.reloadAsync();
+        }
+      } catch (e) {
+        // Silently fail - don't block app startup
+        console.log('[RootLayout] Update check failed:', e);
+      }
+    }
+    checkForUpdates();
+
     console.log('[RootLayout] Running migration if needed');
     // CRITICAL: Run migration BEFORE loading stores
     migrateToMultiConversation();

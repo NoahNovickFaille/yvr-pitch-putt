@@ -16,8 +16,17 @@ module.exports = {
     },
     scheme: IS_DEV ? 'cove-dev' : 'cove',
     platforms: ['ios'],
+    updates: {
+      enabled: true,
+      fallbackToCacheTimeout: 0,
+      url: 'https://u.expo.dev/62bf0486-0aac-4f47-a4b4-378e9a26895d',
+    },
+    runtimeVersion: {
+      policy: 'appVersion',
+    },
     ios: {
       bundleIdentifier: IS_DEV ? 'ca.corvustech.cove.dev' : 'ca.corvustech.cove',
+      buildNumber: '2',
       supportsTablet: false,
       infoPlist: {
         UIBackgroundModes: ['fetch'], // For background downloads
