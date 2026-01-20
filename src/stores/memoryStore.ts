@@ -6,7 +6,7 @@ import {
   MemoryType,
   generateMemoryId,
   inferImportance,
-  inferCategory,
+  inferTypeFromCategory,
 } from '../types/memory';
 import {
   calculateRelevanceScore,
@@ -17,14 +17,15 @@ import { retrieveMemories } from '../services/memory/SemanticRetrieval';
 const MEMORIES_KEY = 'stored_memories';
 
 /**
- * Input type for addMemories - accepts simplified extraction results
- * importance and category are optional and will be inferred from type
+ * Input type for addMemories - accepts category-based extraction results
+ * Category is the primary field from new extraction format
+ * Type is optional and will be inferred from category if not provided
  */
 interface ExtractedMemory {
-  type: MemoryType;
   content: string;
+  category: MemoryCategory;    // Primary field from new extraction
+  type?: MemoryType;           // Optional - will be inferred from category
   importance?: number;
-  category?: MemoryCategory;
 }
 
 interface MemoryState {
@@ -64,18 +65,22 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     const now = Date.now();
 
     // Create full Memory objects with inferred values for missing fields
-    const newMemories: Memory[] = extracted.map((mem) => ({
-      id: generateMemoryId(),
-      type: mem.type,
-      content: mem.content,
-      // Use provided importance or infer from type
-      importance: mem.importance ?? inferImportance(mem.type),
-      // Use provided category or infer from type
-      category: mem.category ?? inferCategory(mem.type),
-      createdAt: now,
-      lastAccessed: now,
-      accessCount: 0,
-    }));
+    const newMemories: Memory[] = extracted.map((mem) => {
+      // Infer type from category if not provided
+      const type = mem.type ?? inferTypeFromCategory(mem.category);
+      return {
+        id: generateMemoryId(),
+        content: mem.content,
+        type,
+        // Use provided importance or infer from type
+        importance: mem.importance ?? inferImportance(type),
+        // Category is now primary field
+        category: mem.category,
+        createdAt: now,
+        lastAccessed: now,
+        accessCount: 0,
+      };
+    });
 
     if (__DEV__) {
       console.log('[MemoryStore] Adding memories:', newMemories.length);

@@ -7,6 +7,7 @@ import { ExtractionQueue } from './ExtractionQueue';
 import { EmbeddingService } from '../embedding/EmbeddingService';
 import { storeEmbedding, hasEmbedding } from '../embedding/EmbeddingStorage';
 import { findDuplicate, mergeMemories } from '../embedding/Deduplicator';
+import { inferTypeFromCategory } from '../../types/memory';
 
 // Don't attempt direct extraction if user was active within this time
 const ACTIVE_THRESHOLD_MS = 10000; // 10 seconds
@@ -193,7 +194,9 @@ class MemoryOrchestratorImpl {
           if (dupResult.isDuplicate && dupResult.existingMemory) {
             // Merge with existing memory
             console.log('[MemoryOrchestrator] Found duplicate, merging');
-            const merged = mergeMemories(dupResult.existingMemory, mem.type, mem.content);
+            // Infer type from category when not provided
+            const memType = mem.type ?? inferTypeFromCategory(mem.category);
+            const merged = mergeMemories(dupResult.existingMemory, memType, mem.content);
             useMemoryStore.getState().updateMemory(merged);
           } else {
             // New memory - will get embedding after storage
