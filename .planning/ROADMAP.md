@@ -2,8 +2,8 @@
 
 ## Milestones
 
-- ✅ **v1.0 MVP** - Phases 1-4 (shipped 2026-01-17)
-- 🚧 **v1.1 Memory Revamp** - Phases 5-7 (in progress)
+- **v1.0 MVP** - Phases 1-4 (shipped 2026-01-17)
+- **v1.1 Memory Revamp** - Phases 5-7 (in progress)
 
 ## Phases
 
@@ -12,7 +12,7 @@
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 <details>
-<summary>✅ v1.0 MVP (Phases 1-4) - SHIPPED 2026-01-17</summary>
+<summary>v1.0 MVP (Phases 1-4) - SHIPPED 2026-01-17</summary>
 
 ### Phase 1: Foundation
 **Goal**: Model download infrastructure, storage layer, memory management
@@ -36,7 +36,7 @@ See [v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.md) for details.
 
 ---
 
-## 🚧 v1.1 Memory Revamp (In Progress)
+## v1.1 Memory Revamp (In Progress)
 
 **Milestone Goal:** Transform memory from keyword matching to semantic understanding with organized memory structure.
 
@@ -112,26 +112,29 @@ Plans:
 1. Memories have categories (identity, relationship, situation, preference, event, emotion)
 2. Extraction correctly categorizes new memories
 3. Prompt shows organized sections (About them / Current situation / Relevant context)
-4. Memory budget stays ≤650 tokens
+4. Memory budget stays <=650 tokens
 5. LLM responses feel more contextually aware
 
-**Plans**: 3 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Expand MemoryCategory type and add decay constants
-- [ ] 07-02-PLAN.md — Update extraction prompt with category-aware examples
-- [ ] 07-03-PLAN.md — Structured memory injection and integration
+- [x] 07-01-PLAN.md — Expand MemoryCategory type and add decay constants
+- [x] 07-02-PLAN.md — Update extraction prompt with category-aware examples
+- [x] 07-03-PLAN.md — Structured memory injection and integration
+- [ ] 07-04-PLAN.md — Fix extraction type mismatch (gap closure)
+- [ ] 07-05-PLAN.md — Wire structured injection into ChatService (gap closure)
 
 **Wave Structure:**
 - Wave 1: 07-01 (foundation - types and constants)
 - Wave 2: 07-02 (extraction prompt)
-- Wave 3: 07-03 (structured injection and integration)
+- Wave 3: 07-03 (structured injection functions)
+- Wave 4: 07-04, 07-05 (gap closure - parallel)
 
 ---
 
 ## Progress
 
-**Execution Order:** 5 → 6 → 7
+**Execution Order:** 5 -> 6 -> 7
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -141,7 +144,7 @@ Plans:
 | 4. Polish | v1.0 | 4/4 | Complete | 2026-01-17 |
 | 5. Embedding Infrastructure | v1.1 | 5/5 | Complete | 2026-01-19 |
 | 6. Semantic Retrieval | v1.1 | 3/3 | Complete | 2026-01-19 |
-| 7. Hierarchical Memory | v1.1 | 0/3 | Not started | - |
+| 7. Hierarchical Memory | v1.1 | 3/5 | Gap closure | - |
 
 ---
 *Last updated: 2026-01-20*
