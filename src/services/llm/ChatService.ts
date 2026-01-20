@@ -1,13 +1,12 @@
 import { LLMService } from './LLMService';
 import { detectCrisis, CrisisResult } from '../safety/CrisisDetector';
-import { STOP_WORDS, buildSystemPromptWithMemories } from './systemPrompt';
+import { STOP_WORDS, buildSystemPromptWithStructuredMemories } from './systemPrompt';
 import { ChatMessage } from '../../types/chat';
 import { useMemoryStore } from '../../stores/memoryStore';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import {
   TOKEN_BUDGET,
   truncateConversationHistory,
-  buildMemorySectionWithinBudget,
   countTokens,
 } from './TokenBudget';
 import { retrieveMemories } from '../memory/SemanticRetrieval';
@@ -58,16 +57,11 @@ class ChatServiceImpl {
       }
     }
 
-    // Step 4: Build memory section within budget
-    const memorySection = await buildMemorySectionWithinBudget(
-      memories,
-      TOKEN_BUDGET.memories
-    );
+    // Step 4: Build system prompt with structured memory sections
+    // Uses buildStructuredMemorySection internally for category organization
+    const systemPrompt = await buildSystemPromptWithStructuredMemories(memories, userName, userBio);
 
-    // Step 5: Build system prompt with user context and memories
-    const systemPrompt = buildSystemPromptWithMemories(memorySection, userName, userBio);
-
-    // Step 6: Truncate conversation history to fit budget
+    // Step 5: Truncate conversation history to fit budget
     const truncatedHistory = await truncateConversationHistory(
       conversationHistory,
       TOKEN_BUDGET.conversation
