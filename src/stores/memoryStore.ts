@@ -31,6 +31,7 @@ interface MemoryState {
 
   // Actions
   addMemories: (extracted: ExtractedMemory[]) => void;
+  updateMemory: (updatedMemory: Memory) => void;
   markAccessed: (memoryIds: string[]) => void;
   pruneDecayed: (threshold: number) => void;
   getTopMemories: (count: number, context?: string) => Memory[];
@@ -83,6 +84,21 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
     const state = get();
     const updatedMemories = [...state.memories, ...newMemories];
+
+    // CRITICAL: Persist BEFORE state update
+    persistMemories(updatedMemories);
+    set({ memories: updatedMemories });
+  },
+
+  updateMemory: (updatedMemory: Memory) => {
+    const state = get();
+    const updatedMemories = state.memories.map((mem) =>
+      mem.id === updatedMemory.id ? updatedMemory : mem
+    );
+
+    if (__DEV__) {
+      console.log('[MemoryStore] Updated memory:', updatedMemory.id);
+    }
 
     // CRITICAL: Persist BEFORE state update
     persistMemories(updatedMemories);
