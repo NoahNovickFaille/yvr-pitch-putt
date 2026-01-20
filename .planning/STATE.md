@@ -87,6 +87,7 @@ Memory sections now appear organized in system prompts:
 | Primacy effect optimization | Identity memories placed FIRST (Lost in the Middle mitigation) | 07-03 |
 | 605 token content budget | maxTokens 650 - headerOverhead 45 per HIE-04 | 07-03 |
 | Remove buildMemorySectionWithinBudget | Structured builder handles memory section internally | 07-05 |
+| Category is primary in ExtractionResult | Type is optional, inferred from category via inferTypeFromCategory | 07-04 |
 
 ### Pending Todos
 
@@ -104,6 +105,6 @@ All blockers resolved:
 
 ## Session Continuity
 
-Last session: 2026-01-20 05:26:18Z
-Stopped at: Completed 07-05-PLAN.md (Structured Memory Injection Integration)
+Last session: 2026-01-20 05:27:14Z
+Stopped at: Completed 07-04-PLAN.md (Gap Closure - HIE-02 extraction type fix)
 Resume file: None
