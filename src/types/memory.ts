@@ -30,15 +30,16 @@ export interface Memory {
 }
 
 /**
- * Simplified extraction result from 3B model
- * Only requires content and type - importance/category inferred from type
+ * Extraction result from 3B model with category-based classification
+ * Category is the primary field (output by extraction prompt)
+ * Type is optional for backward compatibility - will be inferred from category
  */
 export interface ExtractionResult {
   memories: {
-    type: MemoryType;
     content: string;
-    importance?: number; // Optional - will be inferred from type
-    category?: MemoryCategory; // Optional - will be inferred from type
+    category: MemoryCategory;  // Primary field from new extraction
+    type?: MemoryType;         // Optional for backward compatibility
+    importance?: number;       // Optional - will be inferred from type
   }[];
 }
 
@@ -79,6 +80,29 @@ export function inferCategory(type: MemoryType): MemoryCategory {
       return 'emotion';
     default:
       return 'identity';
+  }
+}
+
+/**
+ * Infer type from memory category for new extraction format
+ * Inverse of inferCategory - maps semantic categories to memory types
+ */
+export function inferTypeFromCategory(category: MemoryCategory): MemoryType {
+  switch (category) {
+    case 'identity':
+      return 'fact';
+    case 'relationship':
+      return 'person';
+    case 'situation':
+      return 'fact';         // Situations are fact-like
+    case 'preference':
+      return 'preference';
+    case 'event':
+      return 'event';
+    case 'emotion':
+      return 'emotion';
+    default:
+      return 'fact';
   }
 }
 
