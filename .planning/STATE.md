@@ -10,19 +10,19 @@ See: .planning/PROJECT.md (updated 2026-01-19)
 ## Current Position
 
 Phase: 7 of 7 (Hierarchical Memory)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-20 - Completed 07-01-PLAN.md (Memory Types)
+Last activity: 2026-01-20 - Completed 07-02-PLAN.md (Extraction Prompt)
 
-Progress: ████████████████████ 100% (v1.0) | v1.1: ███████████████ 9/11 plans
+Progress: ████████████████████ 100% (v1.0) | v1.1: ████████████████ 10/11 plans
 
 ## Next Steps
 
 ```
-/gsd:execute-plan .planning/phases/07-hierarchical-memory/07-02-PLAN.md
+/gsd:execute-plan .planning/phases/07-hierarchical-memory/07-03-PLAN.md
 ```
 
-Continue with 07-02: Memory extraction prompt updates.
+Continue with 07-03: MemoryExtractor and decay integration.
 
 ## Performance Metrics
 
@@ -46,7 +46,7 @@ Continue with 07-02: Memory extraction prompt updates.
 | 04-polish | 4/4 | 22 min | 5.5 min |
 | 05-embedding-infrastructure | 5/5 | 13 min | 2.6 min |
 | 06-semantic-retrieval | 3/3 | 6 min | 2.0 min |
-| 07-hierarchical-memory | 1/3 | 3 min | 3.0 min |
+| 07-hierarchical-memory | 2/3 | 5 min | 2.5 min |
 
 ## Accumulated Context
 
@@ -76,6 +76,8 @@ Continue with 07-02: Memory extraction prompt updates.
 | 6 semantic categories | identity, relationship, situation, preference, event, emotion | 07-01 |
 | Category decay rates (720h to 24h) | identity slowest (30d), emotion fastest (1d) | 07-01 |
 | Legacy memories default to identity | Longest decay preserves existing memories | 07-01 |
+| 4 few-shot examples for extraction | Balanced coverage of all 6 categories | 07-02 |
+| Changed type to category field | Aligns JSON output with MemoryCategory type | 07-02 |
 
 ### Pending Todos
 
@@ -92,6 +94,6 @@ All blockers resolved:
 
 ## Session Continuity
 
-Last session: 2026-01-20 05:11:30Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-01-20 05:17:00Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
