@@ -1,20 +1,23 @@
+// App variant configuration for side-by-side dev/production builds
+const IS_DEV = process.env.APP_VARIANT === 'development';
+
 module.exports = {
   expo: {
-    name: 'Cove',
+    name: IS_DEV ? 'Cove (Dev)' : 'Cove',
     slug: 'cove',
     version: '1.0.0',
     orientation: 'portrait',
-    icon: './assets/images/icon.png',
+    icon: IS_DEV ? './assets/images/icon-dev.png' : './assets/images/icon.png',
     userInterfaceStyle: 'automatic',
     splash: {
       image: './assets/images/splash-icon.png',
       resizeMode: 'contain',
       backgroundColor: '#0F0F0F',
     },
-    scheme: 'cove',
+    scheme: IS_DEV ? 'cove-dev' : 'cove',
     platforms: ['ios'],
     ios: {
-      bundleIdentifier: 'ca.corvustech.cove',
+      bundleIdentifier: IS_DEV ? 'ca.corvustech.cove.dev' : 'ca.corvustech.cove',
       supportsTablet: false,
       infoPlist: {
         UIBackgroundModes: ['fetch'], // For background downloads

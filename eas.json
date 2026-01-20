@@ -3,6 +3,17 @@
     "appVersionSource": "local"
   },
   "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "development"
+      },
+      "ios": {
+        "resourceClass": "default",
+        "buildConfiguration": "Debug"
+      }
+    },
     "production": {
       "ios": {
         "resourceClass": "default",
