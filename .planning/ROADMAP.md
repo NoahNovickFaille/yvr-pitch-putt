@@ -115,11 +115,17 @@ Plans:
 4. Memory budget stays ≤650 tokens
 5. LLM responses feel more contextually aware
 
-**Plans**: TBD (run /gsd:plan-phase 7 to break down)
+**Plans**: 3 plans
 
-**Research Flag**: UNLIKELY
-- Extraction prompt patterns defined in audit
-- Injection format specified
+Plans:
+- [ ] 07-01-PLAN.md — Expand MemoryCategory type and add decay constants
+- [ ] 07-02-PLAN.md — Update extraction prompt with category-aware examples
+- [ ] 07-03-PLAN.md — Structured memory injection and integration
+
+**Wave Structure:**
+- Wave 1: 07-01 (foundation - types and constants)
+- Wave 2: 07-02 (extraction prompt)
+- Wave 3: 07-03 (structured injection and integration)
 
 ---
 
@@ -135,7 +141,7 @@ Plans:
 | 4. Polish | v1.0 | 4/4 | Complete | 2026-01-17 |
 | 5. Embedding Infrastructure | v1.1 | 5/5 | Complete | 2026-01-19 |
 | 6. Semantic Retrieval | v1.1 | 3/3 | Complete | 2026-01-19 |
-| 7. Hierarchical Memory | v1.1 | 0/? | Not started | - |
+| 7. Hierarchical Memory | v1.1 | 0/3 | Not started | - |
 
 ---
-*Last updated: 2026-01-19*
+*Last updated: 2026-01-20*
