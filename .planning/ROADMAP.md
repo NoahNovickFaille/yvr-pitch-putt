@@ -3,7 +3,7 @@
 ## Milestones
 
 - **v1.0 MVP** - Phases 1-4 (shipped 2026-01-17)
-- **v1.1 Memory Revamp** - Phases 5-7 (in progress)
+- **v1.1 Memory Revamp** - Phases 5-7 (shipped 2026-01-20)
 
 ## Phases
 
@@ -36,13 +36,13 @@ See [v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.md) for details.
 
 ---
 
-## v1.1 Memory Revamp (In Progress)
+## v1.1 Memory Revamp (Complete)
 
 **Milestone Goal:** Transform memory from keyword matching to semantic understanding with organized memory structure.
 
 - [x] **Phase 5: Embedding Infrastructure** - Add embedding model, deduplication, migrate memories
 - [x] **Phase 6: Semantic Retrieval** - Replace keyword matching with embedding similarity
-- [ ] **Phase 7: Hierarchical Memory** - New categories, structured extraction and injection
+- [x] **Phase 7: Hierarchical Memory** - New categories, structured extraction and injection
 
 ---
 
@@ -121,8 +121,8 @@ Plans:
 - [x] 07-01-PLAN.md — Expand MemoryCategory type and add decay constants
 - [x] 07-02-PLAN.md — Update extraction prompt with category-aware examples
 - [x] 07-03-PLAN.md — Structured memory injection and integration
-- [ ] 07-04-PLAN.md — Fix extraction type mismatch (gap closure)
-- [ ] 07-05-PLAN.md — Wire structured injection into ChatService (gap closure)
+- [x] 07-04-PLAN.md — Fix extraction type mismatch (gap closure)
+- [x] 07-05-PLAN.md — Wire structured injection into ChatService (gap closure)
 
 **Wave Structure:**
 - Wave 1: 07-01 (foundation - types and constants)
@@ -144,7 +144,7 @@ Plans:
 | 4. Polish | v1.0 | 4/4 | Complete | 2026-01-17 |
 | 5. Embedding Infrastructure | v1.1 | 5/5 | Complete | 2026-01-19 |
 | 6. Semantic Retrieval | v1.1 | 3/3 | Complete | 2026-01-19 |
-| 7. Hierarchical Memory | v1.1 | 3/5 | Gap closure | - |
+| 7. Hierarchical Memory | v1.1 | 5/5 | Complete | 2026-01-20 |
 
 ---
 *Last updated: 2026-01-20*

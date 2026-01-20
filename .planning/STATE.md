@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-19)
 
 **Core value:** Memory system that makes conversations feel continuous across sessions
-**Current focus:** Phase 7 - Hierarchical Memory (COMPLETE)
+**Current focus:** v1.1 Memory Revamp COMPLETE
 
 ## Current Position
 
@@ -18,16 +18,12 @@ Progress: ████████████████████ 100% (v1.
 
 ## Next Steps
 
-v1.1 fully integrated! All hierarchical memory features implemented and wired:
-- Semantic categories (identity, relationship, situation, preference, event, emotion)
-- Category-aware extraction prompts with few-shot examples
-- Structured memory injection with primacy effect optimization
-- ChatService integration complete - structured sections now active in prompts
+v1.1 MILESTONE COMPLETE! All phases executed and verified:
+- Phase 5: Embedding infrastructure with deduplication
+- Phase 6: Semantic retrieval replacing keyword matching
+- Phase 7: Hierarchical memory with structured injection
 
-Memory sections now appear organized in system prompts:
-- "About them" (identity + relationship)
-- "Current situation" (situation + emotion)
-- "Relevant context" (preference + event)
+Ready for milestone audit and archival via `/gsd:audit-milestone`.
 
 ## Performance Metrics
 

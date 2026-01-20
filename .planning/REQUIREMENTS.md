@@ -64,11 +64,11 @@ v1.1 transforms the memory system from keyword matching to semantic understandin
 | SEM-03 | Phase 6 | Complete |
 | SEM-04 | Phase 6 | Complete |
 | SEM-05 | Phase 6 | Complete |
-| HIE-01 | Phase 7 | Pending |
-| HIE-02 | Phase 7 | Pending |
-| HIE-03 | Phase 7 | Pending |
-| HIE-04 | Phase 7 | Pending |
-| HIE-05 | Phase 7 | Pending |
+| HIE-01 | Phase 7 | Complete |
+| HIE-02 | Phase 7 | Complete |
+| HIE-03 | Phase 7 | Complete |
+| HIE-04 | Phase 7 | Complete |
+| HIE-05 | Phase 7 | Complete |
 
 **Coverage:**
 - v1 requirements: 16 total
