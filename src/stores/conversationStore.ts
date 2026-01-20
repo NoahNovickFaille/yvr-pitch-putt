@@ -27,7 +27,7 @@ interface ConversationStoreState {
   removeAllConversations: () => void;
   updateConversationMetadata: (
     conversationId: string,
-    updates: { title?: string; preview?: string; lastMessageAt?: number }
+    updates: { title?: string; preview?: string; lastMessageAt?: number; titleGeneratedByLLM?: boolean }
   ) => void;
   getConversation: (conversationId: string) => Conversation | null;
   saveConversation: (conversation: Conversation) => void;

@@ -15,6 +15,7 @@ export interface Conversation {
   startedAt: number;
   endedAt?: number;
   lastMessageAt: number;      // For sorting conversations
+  titleGeneratedByLLM?: boolean; // True if LLM generated a smart title
 }
 
 // Helper for creating message IDs

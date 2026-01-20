@@ -1,16 +1,20 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Circle, CheckCircle2, Download, Trash2 } from 'lucide-react-native';
+import { Circle, CheckCircle2, Download, Trash2, Brain } from 'lucide-react-native';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 import { AVAILABLE_MODELS, ModelDefinition } from '../../constants/model';
+import { EMBEDDING_MODEL } from '../../constants/embedding';
 import { useModelStore } from '../../stores/modelStore';
+import { useEmbeddingModel } from '../../hooks/useEmbeddingModel';
 import {
   downloadModel,
   isModelDownloaded,
   deleteModelFile,
   verifyModelChecksum,
 } from '../../services/download/ModelDownloadService';
+import { deleteAsync, getInfoAsync } from 'expo-file-system/legacy';
+import { getEmbeddingModelPath } from '../../constants/embedding';
 import type { DownloadControls } from '../../types/model';
 
 type ModelDownloadState = {
@@ -159,6 +163,156 @@ function ModelCard({
             Download to use this model
           </Text>
         )}
+      </View>
+    </View>
+  );
+}
+
+function formatBytesShort(bytes: number): string {
+  if (bytes >= 1_000_000_000) {
+    return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
+  }
+  return `${(bytes / 1_000_000).toFixed(0)} MB`;
+}
+
+/**
+ * Embedding model section for semantic memory features.
+ */
+function EmbeddingModelSection() {
+  const {
+    isDownloaded,
+    isDownloading,
+    downloadProgress,
+    error,
+    isReady,
+    status,
+    startDownload,
+  } = useEmbeddingModel();
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDownload = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    startDownload();
+  }, [startDownload]);
+
+  const handleDelete = useCallback(async () => {
+    Alert.alert(
+      'Delete Memory Model',
+      'This will disable semantic memory search and deduplication. The model will be re-downloaded on next app launch. Delete anyway?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            setIsDeleting(true);
+            try {
+              const modelPath = getEmbeddingModelPath();
+              const info = await getInfoAsync(modelPath);
+              if (info.exists) {
+                await deleteAsync(modelPath);
+              }
+              Alert.alert('Deleted', 'Memory model removed. Restart the app to re-download.');
+            } catch (e) {
+              Alert.alert('Error', 'Failed to delete the model file.');
+            }
+            setIsDeleting(false);
+          },
+        },
+      ]
+    );
+  }, []);
+
+  const getStatusText = () => {
+    if (isDeleting) return 'Deleting...';
+    if (isDownloading) return `Downloading... ${downloadProgress}%`;
+    if (status === 'initializing') return 'Initializing...';
+    if (isReady) return 'Active';
+    if (isDownloaded) return 'Downloaded';
+    if (error) return 'Error';
+    return 'Not downloaded';
+  };
+
+  const getStatusColor = () => {
+    if (error) return DarkColors.danger;
+    if (isReady) return DarkColors.accent;
+    if (isDownloaded || isDownloading) return DarkColors.textSecondary;
+    return DarkColors.textTertiary;
+  };
+
+  return (
+    <View style={styles.embeddingSection}>
+      <Text style={styles.sectionTitle}>Memory Model</Text>
+      <Text style={styles.sectionDescription}>
+        Enables smart memory features like semantic search and duplicate detection.
+      </Text>
+
+      <View style={styles.embeddingCard}>
+        <View style={styles.embeddingHeader}>
+          <View style={styles.embeddingTitleRow}>
+            <Brain size={20} color={isReady ? DarkColors.accent : DarkColors.textTertiary} />
+            <Text style={[styles.embeddingTitle, isReady && styles.embeddingTitleActive]}>
+              {EMBEDDING_MODEL.name}
+            </Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: isReady ? DarkColors.accentMuted : DarkColors.surfaceElevated }]}>
+            <Text style={[styles.statusBadgeText, { color: getStatusColor() }]}>
+              {getStatusText()}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.embeddingMeta}>
+          <Text style={styles.embeddingMetaText}>
+            {formatBytesShort(EMBEDDING_MODEL.sizeBytes)} {'\u2022'} {EMBEDDING_MODEL.dimensions}-dim vectors
+          </Text>
+        </View>
+
+        <Text style={styles.embeddingDescription}>
+          When active, Cove understands that "feeling anxious about work" and "worried about my job" mean similar things. Without it, memory search uses basic keyword matching.
+        </Text>
+
+        {/* Progress bar when downloading */}
+        {isDownloading && (
+          <View style={styles.embeddingProgressContainer}>
+            <View style={styles.embeddingProgressBar}>
+              <View style={[styles.embeddingProgressFill, { width: `${downloadProgress}%` }]} />
+            </View>
+          </View>
+        )}
+
+        {/* Error message */}
+        {error && !isDownloading && (
+          <Text style={styles.embeddingError}>{error}</Text>
+        )}
+
+        {/* Action buttons */}
+        <View style={styles.embeddingActions}>
+          {!isDownloaded && !isDownloading && (
+            <TouchableOpacity
+              style={styles.downloadButton}
+              onPress={handleDownload}
+              activeOpacity={0.7}
+            >
+              <Download size={16} color={DarkColors.accent} />
+              <Text style={styles.downloadButtonText}>Download</Text>
+            </TouchableOpacity>
+          )}
+
+          {isDownloaded && !isDownloading && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDelete}
+              activeOpacity={0.7}
+              disabled={isDeleting}
+            >
+              <Trash2 size={16} color={DarkColors.danger} />
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -326,7 +480,7 @@ export function ModelSelector() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Model Selection</Text>
+      <Text style={styles.sectionTitle}>Conversation Model</Text>
       <Text style={styles.sectionDescription}>
         Choose which AI model to use for conversations. Larger models are slower but more capable.
       </Text>
@@ -349,6 +503,9 @@ export function ModelSelector() {
       <Text style={styles.footerNote}>
         Tap a downloaded model to make it active. Changes take effect after restarting the app.
       </Text>
+
+      {/* Embedding Model Section */}
+      <EmbeddingModelSection />
     </View>
   );
 }
@@ -544,5 +701,87 @@ const styles = StyleSheet.create({
     marginTop: DarkSpacing.lg,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  // Embedding model section styles
+  embeddingSection: {
+    marginTop: DarkSpacing.xxl,
+    paddingTop: DarkSpacing.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: DarkColors.border,
+  },
+  embeddingCard: {
+    backgroundColor: DarkColors.surface,
+    borderRadius: DarkSpacing.radiusMd,
+    padding: DarkSpacing.cardPadding,
+  },
+  embeddingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: DarkSpacing.sm,
+  },
+  embeddingTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DarkSpacing.sm,
+  },
+  embeddingTitle: {
+    fontSize: DarkTypography.headline,
+    fontWeight: DarkTypography.weightSemibold,
+    color: DarkColors.text,
+  },
+  embeddingTitleActive: {
+    color: DarkColors.accent,
+  },
+  statusBadge: {
+    paddingHorizontal: DarkSpacing.sm,
+    paddingVertical: DarkSpacing.xs,
+    borderRadius: DarkSpacing.radiusXs,
+  },
+  statusBadgeText: {
+    fontSize: DarkTypography.caption2,
+    fontWeight: DarkTypography.weightMedium,
+    letterSpacing: 0.3,
+  },
+  embeddingMeta: {
+    marginBottom: DarkSpacing.sm,
+    marginLeft: 28,
+  },
+  embeddingMetaText: {
+    fontSize: DarkTypography.footnote,
+    color: DarkColors.textTertiary,
+  },
+  embeddingDescription: {
+    fontSize: DarkTypography.callout,
+    color: DarkColors.textSecondary,
+    lineHeight: 20,
+    marginLeft: 28,
+  },
+  embeddingProgressContainer: {
+    marginTop: DarkSpacing.md,
+    marginLeft: 28,
+  },
+  embeddingProgressBar: {
+    height: 6,
+    backgroundColor: DarkColors.surfaceElevated,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  embeddingProgressFill: {
+    height: '100%',
+    backgroundColor: DarkColors.accent,
+    borderRadius: 3,
+  },
+  embeddingError: {
+    fontSize: DarkTypography.footnote,
+    color: DarkColors.danger,
+    marginTop: DarkSpacing.sm,
+    marginLeft: 28,
+  },
+  embeddingActions: {
+    marginTop: DarkSpacing.md,
+    paddingTop: DarkSpacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: DarkColors.border,
   },
 });

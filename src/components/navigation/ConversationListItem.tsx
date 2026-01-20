@@ -7,13 +7,11 @@ import {
 } from 'react-native';
 import { Swipeable, RectButton } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
-import { MessageSquare, Trash2 } from 'lucide-react-native';
+import { Trash2 } from 'lucide-react-native';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 
 interface ConversationListItemProps {
-  id: string;
   title: string;
-  preview: string;
   lastMessageAt: number;
   isActive: boolean;
   onPress: () => void;
@@ -39,9 +37,7 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export function ConversationListItem({
-  id,
   title,
-  preview,
   lastMessageAt,
   isActive,
   onPress,
@@ -98,12 +94,6 @@ export function ConversationListItem({
         onPress={handlePress}
         underlayColor={DarkColors.surfaceElevated}
       >
-        <View style={styles.iconContainer}>
-          <MessageSquare
-            size={18}
-            color={isActive ? DarkColors.accent : DarkColors.textTertiary}
-          />
-        </View>
         <View style={styles.content}>
           <View style={styles.header}>
             <Text
@@ -116,12 +106,6 @@ export function ConversationListItem({
               {formatRelativeTime(lastMessageAt)}
             </Text>
           </View>
-          <Text
-            style={styles.preview}
-            numberOfLines={1}
-          >
-            {preview}
-          </Text>
         </View>
       </RectButton>
     </Swipeable>
@@ -142,15 +126,6 @@ const styles = StyleSheet.create({
   activeContainer: {
     backgroundColor: DarkColors.surfaceElevated,
   },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: DarkColors.surfaceElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: DarkSpacing.md,
-  },
   content: {
     flex: 1,
   },
@@ -158,7 +133,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 2,
   },
   title: {
     flex: 1,
@@ -173,10 +147,6 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: DarkTypography.caption1,
     color: DarkColors.textTertiary,
-  },
-  preview: {
-    fontSize: DarkTypography.caption1,
-    color: DarkColors.textSecondary,
   },
   deleteAction: {
     backgroundColor: DarkColors.danger,

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useChatStore } from '../stores/chatStore';
 import { useConversationStore } from '../stores/conversationStore';
 import { ChatService } from '../services/llm/ChatService';
 import { CrisisResult } from '../services/safety/CrisisDetector';
 import { ChatMessage } from '../types/chat';
+import { generateSmartTitle } from '../services/conversation/ConversationTitleGenerator';
 
 interface UseChatResult {
   messages: ChatMessage[];
@@ -32,10 +33,12 @@ export function useChat(): UseChatResult {
     activeConversationId,
     createConversation,
     updateConversationMetadata,
+    getConversation,
   } = useConversationStore();
 
   const [crisisModalVisible, setCrisisModalVisible] = useState(false);
   const [pendingCrisisMessage, setPendingCrisisMessage] = useState<string | null>(null);
+  const titleGenerationInProgress = useRef(false);
 
   // Sync chatStore with active conversation from conversationStore
   useEffect(() => {
@@ -46,6 +49,55 @@ export function useChat(): UseChatResult {
     console.log('[useChat] Crisis detected:', result);
     setCrisisModalVisible(true);
   }, []);
+
+  /**
+   * Trigger smart title generation if conversation is eligible.
+   * Requirements: 3+ user messages, 3+ assistant messages, not already LLM-generated.
+   * Fire-and-forget - does not block chat flow.
+   */
+  const maybeGenerateSmartTitle = useCallback(
+    (conversationId: string, currentMessages: ChatMessage[]) => {
+      // Skip if already generating
+      if (titleGenerationInProgress.current) return;
+
+      // Check conversation eligibility
+      const conversation = getConversation(conversationId);
+      if (!conversation || conversation.titleGeneratedByLLM) {
+        return;
+      }
+
+      // Count user and assistant messages
+      const userMessages = currentMessages.filter(m => m.role === 'user').length;
+      const assistantMessages = currentMessages.filter(m => m.role === 'assistant').length;
+
+      // Need at least 3 exchanges (3 user + 3 assistant messages)
+      if (userMessages < 3 || assistantMessages < 3) {
+        return;
+      }
+
+      console.log('[useChat] Triggering smart title generation');
+      titleGenerationInProgress.current = true;
+
+      // Fire-and-forget - don't await
+      generateSmartTitle(currentMessages)
+        .then((title) => {
+          if (title) {
+            updateConversationMetadata(conversationId, {
+              title,
+              titleGeneratedByLLM: true,
+            });
+            console.log('[useChat] Smart title applied:', title);
+          }
+        })
+        .catch((error) => {
+          console.error('[useChat] Smart title generation failed:', error);
+        })
+        .finally(() => {
+          titleGenerationInProgress.current = false;
+        });
+    },
+    [getConversation, updateConversationMetadata]
+  );
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -107,6 +159,13 @@ export function useChat(): UseChatResult {
         // Reset state on error
         completeGeneration('');
         setPendingCrisisMessage(null);
+      } else if (result.success && conversationId) {
+        // Try to generate smart title after successful response
+        // Get the latest messages from storage (includes new user + assistant messages)
+        const updatedConversation = getConversation(conversationId);
+        if (updatedConversation) {
+          maybeGenerateSmartTitle(conversationId, updatedConversation.messages);
+        }
       }
     },
     [
@@ -120,6 +179,8 @@ export function useChat(): UseChatResult {
       handleCrisis,
       createConversation,
       updateConversationMetadata,
+      getConversation,
+      maybeGenerateSmartTitle,
     ]
   );
 
@@ -148,6 +209,12 @@ export function useChat(): UseChatResult {
     if (!result.success && result.error) {
       console.error('[useChat] Continue after crisis failed:', result.error);
       completeGeneration('');
+    } else if (result.success && activeConversationId) {
+      // Try to generate smart title after successful response
+      const updatedConversation = getConversation(activeConversationId);
+      if (updatedConversation) {
+        maybeGenerateSmartTitle(activeConversationId, updatedConversation.messages);
+      }
     }
   }, [
     pendingCrisisMessage,
@@ -156,6 +223,9 @@ export function useChat(): UseChatResult {
     startGeneration,
     appendToken,
     completeGeneration,
+    activeConversationId,
+    getConversation,
+    maybeGenerateSmartTitle,
   ]);
 
   return {

@@ -15,6 +15,7 @@ import { useOnboardingStore } from '@/src/stores/onboardingStore';
 import { migrateToMultiConversation } from '@/src/services/migration/conversationMigration';
 import { ExtractionQueue } from '@/src/services/memory/ExtractionQueue';
 import { LLMService } from '@/src/services/llm/LLMService';
+import { EmbeddingService } from '@/src/services/embedding/EmbeddingService';
 import { DarkColors } from '@/constants/darkTheme';
 import { OnboardingScreen } from '@/src/screens/OnboardingScreen';
 
@@ -65,6 +66,14 @@ export default function RootLayout() {
     // Load extraction queue and process pending extractions once LLM is ready
     console.log('[RootLayout] Loading extraction queue');
     ExtractionQueue.loadFromStorage();
+
+    // Initialize embedding service early (async, non-blocking)
+    // This ensures semantic retrieval and deduplication are ready before first extraction
+    console.log('[RootLayout] Initializing embedding service');
+    EmbeddingService.initialize().catch((error) => {
+      // Non-fatal: app works without embeddings (falls back to keyword matching)
+      console.warn('[RootLayout] Embedding service init failed:', error);
+    });
 
     // Mark app as ready (all synchronous operations complete)
     setIsReady(true);

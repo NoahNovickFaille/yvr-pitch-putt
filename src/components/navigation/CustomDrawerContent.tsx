@@ -62,9 +62,7 @@ export function CustomDrawerContent({ closeDrawer }: CustomDrawerContentProps) {
 
       return (
         <ConversationListItem
-          id={conversation.id}
           title={conversation.title}
-          preview={conversation.preview}
           lastMessageAt={conversation.lastMessageAt}
           isActive={conversation.id === activeConversationId}
           onPress={() => handleConversationPress(conversation.id)}
