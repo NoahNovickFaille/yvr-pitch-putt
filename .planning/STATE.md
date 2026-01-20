@@ -10,20 +10,24 @@ See: .planning/PROJECT.md (updated 2026-01-19)
 ## Current Position
 
 Phase: 7 of 7 (Hierarchical Memory)
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-01-20 - Completed 07-03-PLAN.md (Structured Memory Injection)
+Plan: 5 of 5 complete (including gap closure plans)
+Status: Phase complete with integration
+Last activity: 2026-01-20 - Completed 07-05-PLAN.md (Structured Memory Injection Integration)
 
-Progress: ████████████████████ 100% (v1.0) | v1.1: █████████████████████ 11/11 plans COMPLETE
+Progress: ████████████████████ 100% (v1.0) | v1.1: ██████████████████████ 12/12 plans COMPLETE
 
 ## Next Steps
 
-v1.1 complete! All hierarchical memory features implemented:
+v1.1 fully integrated! All hierarchical memory features implemented and wired:
 - Semantic categories (identity, relationship, situation, preference, event, emotion)
 - Category-aware extraction prompts with few-shot examples
 - Structured memory injection with primacy effect optimization
+- ChatService integration complete - structured sections now active in prompts
 
-Next: Consider integrating buildSystemPromptWithStructuredMemories into ChatService.
+Memory sections now appear organized in system prompts:
+- "About them" (identity + relationship)
+- "Current situation" (situation + emotion)
+- "Relevant context" (preference + event)
 
 ## Performance Metrics
 
@@ -33,9 +37,9 @@ Next: Consider integrating buildSystemPromptWithStructuredMemories into ChatServ
 - Timeline: 2 days (2026-01-16 to 2026-01-17)
 
 **v1.1 Velocity:**
-- Plans completed: 11
-- Duration: 25 min
-- Average: 2.3 min/plan
+- Plans completed: 12
+- Duration: 26 min
+- Average: 2.2 min/plan
 
 **By Phase:**
 
@@ -47,7 +51,7 @@ Next: Consider integrating buildSystemPromptWithStructuredMemories into ChatServ
 | 04-polish | 4/4 | 22 min | 5.5 min |
 | 05-embedding-infrastructure | 5/5 | 13 min | 2.6 min |
 | 06-semantic-retrieval | 3/3 | 6 min | 2.0 min |
-| 07-hierarchical-memory | 3/3 | 8 min | 2.7 min |
+| 07-hierarchical-memory | 5/5 | 9 min | 1.8 min |
 
 ## Accumulated Context
 
@@ -82,6 +86,7 @@ Next: Consider integrating buildSystemPromptWithStructuredMemories into ChatServ
 | Three-section memory organization | About them, Current situation, Relevant context for LLM attention | 07-03 |
 | Primacy effect optimization | Identity memories placed FIRST (Lost in the Middle mitigation) | 07-03 |
 | 605 token content budget | maxTokens 650 - headerOverhead 45 per HIE-04 | 07-03 |
+| Remove buildMemorySectionWithinBudget | Structured builder handles memory section internally | 07-05 |
 
 ### Pending Todos
 
@@ -99,6 +104,6 @@ All blockers resolved:
 
 ## Session Continuity
 
-Last session: 2026-01-20 05:15:03Z
-Stopped at: Completed 07-03-PLAN.md (Phase 7 complete)
+Last session: 2026-01-20 05:26:18Z
+Stopped at: Completed 07-05-PLAN.md (Structured Memory Injection Integration)
 Resume file: None
