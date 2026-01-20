@@ -59,12 +59,20 @@ See [v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.md) for details.
 4. Existing memories have embeddings (migration complete)
 5. UI remains responsive during embedding generation
 
-**Plans**: TBD (run /gsd:plan-phase 5 to break down)
+**Plans**: 5 plans
 
-**Research Flag**: LIKELY
-- Embedding model selection (all-MiniLM-L6-v2 vs alternatives)
-- ONNX vs transformers.js for React Native
-- Background thread execution patterns
+Plans:
+- [ ] 05-01-PLAN.md — Embedding constants and type definitions
+- [ ] 05-02-PLAN.md — EmbeddingService singleton and download hook
+- [ ] 05-03-PLAN.md — Storage utilities and cosine similarity
+- [ ] 05-04-PLAN.md — Deduplication and MemoryOrchestrator integration
+- [ ] 05-05-PLAN.md — Migration for existing memories
+
+**Wave Structure:**
+- Wave 1: 05-01 (foundation)
+- Wave 2: 05-02, 05-03 (parallel - service and storage)
+- Wave 3: 05-04 (integration)
+- Wave 4: 05-05 (migration)
 
 ---
 
@@ -119,7 +127,7 @@ See [v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.md) for details.
 | 2. Core Chat | v1.0 | 7/7 | Complete | 2026-01-16 |
 | 3. Memory System | v1.0 | 6/6 | Complete | 2026-01-17 |
 | 4. Polish | v1.0 | 4/4 | Complete | 2026-01-17 |
-| 5. Embedding Infrastructure | v1.1 | 0/? | Not started | - |
+| 5. Embedding Infrastructure | v1.1 | 0/5 | Planned | - |
 | 6. Semantic Retrieval | v1.1 | 0/? | Not started | - |
 | 7. Hierarchical Memory | v1.1 | 0/? | Not started | - |
 
