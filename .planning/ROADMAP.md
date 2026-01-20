@@ -88,11 +88,17 @@ Plans:
 3. Retrieval speed remains <50ms for typical memory counts
 4. Scoring combines semantic similarity, decay, and importance
 
-**Plans**: TBD (run /gsd:plan-phase 6 to break down)
+**Plans**: 3 plans
 
-**Research Flag**: UNLIKELY
-- Standard cosine similarity patterns
-- Scoring formula defined in audit
+Plans:
+- [ ] 06-01-PLAN.md — Retrieval constants and type definitions
+- [ ] 06-02-PLAN.md — SemanticRetrieval service with scoring
+- [ ] 06-03-PLAN.md — ChatService integration
+
+**Wave Structure:**
+- Wave 1: 06-01 (foundation)
+- Wave 2: 06-02 (core service)
+- Wave 3: 06-03 (integration)
 
 ---
 
@@ -128,7 +134,7 @@ Plans:
 | 3. Memory System | v1.0 | 6/6 | Complete | 2026-01-17 |
 | 4. Polish | v1.0 | 4/4 | Complete | 2026-01-17 |
 | 5. Embedding Infrastructure | v1.1 | 5/5 | Complete | 2026-01-19 |
-| 6. Semantic Retrieval | v1.1 | 0/? | Not started | - |
+| 6. Semantic Retrieval | v1.1 | 0/3 | Planning | - |
 | 7. Hierarchical Memory | v1.1 | 0/? | Not started | - |
 
 ---
