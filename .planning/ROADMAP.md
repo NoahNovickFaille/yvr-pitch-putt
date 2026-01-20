@@ -41,7 +41,7 @@ See [v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.md) for details.
 **Milestone Goal:** Transform memory from keyword matching to semantic understanding with organized memory structure.
 
 - [x] **Phase 5: Embedding Infrastructure** - Add embedding model, deduplication, migrate memories
-- [ ] **Phase 6: Semantic Retrieval** - Replace keyword matching with embedding similarity
+- [x] **Phase 6: Semantic Retrieval** - Replace keyword matching with embedding similarity
 - [ ] **Phase 7: Hierarchical Memory** - New categories, structured extraction and injection
 
 ---
@@ -91,9 +91,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Retrieval constants and type definitions
-- [ ] 06-02-PLAN.md — SemanticRetrieval service with scoring
-- [ ] 06-03-PLAN.md — ChatService integration
+- [x] 06-01-PLAN.md — Retrieval constants and type definitions
+- [x] 06-02-PLAN.md — SemanticRetrieval service with scoring
+- [x] 06-03-PLAN.md — ChatService integration
 
 **Wave Structure:**
 - Wave 1: 06-01 (foundation)
@@ -134,7 +134,7 @@ Plans:
 | 3. Memory System | v1.0 | 6/6 | Complete | 2026-01-17 |
 | 4. Polish | v1.0 | 4/4 | Complete | 2026-01-17 |
 | 5. Embedding Infrastructure | v1.1 | 5/5 | Complete | 2026-01-19 |
-| 6. Semantic Retrieval | v1.1 | 0/3 | Planning | - |
+| 6. Semantic Retrieval | v1.1 | 3/3 | Complete | 2026-01-19 |
 | 7. Hierarchical Memory | v1.1 | 0/? | Not started | - |
 
 ---

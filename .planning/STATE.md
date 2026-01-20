@@ -19,10 +19,10 @@ Progress: ████████████████████ 100% (v1.
 ## Next Steps
 
 ```
-/gsd:execute-phase 7
+/gsd:plan-phase 7
 ```
 
-Continue to Phase 7 (Polish/Quality) or conclude v1.1.
+Phase 6 complete. Begin planning Phase 7 (Hierarchical Memory).
 
 ## Performance Metrics
 
