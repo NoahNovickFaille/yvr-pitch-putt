@@ -143,7 +143,7 @@ function ModelCard({
           </View>
         )}
 
-        {isDownloaded && !isSelected && (
+        {isDownloaded && (
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={onDelete}
@@ -271,17 +271,28 @@ export function ModelSelector() {
 
   const handleDelete = useCallback(
     (model: ModelDefinition) => {
-      if (model.id === selectedModelId) {
+      const isActiveModel = model.id === selectedModelId;
+      const otherDownloadedModels = downloadedModelIds.filter((id) => id !== model.id);
+      const hasOtherModels = otherDownloadedModels.length > 0;
+
+      // If deleting the active model and no other models available
+      if (isActiveModel && !hasOtherModels) {
         Alert.alert(
-          'Cannot Delete Active Model',
-          'This model is currently in use. Switch to another model first.'
+          'Cannot Delete Only Model',
+          'This is your only downloaded model. Download another model first before deleting this one.',
+          [{ text: 'OK' }]
         );
         return;
       }
 
+      // Build appropriate message
+      const deleteMessage = isActiveModel
+        ? `Delete ${model.name}? The app will switch to another model. This will free up ${formatBytes(model.sizeBytes)} of storage.`
+        : `Delete ${model.name}? This will free up ${formatBytes(model.sizeBytes)} of storage.`;
+
       Alert.alert(
         'Delete Model',
-        `Delete ${model.name}? This will free up ${formatBytes(model.sizeBytes)} of storage.`,
+        deleteMessage,
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -290,18 +301,27 @@ export function ModelSelector() {
             onPress: async () => {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
+              // If deleting active model, switch to another model first
+              if (isActiveModel && hasOtherModels) {
+                selectModel(otherDownloadedModels[0]);
+              }
+
               await deleteModelFile(model);
 
               // Update store to remove from downloaded list
               removeModelFromDownloaded(model.id);
 
-              Alert.alert('Deleted', `${model.name} has been removed.`);
+              const successMessage = isActiveModel
+                ? `${model.name} has been removed. Please restart the app to use the new model.`
+                : `${model.name} has been removed.`;
+
+              Alert.alert('Deleted', successMessage);
             },
           },
         ]
       );
     },
-    [selectedModelId, removeModelFromDownloaded]
+    [selectedModelId, downloadedModelIds, removeModelFromDownloaded, selectModel]
   );
 
   return (
