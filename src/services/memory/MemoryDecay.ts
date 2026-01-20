@@ -1,13 +1,14 @@
-import { Memory, MemoryCategory } from '../../types/memory';
+import { Memory } from '../../types/memory';
+import { CATEGORY_DECAY_RATES } from '../../constants/memory';
 
 /**
- * Half-life decay strength by memory category (in hours)
- * Based on Ebbinghaus forgetting curve principles
+ * @deprecated Use CATEGORY_DECAY_RATES from constants/memory.ts instead.
+ * Kept for reference during migration.
  */
-export const DECAY_STRENGTH: Record<MemoryCategory, number> = {
-  persistent: 168, // ~1 week - facts, relationships, preferences
-  temporal: 24, // ~1 day - recent events, current emotions
-  contextual: 4, // ~4 hours - conversation-specific context
+export const DECAY_STRENGTH_LEGACY: Record<string, number> = {
+  persistent: 168,
+  temporal: 24,
+  contextual: 4,
 };
 
 /**
@@ -20,19 +21,16 @@ export const DECAY_STRENGTH: Record<MemoryCategory, number> = {
 export function calculateDecay(memory: Memory, now: number = Date.now()): number {
   const hoursSinceAccess = (now - memory.lastAccessed) / (1000 * 60 * 60);
 
-  // Fallback to 'persistent' for legacy memories without category
-  const category = memory.category ?? 'persistent';
-  const baseStrength = DECAY_STRENGTH[category];
+  // Use new category-based decay rates
+  const category = memory.category ?? 'identity'; // Default to identity for legacy
+  const baseStrength = CATEGORY_DECAY_RATES[category] ?? CATEGORY_DECAY_RATES.identity;
 
   // Access count reinforcement: frequently accessed memories decay slower
-  // Logarithmic boost to prevent unlimited strengthening
   const accessCount = memory.accessCount ?? 0;
   const boostedStrength = baseStrength * (1 + Math.log10(accessCount + 1));
 
-  // Exponential decay formula: e^(-t/τ) where τ is the decay constant
-  const decayFactor = Math.exp(-hoursSinceAccess / boostedStrength);
-
-  return decayFactor;
+  // Exponential decay formula: e^(-t/τ)
+  return Math.exp(-hoursSinceAccess / boostedStrength);
 }
 
 /**
