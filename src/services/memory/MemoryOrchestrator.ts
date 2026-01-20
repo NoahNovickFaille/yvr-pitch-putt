@@ -4,6 +4,9 @@ import { useChatStore } from '../../stores/chatStore';
 import { useConversationStore } from '../../stores/conversationStore';
 import { LLMService } from '../llm/LLMService';
 import { ExtractionQueue } from './ExtractionQueue';
+import { EmbeddingService } from '../embedding/EmbeddingService';
+import { storeEmbedding, hasEmbedding } from '../embedding/EmbeddingStorage';
+import { findDuplicate, mergeMemories } from '../embedding/Deduplicator';
 
 // Don't attempt direct extraction if user was active within this time
 const ACTIVE_THRESHOLD_MS = 10000; // 10 seconds
@@ -25,6 +28,45 @@ class MemoryOrchestratorImpl {
 
   private constructor() {
     // Singleton - private constructor
+  }
+
+  /**
+   * Schedule a callback to run in the background.
+   * Uses requestIdleCallback when available, falls back to setTimeout.
+   */
+  private scheduleBackground(callback: () => void): void {
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(() => callback(), { timeout: 5000 });
+    } else {
+      setTimeout(callback, 0);
+    }
+  }
+
+  /**
+   * Generate embeddings for memories that don't have them.
+   * Called in background after new memories are stored.
+   */
+  private async generateEmbeddingsForNewMemories(): Promise<void> {
+    if (!EmbeddingService.isReady()) {
+      console.log('[MemoryOrchestrator] Embedding service not ready, skipping embedding generation');
+      return;
+    }
+
+    const memories = useMemoryStore.getState().memories;
+
+    for (const memory of memories) {
+      // Skip if already has embedding
+      if (hasEmbedding(memory.id)) continue;
+
+      try {
+        const embedding = await EmbeddingService.embed(memory.content);
+        storeEmbedding(memory.id, embedding);
+        console.log('[MemoryOrchestrator] Generated embedding for', memory.id);
+      } catch (error) {
+        console.error('[MemoryOrchestrator] Failed to generate embedding:', error);
+        // Continue with other memories
+      }
+    }
   }
 
   static getInstance(): MemoryOrchestratorImpl {
@@ -139,10 +181,41 @@ class MemoryOrchestratorImpl {
       const conversationText = formatConversationForExtraction(messages);
       const extracted = await extractMemories(conversationText);
 
-      // Store extracted memories
+      // Process extracted memories with deduplication
       if (extracted.length > 0) {
-        useMemoryStore.getState().addMemories(extracted);
-        console.log('[MemoryOrchestrator] Successfully stored', extracted.length, 'memories');
+        const memoriesToAdd: typeof extracted = [];
+        const existingMemories = useMemoryStore.getState().memories;
+
+        for (const mem of extracted) {
+          // Check for duplicate
+          const dupResult = await findDuplicate(mem.content, existingMemories);
+
+          if (dupResult.isDuplicate && dupResult.existingMemory) {
+            // Merge with existing memory
+            console.log('[MemoryOrchestrator] Found duplicate, merging');
+            const merged = mergeMemories(dupResult.existingMemory, mem.type, mem.content);
+            useMemoryStore.getState().updateMemory(merged);
+          } else {
+            // New memory - will get embedding after storage
+            memoriesToAdd.push(mem);
+          }
+        }
+
+        // Add new memories
+        if (memoriesToAdd.length > 0) {
+          useMemoryStore.getState().addMemories(memoriesToAdd);
+          console.log('[MemoryOrchestrator] Added', memoriesToAdd.length, 'new memories');
+
+          // Queue embedding generation for new memories (background)
+          this.scheduleBackground(async () => {
+            await this.generateEmbeddingsForNewMemories();
+          });
+        }
+
+        const merged = extracted.length - memoriesToAdd.length;
+        if (merged > 0) {
+          console.log('[MemoryOrchestrator] Merged', merged, 'duplicate memories');
+        }
       } else {
         console.log('[MemoryOrchestrator] No memories extracted from conversation');
         // Queue for retry if no memories were extracted (might be a transient issue)
