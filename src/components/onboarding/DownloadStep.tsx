@@ -215,6 +215,84 @@ function LoadingState({ title, description }: LoadingStateProps) {
   );
 }
 
+interface InitializationStateProps {
+  embeddingReady: boolean;
+  llmReady: boolean;
+}
+
+function InitializationState({ embeddingReady, llmReady }: InitializationStateProps) {
+  return (
+    <>
+      <View style={styles.iconContainer}>
+        <View style={initStyles.iconWrapper}>
+          <Ionicons name="sparkles" size={48} color={DarkColors.accent} />
+        </View>
+      </View>
+
+      <Text style={styles.title}>Preparing AI</Text>
+      <Text style={styles.description}>
+        Loading models into memory...
+      </Text>
+
+      <View style={initStyles.checklistContainer}>
+        <View style={initStyles.checklistItem}>
+          {llmReady ? (
+            <Ionicons name="checkmark-circle" size={24} color={DarkColors.success} />
+          ) : (
+            <ActivityIndicator size="small" color={DarkColors.accent} />
+          )}
+          <Text style={[initStyles.checklistText, llmReady && initStyles.checklistTextDone]}>
+            Conversation model
+          </Text>
+        </View>
+
+        <View style={initStyles.checklistItem}>
+          {embeddingReady ? (
+            <Ionicons name="checkmark-circle" size={24} color={DarkColors.success} />
+          ) : (
+            <ActivityIndicator size="small" color={DarkColors.accent} />
+          )}
+          <Text style={[initStyles.checklistText, embeddingReady && initStyles.checklistTextDone]}>
+            Memory model
+          </Text>
+        </View>
+      </View>
+    </>
+  );
+}
+
+const initStyles = StyleSheet.create({
+  iconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: DarkColors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checklistContainer: {
+    marginTop: DarkSpacing.xl,
+    gap: DarkSpacing.md,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DarkSpacing.md,
+    paddingVertical: DarkSpacing.sm,
+    paddingHorizontal: DarkSpacing.lg,
+    backgroundColor: DarkColors.surfaceElevated,
+    borderRadius: DarkSpacing.radiusMd,
+    minWidth: 220,
+  },
+  checklistText: {
+    fontSize: DarkTypography.body,
+    color: DarkColors.textSecondary,
+  },
+  checklistTextDone: {
+    color: DarkColors.text,
+  },
+});
+
 interface DownloadProgressProps {
   title: string;
   stepLabel: string;
@@ -327,6 +405,7 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
     isDownloading: embeddingDownloading,
     downloadProgress: embeddingProgress,
     error: embeddingError,
+    isReady: embeddingReady,
     startDownload: startEmbeddingDownload,
     pauseDownload: pauseEmbeddingDownload,
     resumeDownload: resumeEmbeddingDownload,
@@ -369,11 +448,15 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
   const hasInitError = (llmHasError && currentPhase === 'initializing') || false;
 
   // Calculate current step for indicator (0-indexed)
+  // Use derived states to ensure step indicator updates immediately
   const currentStep = useMemo(() => {
-    if (currentPhase === 'llm') return 0;
-    if (currentPhase === 'embedding') return 1;
-    return 2; // initializing or complete
-  }, [currentPhase]);
+    // Step 0: Downloading LLM
+    if (!llmReadyToInit && !llmReady) return 0;
+    // Step 1: Downloading embedding
+    if (llmReadyToInit && !embeddingDownloaded) return 1;
+    // Step 2: Initializing or complete
+    return 2;
+  }, [llmReadyToInit, llmReady, embeddingDownloaded]);
 
   // ============================================================================
   // Unified State Machine Effect
@@ -435,6 +518,10 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
     }
   }, [currentPhase, llmDownloadError, embeddingError, hasInitError, retryLLMDownload, startEmbeddingDownload, retryLLMInit]);
 
+  // Derived: are we in initialization phase?
+  // This is true when both downloads are complete but LLM isn't ready yet
+  const isInInitPhase = llmReadyToInit && embeddingDownloaded && !llmReady;
+
   // ============================================================================
   // Render
   // ============================================================================
@@ -470,7 +557,7 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
       );
     }
 
-    // Verifying
+    // Verifying LLM download
     if (llmVerifying) {
       return (
         <LoadingState
@@ -480,12 +567,13 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
       );
     }
 
-    // Initializing
-    if (currentPhase === 'initializing' || isInitializing) {
+    // Initializing - show when both downloads complete but models not ready
+    // Use derived state (isInInitPhase) to catch the transition immediately
+    if (isInInitPhase || currentPhase === 'initializing' || isInitializing) {
       return (
-        <LoadingState
-          title="Setting Up AI"
-          description="Preparing models for first use. This may take a moment..."
+        <InitializationState
+          embeddingReady={embeddingReady}
+          llmReady={llmReady}
         />
       );
     }
