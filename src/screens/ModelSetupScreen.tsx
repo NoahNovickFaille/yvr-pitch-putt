@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useModelDownload } from '../hooks/useModelDownload';
 import { useLLM } from '../hooks/useLLM';
-import { MODEL_CONFIG } from '../constants/model';
 import { deleteModelFile } from '../services/download/ModelDownloadService';
 import { DarkColors, DarkSpacing } from '../../constants/darkTheme';
 
@@ -21,6 +20,7 @@ interface ModelSetupScreenProps {
 export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
   const {
     modelState,
+    model,
     startDownload,
     pauseDownload,
     resumeDownload,
@@ -77,7 +77,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
         <View style={styles.section}>
           <Text style={styles.title}>Download AI Model</Text>
           <Text style={styles.description}>
-            Cove needs to download the AI model ({formatBytes(MODEL_CONFIG.expectedSizeBytes)})
+            Cove needs to download the AI model ({formatBytes(model?.sizeBytes ?? 0)})
             to work. This only happens once.
           </Text>
           <Text style={styles.note}>
@@ -94,7 +94,8 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
     if (modelState.status === 'downloading') {
       const progress = modelState.progress;
       const percent = Math.round(progress * 100);
-      const downloadedBytes = Math.round(progress * MODEL_CONFIG.expectedSizeBytes);
+      const totalBytes = model?.sizeBytes ?? 0;
+      const downloadedBytes = Math.round(progress * totalBytes);
 
       return (
         <View style={styles.section}>
@@ -103,7 +104,7 @@ export function ModelSetupScreen({ onReady }: ModelSetupScreenProps) {
             <View style={[styles.progressBar, { width: `${percent}%` }]} />
           </View>
           <Text style={styles.progressText}>
-            {formatBytes(downloadedBytes)} / {formatBytes(MODEL_CONFIG.expectedSizeBytes)} ({percent}%)
+            {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)} ({percent}%)
           </Text>
           <View style={styles.buttonRow}>
             <TouchableOpacity

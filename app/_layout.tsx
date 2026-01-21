@@ -13,6 +13,7 @@ import { useConversationStore } from '@/src/stores/conversationStore';
 import { useMemoryStore } from '@/src/stores/memoryStore';
 import { useChatStore } from '@/src/stores/chatStore';
 import { useOnboardingStore } from '@/src/stores/onboardingStore';
+import { useModelStore } from '@/src/stores/modelStore';
 import { migrateToMultiConversation } from '@/src/services/migration/conversationMigration';
 import { ExtractionQueue } from '@/src/services/memory/ExtractionQueue';
 import { LLMService } from '@/src/services/llm/LLMService';
@@ -72,6 +73,7 @@ export default function RootLayout() {
     console.log('[RootLayout] Initializing stores from storage');
     useConversationStore.getState().loadConversations();
     useMemoryStore.getState().loadFromStorage();
+    useModelStore.getState().loadFromStorage();
 
     // Check onboarding status (synchronous with MMKV)
     console.log('[RootLayout] Checking onboarding status');
