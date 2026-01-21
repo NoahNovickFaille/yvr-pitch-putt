@@ -26,6 +26,7 @@ module.exports = {
     },
     ios: {
       bundleIdentifier: IS_DEV ? 'ca.corvustech.cove.dev' : 'ca.corvustech.cove',
+      buildNumber: '3',                                                                                      
       supportsTablet: false,
       infoPlist: {
         UIBackgroundModes: ['fetch'], // For background downloads
