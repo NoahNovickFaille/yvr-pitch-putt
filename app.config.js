@@ -38,6 +38,7 @@ module.exports = {
     plugins: [
       'expo-router',
       './plugins/withMMKV',
+      './plugins/withBundleIdentifier',
       [
         'expo-splash-screen',
         {
