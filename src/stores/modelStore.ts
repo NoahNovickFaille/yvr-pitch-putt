@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { storage } from '../storage/storage';
-import { DEFAULT_MODEL_ID } from '../constants/model';
+import { DEFAULT_MODEL_ID, getModelById } from '../constants/model';
 
 const STORAGE_KEYS = {
   SELECTED_MODEL_ID: 'selected_model_id',
@@ -84,9 +84,15 @@ export const useModelStore = create<ModelState>((set, get) => ({
       console.log('[ModelStore] Loading from storage');
     }
 
-    // Load selected model ID
+    // Load selected model ID with validation
     const storedModelId = storage.getString(STORAGE_KEYS.SELECTED_MODEL_ID);
-    const selectedModelId = storedModelId || DEFAULT_MODEL_ID;
+    // Validate that stored model ID exists in AVAILABLE_MODELS, fall back to default if invalid
+    const isValidModel = storedModelId && getModelById(storedModelId);
+    const selectedModelId = isValidModel ? storedModelId : DEFAULT_MODEL_ID;
+
+    if (__DEV__ && storedModelId && !isValidModel) {
+      console.warn('[ModelStore] Invalid stored model ID, falling back to default:', storedModelId);
+    }
 
     // Load downloaded model IDs (actual verification against disk happens in ModelSelector)
     const storedDownloadedIds = storage.getString(STORAGE_KEYS.DOWNLOADED_MODEL_IDS);

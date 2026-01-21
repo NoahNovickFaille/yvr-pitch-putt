@@ -4,7 +4,13 @@ import {
   type DownloadTask,
 } from '@kesha-antonov/react-native-background-downloader';
 import { documentDirectory, getInfoAsync, deleteAsync } from 'expo-file-system/legacy';
-import { MODEL_CONFIG, DOWNLOAD_TASK_ID, STORAGE_KEYS, AVAILABLE_MODELS } from '../../constants/model';
+import {
+  MODEL_CONFIG,
+  DOWNLOAD_TASK_ID,
+  STORAGE_KEYS,
+  AVAILABLE_MODELS,
+  getDownloadStateKey,
+} from '../../constants/model';
 import type { ModelDefinition } from '../../constants/model';
 import { storage } from '../../storage/storage';
 import type { DownloadState, DownloadControls } from '../../types/model';
@@ -59,7 +65,7 @@ export async function verifyModelChecksum(model?: ModelDefinition): Promise<bool
 }
 
 // Delete model file (for re-download after corruption)
-export async function deleteModelFile(model?: ModelDefinition): Promise<void> {
+export async function deleteModelFile(model?: ModelDefinition, storageKey?: string): Promise<void> {
   const path = getModelPath(model);
   const info = await getInfoAsync(path);
   if (info.exists) {
@@ -67,6 +73,13 @@ export async function deleteModelFile(model?: ModelDefinition): Promise<void> {
   }
   // Use model-specific checksum key
   storage.remove(getChecksumKey(model));
+  // Clear download state - use provided key or model-specific key
+  if (storageKey) {
+    storage.remove(storageKey);
+  } else if (model) {
+    storage.remove(getDownloadStateKey(model.id));
+  }
+  // Also clear legacy key for backward compatibility
   storage.remove(STORAGE_KEYS.DOWNLOAD_STATE);
 }
 
@@ -78,10 +91,11 @@ export async function deleteAllModels(): Promise<void> {
     if (info.exists) {
       await deleteAsync(path);
     }
-    // Clear model-specific checksum key
+    // Clear model-specific keys
     storage.remove(getChecksumKey(model));
+    storage.remove(getDownloadStateKey(model.id));
   }
-  // Clear all model-related MMKV keys
+  // Clear legacy and shared MMKV keys
   storage.remove(STORAGE_KEYS.DOWNLOAD_STATE);
   storage.remove(STORAGE_KEYS.MODEL_INITIALIZED_ONCE);
 }
@@ -103,9 +117,15 @@ export function getPersistedDownloadState(storageKey?: string): DownloadState | 
 }
 
 // Check for downloads that survived app restart
-export async function checkForExistingDownloads(): Promise<DownloadTask | null> {
+export async function checkForExistingDownloads(taskId?: string): Promise<DownloadTask | null> {
   const tasks = await getExistingDownloadTasks();
-  const modelTask = tasks.find((t) => t.id === DOWNLOAD_TASK_ID);
+  const targetTaskId = taskId ?? DOWNLOAD_TASK_ID;
+  const modelTask = tasks.find((t) => t.id === targetTaskId);
+  // Also check legacy task ID for backward compatibility
+  if (!modelTask && taskId) {
+    const legacyTask = tasks.find((t) => t.id === DOWNLOAD_TASK_ID);
+    return legacyTask ?? null;
+  }
   return modelTask ?? null;
 }
 

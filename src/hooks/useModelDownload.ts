@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { useDownloadStore } from '../services/download/downloadStore';
 import { useModelStore } from '../stores/modelStore';
-import { getModelById } from '../constants/model';
+import { getModelById, getDownloadStateKey, getDownloadTaskId } from '../constants/model';
 import type { ModelDefinition } from '../constants/model';
 import {
   downloadModel,
@@ -21,16 +21,25 @@ export function useModelDownload() {
   const controlsRef = useRef<DownloadControls | null>(null);
   const modelRef = useRef<ModelDefinition | undefined>(model);
 
-  // Keep model ref in sync
+  // Model-specific download options (prevents cross-model state conflicts)
+  const downloadOptions = useMemo(() => ({
+    taskId: getDownloadTaskId(selectedModelId),
+    storageKey: getDownloadStateKey(selectedModelId),
+  }), [selectedModelId]);
+
+  // Keep refs in sync
+  const optionsRef = useRef(downloadOptions);
   useEffect(() => {
     modelRef.current = model;
-  }, [model]);
+    optionsRef.current = downloadOptions;
+  }, [model, downloadOptions]);
 
   // Check state when model changes or on mount
   // CRITICAL: Re-run when selectedModelId changes to handle model switching
   useEffect(() => {
     async function checkModelState() {
       const currentModel = modelRef.current;
+      const currentOptions = optionsRef.current;
 
       if (!currentModel) {
         setModelState({ status: 'not_downloaded' });
@@ -46,14 +55,14 @@ export function useModelDownload() {
           return;
         } else {
           // Corrupted file, delete and re-download
-          await deleteModelFile(currentModel);
+          await deleteModelFile(currentModel, currentOptions.storageKey);
         }
       }
 
       // Check for existing download task (survived app restart)
-      const existingTask = await checkForExistingDownloads();
+      const existingTask = await checkForExistingDownloads(currentOptions.taskId);
       if (existingTask) {
-        const persistedState = getPersistedDownloadState();
+        const persistedState = getPersistedDownloadState(currentOptions.storageKey);
         const progress = persistedState
           ? persistedState.bytesWritten / persistedState.totalBytes
           : 0;
@@ -74,7 +83,7 @@ export function useModelDownload() {
             if (verified) {
               setModelState({ status: 'ready_to_initialize' });
             } else {
-              await deleteModelFile(currentModel);
+              await deleteModelFile(currentModel, currentOptions.storageKey);
               setModelState({
                 status: 'error',
                 error: 'Download verification failed. Please try again.',
@@ -84,13 +93,14 @@ export function useModelDownload() {
           (error) => {
             setModelState({ status: 'error', error: error.message });
           },
-          currentModel
+          currentModel,
+          currentOptions
         );
         return;
       }
 
-      // Check for persisted paused state
-      const persistedState = getPersistedDownloadState();
+      // Check for persisted paused state (model-specific)
+      const persistedState = getPersistedDownloadState(currentOptions.storageKey);
       if (persistedState && persistedState.status === 'paused') {
         setModelState({
           status: 'download_paused',
@@ -109,6 +119,7 @@ export function useModelDownload() {
   // Start download
   const startDownload = useCallback(() => {
     const currentModel = modelRef.current;
+    const currentOptions = optionsRef.current;
     setModelState({ status: 'downloading', progress: 0 });
 
     controlsRef.current = downloadModel(
@@ -124,7 +135,7 @@ export function useModelDownload() {
         if (verified) {
           setModelState({ status: 'ready_to_initialize' });
         } else {
-          await deleteModelFile(currentModel);
+          await deleteModelFile(currentModel, currentOptions.storageKey);
           setModelState({
             status: 'error',
             error: 'Download verification failed. Please try again.',
@@ -134,7 +145,8 @@ export function useModelDownload() {
       (error) => {
         setModelState({ status: 'error', error: error.message });
       },
-      currentModel
+      currentModel,
+      currentOptions
     );
   }, [setModelState]);
 
@@ -172,13 +184,13 @@ export function useModelDownload() {
       controlsRef.current.cancel();
       controlsRef.current = null;
     }
-    await deleteModelFile(modelRef.current);
+    await deleteModelFile(modelRef.current, optionsRef.current.storageKey);
     setModelState({ status: 'not_downloaded' });
   }, [setModelState]);
 
   // Retry after error
   const retryDownload = useCallback(async () => {
-    await deleteModelFile(modelRef.current);
+    await deleteModelFile(modelRef.current, optionsRef.current.storageKey);
     startDownload();
   }, [startDownload]);
 

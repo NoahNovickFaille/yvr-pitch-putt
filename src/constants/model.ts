@@ -71,10 +71,19 @@ export const MODEL_CONFIG = {
 
 // Storage keys
 export const STORAGE_KEYS = {
-  DOWNLOAD_STATE: 'model_download_state',
+  DOWNLOAD_STATE: 'model_download_state', // Legacy - use getDownloadStateKey() for model-specific
   CHECKSUM_VERIFIED: 'model_checksum_verified',
   MODEL_INITIALIZED_ONCE: 'model_initialized_once',
 } as const;
 
-// Download task ID
+// Download task ID (legacy - use getDownloadTaskId() for model-specific)
 export const DOWNLOAD_TASK_ID = 'llama-model-download';
+
+// Model-specific storage key helpers (prevents cross-model download state conflicts)
+export function getDownloadStateKey(modelId: string): string {
+  return `model_download_state_${modelId}`;
+}
+
+export function getDownloadTaskId(modelId: string): string {
+  return `model-download-${modelId}`;
+}
