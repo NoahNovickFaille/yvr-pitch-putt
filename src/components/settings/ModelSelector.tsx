@@ -13,8 +13,6 @@ import {
   deleteModelFile,
   verifyModelChecksum,
 } from '../../services/download/ModelDownloadService';
-import { deleteAsync, getInfoAsync } from 'expo-file-system/legacy';
-import { getEmbeddingModelPath } from '../../constants/embedding';
 import type { DownloadControls } from '../../types/model';
 
 type ModelDownloadState = {
@@ -189,44 +187,12 @@ function EmbeddingModelSection() {
     startDownload,
   } = useEmbeddingModel();
 
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const handleDownload = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     startDownload();
   }, [startDownload]);
 
-  const handleDelete = useCallback(async () => {
-    Alert.alert(
-      'Delete Memory Model',
-      'This will disable semantic memory search and deduplication. The model will be re-downloaded on next app launch. Delete anyway?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            setIsDeleting(true);
-            try {
-              const modelPath = getEmbeddingModelPath();
-              const info = await getInfoAsync(modelPath);
-              if (info.exists) {
-                await deleteAsync(modelPath);
-              }
-              Alert.alert('Deleted', 'Memory model removed. Restart the app to re-download.');
-            } catch (e) {
-              Alert.alert('Error', 'Failed to delete the model file.');
-            }
-            setIsDeleting(false);
-          },
-        },
-      ]
-    );
-  }, []);
-
   const getStatusText = () => {
-    if (isDeleting) return 'Deleting...';
     if (isDownloading) return `Downloading... ${downloadProgress}%`;
     if (status === 'initializing') return 'Initializing...';
     if (isReady) return 'Active';
@@ -288,9 +254,9 @@ function EmbeddingModelSection() {
           <Text style={styles.embeddingError}>{error}</Text>
         )}
 
-        {/* Action buttons */}
-        <View style={styles.embeddingActions}>
-          {!isDownloaded && !isDownloading && (
+        {/* Action buttons - only show download if not already downloaded */}
+        {!isDownloaded && !isDownloading && (
+          <View style={styles.embeddingActions}>
             <TouchableOpacity
               style={styles.downloadButton}
               onPress={handleDownload}
@@ -299,20 +265,8 @@ function EmbeddingModelSection() {
               <Download size={16} color={DarkColors.accent} />
               <Text style={styles.downloadButtonText}>Download</Text>
             </TouchableOpacity>
-          )}
-
-          {isDownloaded && !isDownloading && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={handleDelete}
-              activeOpacity={0.7}
-              disabled={isDeleting}
-            >
-              <Trash2 size={16} color={DarkColors.danger} />
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -336,17 +290,20 @@ export function ModelSelector() {
   useEffect(() => {
     loadFromStorage();
 
-    // Verify which models are actually downloaded on disk
+    // Verify which models are actually downloaded on disk and sync state
     async function checkDownloadedModels() {
       for (const model of AVAILABLE_MODELS) {
         const downloaded = await isModelDownloaded(model);
         if (downloaded) {
           markModelDownloaded(model.id);
+        } else {
+          // Remove from downloaded list if file doesn't exist on disk
+          removeModelFromDownloaded(model.id);
         }
       }
     }
     checkDownloadedModels();
-  }, [loadFromStorage, markModelDownloaded]);
+  }, [loadFromStorage, markModelDownloaded, removeModelFromDownloaded]);
 
   const handleSelectModel = useCallback(
     (modelId: string) => {
@@ -694,6 +651,7 @@ const styles = StyleSheet.create({
     fontSize: DarkTypography.footnote,
     color: DarkColors.textTertiary,
     fontStyle: 'italic',
+    marginTop: DarkSpacing.sm,
   },
   footerNote: {
     fontSize: DarkTypography.footnote,

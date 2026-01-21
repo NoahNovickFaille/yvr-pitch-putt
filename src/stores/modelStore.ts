@@ -23,7 +23,7 @@ interface ModelState {
 
 export const useModelStore = create<ModelState>((set, get) => ({
   selectedModelId: DEFAULT_MODEL_ID,
-  downloadedModelIds: [DEFAULT_MODEL_ID], // Assume default model is downloaded if app is running
+  downloadedModelIds: [], // Start empty - actual downloaded models are verified against disk
 
   selectModel: (modelId: string) => {
     if (__DEV__) {
@@ -88,18 +88,15 @@ export const useModelStore = create<ModelState>((set, get) => ({
     const storedModelId = storage.getString(STORAGE_KEYS.SELECTED_MODEL_ID);
     const selectedModelId = storedModelId || DEFAULT_MODEL_ID;
 
-    // Load downloaded model IDs
+    // Load downloaded model IDs (actual verification against disk happens in ModelSelector)
     const storedDownloadedIds = storage.getString(STORAGE_KEYS.DOWNLOADED_MODEL_IDS);
-    let downloadedModelIds: string[] = [DEFAULT_MODEL_ID];
+    let downloadedModelIds: string[] = [];
 
     if (storedDownloadedIds) {
       try {
         const parsed = JSON.parse(storedDownloadedIds);
         if (Array.isArray(parsed)) {
-          // Ensure default model is always in the list
-          downloadedModelIds = parsed.includes(DEFAULT_MODEL_ID)
-            ? parsed
-            : [DEFAULT_MODEL_ID, ...parsed];
+          downloadedModelIds = parsed;
         }
       } catch {
         if (__DEV__) {
