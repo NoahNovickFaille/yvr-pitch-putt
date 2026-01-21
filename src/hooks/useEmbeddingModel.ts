@@ -56,8 +56,17 @@ export interface EmbeddingModelState {
  * // Ready to use EmbeddingService.embed()
  * ```
  */
+/**
+ * Check if embedding model is marked as ready in storage.
+ * This is a synchronous check for fast initial state.
+ */
+function isEmbeddingModelReady(): boolean {
+  return storage.getString(EMBEDDING_STORAGE_KEYS.MODEL_READY) === 'true';
+}
+
 export function useEmbeddingModel() {
-  const [isDownloaded, setIsDownloaded] = useState(false);
+  // Use persisted state for initial value to avoid race conditions
+  const [isDownloaded, setIsDownloaded] = useState(() => isEmbeddingModelReady());
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +76,7 @@ export function useEmbeddingModel() {
 
   const controlsRef = useRef<DownloadControls | null>(null);
   const initAttemptedRef = useRef(false);
+  const fileCheckCompleteRef = useRef(false);
 
   // Subscribe to EmbeddingService state changes
   useEffect(() => {
@@ -76,16 +86,24 @@ export function useEmbeddingModel() {
     return unsubscribe;
   }, []);
 
-  // Check initial model download state
+  // Verify file actually exists (async check to confirm persisted state)
   useEffect(() => {
-    async function checkInitialState() {
+    async function verifyFileExists() {
+      // Only run once
+      if (fileCheckCompleteRef.current) return;
+      fileCheckCompleteRef.current = true;
+
       const modelPath = getEmbeddingModelPath();
       const info = await getInfoAsync(modelPath);
 
-      if (info.exists && info.size && info.size >= EMBEDDING_MODEL.sizeBytes * 0.9) {
-        setIsDownloaded(true);
+      const fileExists = info.exists && info.size && info.size >= EMBEDDING_MODEL.sizeBytes * 0.9;
 
-        // Auto-initialize if model is downloaded
+      if (fileExists) {
+        // File exists - mark as downloaded
+        setIsDownloaded(true);
+        storage.set(EMBEDDING_STORAGE_KEYS.MODEL_READY, 'true');
+
+        // Auto-initialize if model is downloaded and service is idle
         if (!initAttemptedRef.current && serviceState.status === 'idle') {
           initAttemptedRef.current = true;
           try {
@@ -95,22 +113,23 @@ export function useEmbeddingModel() {
             console.error('[useEmbeddingModel] Init failed:', e);
           }
         }
-        return;
-      }
+      } else {
+        // File doesn't exist - clear persisted state and mark as not downloaded
+        setIsDownloaded(false);
+        storage.delete(EMBEDDING_STORAGE_KEYS.MODEL_READY);
 
-      // Check for persisted download state
-      const persistedState = getPersistedDownloadState();
-      if (persistedState && persistedState.status === 'downloading') {
-        // There was an interrupted download - don't auto-resume, let user decide
-        setDownloadProgress(
-          Math.round((persistedState.bytesWritten / persistedState.totalBytes) * 100)
-        );
+        // Check for persisted download state
+        const persistedState = getPersistedDownloadState();
+        if (persistedState && persistedState.status === 'downloading') {
+          // There was an interrupted download - don't auto-resume, let user decide
+          setDownloadProgress(
+            Math.round((persistedState.bytesWritten / persistedState.totalBytes) * 100)
+          );
+        }
       }
-
-      setIsDownloaded(false);
     }
 
-    checkInitialState();
+    verifyFileExists();
   }, [serviceState.status]);
 
   // Auto-initialize when download completes

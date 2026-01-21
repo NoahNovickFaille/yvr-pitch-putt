@@ -38,30 +38,68 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
     isDownloading: embeddingDownloading,
     downloadProgress: embeddingProgress,
     error: embeddingError,
-    isReady: embeddingReady,
     startDownload: startEmbeddingDownload,
     pauseDownload: pauseEmbeddingDownload,
     resumeDownload: resumeEmbeddingDownload,
     cancelDownload: cancelEmbeddingDownload,
   } = useEmbeddingModel();
 
-  const { initialize, isReady: llmReady, isInitializing } = useLLM();
+  const { initialize, isReady: llmReady, isInitializing, hasError: llmHasError, errorMessage: llmError, retry: retryLLMInit } = useLLM();
 
   const [currentPhase, setCurrentPhase] = useState<DownloadPhase>('llm');
+  const [initError, setInitError] = useState<string | null>(null);
   const hasStartedLLMDownload = useRef(false);
   const hasStartedEmbeddingDownload = useRef(false);
   const hasStartedInit = useRef(false);
 
-  // Auto-start LLM download on mount
+  // Store function refs to avoid effect dependency issues
+  const startLLMDownloadRef = useRef(startLLMDownload);
+  const startEmbeddingDownloadRef = useRef(startEmbeddingDownload);
+  const initializeRef = useRef(initialize);
+
   useEffect(() => {
-    if (modelState.status === 'not_downloaded' && !hasStartedLLMDownload.current) {
+    startLLMDownloadRef.current = startLLMDownload;
+  }, [startLLMDownload]);
+
+  useEffect(() => {
+    startEmbeddingDownloadRef.current = startEmbeddingDownload;
+  }, [startEmbeddingDownload]);
+
+  useEffect(() => {
+    initializeRef.current = initialize;
+  }, [initialize]);
+
+  // Determine what needs to be done on mount
+  useEffect(() => {
+    const llmNeedsDownload = modelState.status === 'not_downloaded';
+    const llmReady = modelState.status === 'ready_to_initialize';
+
+    // Case 1: LLM needs download - start with LLM phase
+    if (llmNeedsDownload && !hasStartedLLMDownload.current) {
       hasStartedLLMDownload.current = true;
       setCurrentPhase('llm');
-      startLLMDownload();
+      startLLMDownloadRef.current();
+      return;
     }
-  }, [modelState.status, startLLMDownload]);
 
-  // When LLM download completes, start embedding download
+    // Case 2: LLM ready, embedding needs download - start with embedding phase
+    if (llmReady && !embeddingDownloaded && !embeddingDownloading && !hasStartedEmbeddingDownload.current) {
+      hasStartedEmbeddingDownload.current = true;
+      setCurrentPhase('embedding');
+      startEmbeddingDownloadRef.current();
+      return;
+    }
+
+    // Case 3: Both downloaded, need to initialize
+    if (llmReady && embeddingDownloaded && !hasStartedInit.current && !isInitializing) {
+      hasStartedInit.current = true;
+      setCurrentPhase('initializing');
+      setInitError(null);
+      initializeRef.current();
+    }
+  }, [modelState.status, embeddingDownloaded, embeddingDownloading, isInitializing]);
+
+  // When LLM download completes, start embedding download if needed
   useEffect(() => {
     if (
       modelState.status === 'ready_to_initialize' &&
@@ -71,22 +109,32 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
     ) {
       hasStartedEmbeddingDownload.current = true;
       setCurrentPhase('embedding');
-      startEmbeddingDownload();
+      startEmbeddingDownloadRef.current();
     }
-  }, [modelState.status, embeddingDownloaded, embeddingDownloading, startEmbeddingDownload]);
+  }, [modelState.status, embeddingDownloaded, embeddingDownloading]);
 
   // When both downloads complete, initialize LLM
   useEffect(() => {
     if (
       modelState.status === 'ready_to_initialize' &&
       embeddingDownloaded &&
-      !hasStartedInit.current
+      !hasStartedInit.current &&
+      !isInitializing &&
+      !llmHasError
     ) {
       hasStartedInit.current = true;
       setCurrentPhase('initializing');
-      initialize();
+      setInitError(null);
+      initializeRef.current();
     }
-  }, [modelState.status, embeddingDownloaded, initialize]);
+  }, [modelState.status, embeddingDownloaded, isInitializing, llmHasError]);
+
+  // Handle LLM initialization error
+  useEffect(() => {
+    if (llmHasError && currentPhase === 'initializing') {
+      setInitError(llmError || 'Failed to initialize AI model');
+    }
+  }, [llmHasError, llmError, currentPhase]);
 
   // Complete when LLM is ready (embedding auto-initializes)
   useEffect(() => {
@@ -130,9 +178,14 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
   const handleRetry = () => {
     if (currentPhase === 'llm' || modelState.status === 'error') {
       retryLLMDownload();
-    } else if (embeddingError) {
+    } else if (currentPhase === 'embedding' && embeddingError) {
       hasStartedEmbeddingDownload.current = false;
       startEmbeddingDownload();
+    } else if (currentPhase === 'initializing' && (initError || llmHasError)) {
+      // Retry initialization
+      hasStartedInit.current = false;
+      setInitError(null);
+      retryLLMInit();
     }
   };
 
@@ -168,6 +221,31 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
           </View>
           <Text style={styles.title}>Download Failed</Text>
           <Text style={styles.description}>{embeddingError}</Text>
+          <View style={styles.controls}>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={handleRetry}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="refresh" size={20} color={DarkColors.userMessageText} />
+              <Text style={styles.retryText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      );
+    }
+
+    // Initialization error
+    if ((initError || llmHasError) && currentPhase === 'initializing') {
+      return (
+        <>
+          <View style={styles.iconContainer}>
+            <Ionicons name="alert-circle" size={64} color={DarkColors.danger} />
+          </View>
+          <Text style={styles.title}>Setup Failed</Text>
+          <Text style={styles.description}>
+            {initError || llmError || 'Failed to initialize AI model. Please try again.'}
+          </Text>
           <View style={styles.controls}>
             <TouchableOpacity
               style={styles.retryButton}

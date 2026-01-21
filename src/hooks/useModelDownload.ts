@@ -26,10 +26,16 @@ export function useModelDownload() {
     modelRef.current = model;
   }, [model]);
 
-  // Check initial state on mount
+  // Check state when model changes or on mount
+  // CRITICAL: Re-run when selectedModelId changes to handle model switching
   useEffect(() => {
-    async function checkInitialState() {
+    async function checkModelState() {
       const currentModel = modelRef.current;
+
+      if (!currentModel) {
+        setModelState({ status: 'not_downloaded' });
+        return;
+      }
 
       // Check if model already downloaded
       const downloaded = await isModelDownloaded(currentModel);
@@ -97,8 +103,8 @@ export function useModelDownload() {
       setModelState({ status: 'not_downloaded' });
     }
 
-    checkInitialState();
-  }, [setModelState]);
+    checkModelState();
+  }, [selectedModelId, setModelState]);
 
   // Start download
   const startDownload = useCallback(() => {

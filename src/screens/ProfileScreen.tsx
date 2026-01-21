@@ -1,29 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
+import { AlertTriangle, Check, Menu, MessageCircle, Pencil, Phone, Shield, Trash2, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Pressable,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Linking,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, DrawerActions } from '@react-navigation/native';
-import * as Haptics from 'expo-haptics';
-import { Menu, Shield, Trash2, Phone, MessageCircle, AlertTriangle, Pencil, Check, X } from 'lucide-react-native';
-import { useConversationStore } from '../stores/conversationStore';
-import { useMemoryStore } from '../stores/memoryStore';
-import { useOnboardingStore } from '../stores/onboardingStore';
-import { useModelStore } from '../stores/modelStore';
-import { useDownloadStore } from '../services/download/downloadStore';
-import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
-import { DISCLAIMER_TEXT } from '../constants/disclaimer';
 import { ModelSelector } from '../components/settings/ModelSelector';
+import { DISCLAIMER_TEXT } from '../constants/disclaimer';
+import { useDownloadStore } from '../services/download/downloadStore';
 import { deleteAllModels } from '../services/download/ModelDownloadService';
 import { LLMService } from '../services/llm/LLMService';
+import { useConversationStore } from '../stores/conversationStore';
+import { useMemoryStore } from '../stores/memoryStore';
+import { useModelStore } from '../stores/modelStore';
+import { useOnboardingStore } from '../stores/onboardingStore';
 
 type SettingsTab = 'general' | 'nerds';
 
@@ -359,7 +359,7 @@ export function ProfileScreen() {
         <View style={styles.footer}>
           <Text style={styles.footerText}>Cove v1.0</Text>
           <Text style={styles.footerSubtext}>
-            Your private emotional companion
+            Your private companion
           </Text>
         </View>
           </>
