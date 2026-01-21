@@ -19,8 +19,7 @@
       "channel": "production",
       "ios": {
         "resourceClass": "default",
-        "buildConfiguration": "Release",
-        "autoIncrement": true
+        "buildConfiguration": "Release"
       }
     }
   },
