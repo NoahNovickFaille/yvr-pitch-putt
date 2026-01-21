@@ -255,67 +255,71 @@ export function ProfileScreen() {
           </View>
         </View>
 
-        {/* Crisis Resources Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Crisis Resources</Text>
-          <View style={styles.card}>
-            <TouchableOpacity
-              style={styles.crisisButton}
-              onPress={handleCall988}
-              activeOpacity={0.8}
-            >
-              <Phone size={20} color="#FFFFFF" />
-              <View style={styles.crisisButtonContent}>
-                <Text style={styles.crisisButtonTitle}>Call 988</Text>
-                <Text style={styles.crisisButtonSubtitle}>Suicide & Crisis Lifeline</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={{ height: DarkSpacing.itemSpacing }} />
-            <TouchableOpacity
-              style={styles.crisisButton}
-              onPress={handleTextCrisisLine}
-              activeOpacity={0.8}
-            >
-              <MessageCircle size={20} color="#FFFFFF" />
-              <View style={styles.crisisButtonContent}>
-                <Text style={styles.crisisButtonTitle}>Text HOME to 741741</Text>
-                <Text style={styles.crisisButtonSubtitle}>Crisis Text Line</Text>
-              </View>
-            </TouchableOpacity>
-            <Text style={styles.crisisAvailability}>Available 24/7, free and confidential</Text>
+        {/* Privacy & Data Section - Featured card with accent */}
+        <View style={styles.privacyCard}>
+          <View style={styles.privacyIconContainer}>
+            <Shield size={24} color={DarkColors.success} />
+          </View>
+          <View style={styles.privacyContent}>
+            <Text style={styles.privacyTitle}>Your data stays on your device</Text>
+            <Text style={styles.privacyDescription}>
+              All conversations and memories are stored locally using on-device AI. Nothing is sent to external servers.
+            </Text>
           </View>
         </View>
 
-        {/* About This App / Disclaimer Section */}
+        {/* Important Information Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About This App</Text>
-          <View style={styles.card}>
-            <View style={styles.disclaimerRow}>
-              <AlertTriangle size={20} color={DarkColors.warning} />
-              <Text style={styles.disclaimerIntro}>{DISCLAIMER_TEXT.intro}</Text>
+          <Text style={styles.sectionTitle}>Important Information</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <AlertTriangle size={18} color={DarkColors.warning} />
+              <Text style={styles.infoHeaderText}>Please understand</Text>
             </View>
-            <View style={styles.disclaimerBullets}>
+            <View style={styles.infoBullets}>
               {DISCLAIMER_TEXT.bullets.map((bullet, index) => (
-                <Text key={index} style={styles.disclaimerBullet}>
-                  {'\u2022'} {bullet}
-                </Text>
+                <View key={index} style={styles.infoBulletRow}>
+                  <View style={styles.bulletDot} />
+                  <Text style={styles.infoBulletText}>{bullet}</Text>
+                </View>
               ))}
             </View>
           </View>
         </View>
 
-        {/* Privacy Section */}
+        {/* Crisis Resources Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy</Text>
-          <View style={styles.card}>
-            <View style={styles.privacyRow}>
-              <Shield size={20} color={DarkColors.success} />
-              <Text style={styles.privacyText}>
-                All conversations and memories are stored locally on your device using on-device AI.
-                No data is sent to external servers.
-              </Text>
-            </View>
+          <Text style={styles.sectionTitle}>Crisis Resources</Text>
+          <View style={styles.crisisCard}>
+            <TouchableOpacity
+              style={styles.crisisButton}
+              onPress={handleCall988}
+              activeOpacity={0.8}
+            >
+              <View style={styles.crisisIconContainer}>
+                <Phone size={18} color="#FFFFFF" />
+              </View>
+              <View style={styles.crisisButtonContent}>
+                <Text style={styles.crisisButtonTitle}>Call 988</Text>
+                <Text style={styles.crisisButtonSubtitle}>Suicide & Crisis Lifeline</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.crisisDivider} />
+            <TouchableOpacity
+              style={styles.crisisButton}
+              onPress={handleTextCrisisLine}
+              activeOpacity={0.8}
+            >
+              <View style={styles.crisisIconContainer}>
+                <MessageCircle size={18} color="#FFFFFF" />
+              </View>
+              <View style={styles.crisisButtonContent}>
+                <Text style={styles.crisisButtonTitle}>Text HOME to 741741</Text>
+                <Text style={styles.crisisButtonSubtitle}>Crisis Text Line</Text>
+              </View>
+            </TouchableOpacity>
           </View>
+          <Text style={styles.crisisAvailability}>Available 24/7, free and confidential</Text>
         </View>
 
         {/* Danger Zone Section */}
@@ -565,16 +569,37 @@ const styles = StyleSheet.create({
     fontSize: DarkTypography.footnote,
     color: DarkColors.textSecondary,
   },
-  privacyRow: {
+  privacyCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    backgroundColor: 'rgba(50, 215, 75, 0.08)',
+    borderRadius: DarkSpacing.radiusMd,
+    padding: DarkSpacing.lg,
+    marginBottom: DarkSpacing.sectionSpacing,
+    borderWidth: 1,
+    borderColor: 'rgba(50, 215, 75, 0.2)',
     gap: DarkSpacing.md,
   },
-  privacyText: {
+  privacyIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(50, 215, 75, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  privacyContent: {
     flex: 1,
+  },
+  privacyTitle: {
     fontSize: DarkTypography.callout,
+    fontWeight: DarkTypography.weightSemibold,
     color: DarkColors.text,
-    lineHeight: 22,
+    marginBottom: DarkSpacing.xs,
+  },
+  privacyDescription: {
+    fontSize: DarkTypography.footnote,
+    color: DarkColors.textSecondary,
+    lineHeight: 18,
   },
   footer: {
     alignItems: 'center',
@@ -589,54 +614,88 @@ const styles = StyleSheet.create({
     fontSize: DarkTypography.caption1,
     color: DarkColors.textTertiary,
   },
+  crisisCard: {
+    backgroundColor: DarkColors.surface,
+    borderRadius: DarkSpacing.radiusMd,
+    overflow: 'hidden',
+  },
   crisisButton: {
-    backgroundColor: '#CD5C5C',
-    paddingVertical: DarkSpacing.lg,
-    paddingHorizontal: DarkSpacing.lg,
-    borderRadius: DarkSpacing.radiusSm,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: DarkSpacing.md,
+    paddingHorizontal: DarkSpacing.cardPadding,
     gap: DarkSpacing.md,
+  },
+  crisisIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: DarkColors.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   crisisButtonContent: {
     flex: 1,
   },
   crisisButtonTitle: {
-    color: '#FFFFFF',
+    color: DarkColors.text,
     fontSize: DarkTypography.callout,
-    fontWeight: DarkTypography.weightSemibold,
+    fontWeight: DarkTypography.weightMedium,
   },
   crisisButtonSubtitle: {
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: DarkColors.textSecondary,
     fontSize: DarkTypography.footnote,
     marginTop: 2,
   },
-  crisisAvailability: {
-    fontSize: DarkTypography.footnote,
-    color: DarkColors.textSecondary,
-    textAlign: 'center',
-    marginTop: DarkSpacing.lg,
+  crisisDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: DarkColors.border,
+    marginLeft: DarkSpacing.cardPadding + 36 + DarkSpacing.md,
   },
-  disclaimerRow: {
+  crisisAvailability: {
+    fontSize: DarkTypography.caption1,
+    color: DarkColors.textTertiary,
+    textAlign: 'center',
+    marginTop: DarkSpacing.sm,
+  },
+  infoCard: {
+    backgroundColor: DarkColors.surface,
+    borderRadius: DarkSpacing.radiusMd,
+    padding: DarkSpacing.cardPadding,
+  },
+  infoHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: DarkSpacing.md,
+    alignItems: 'center',
+    gap: DarkSpacing.sm,
     marginBottom: DarkSpacing.md,
   },
-  disclaimerIntro: {
+  infoHeaderText: {
+    fontSize: DarkTypography.footnote,
+    fontWeight: DarkTypography.weightMedium,
+    color: DarkColors.warning,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  infoBullets: {
+    gap: DarkSpacing.sm,
+  },
+  infoBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: DarkSpacing.sm,
+  },
+  bulletDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: DarkColors.textTertiary,
+    marginTop: 7,
+  },
+  infoBulletText: {
     flex: 1,
-    fontSize: DarkTypography.callout,
-    color: DarkColors.text,
-    lineHeight: 22,
-  },
-  disclaimerBullets: {
-    marginLeft: 32,
-  },
-  disclaimerBullet: {
     fontSize: DarkTypography.footnote,
     color: DarkColors.textSecondary,
-    lineHeight: 20,
-    marginBottom: DarkSpacing.sm,
+    lineHeight: 18,
   },
   dangerSectionTitle: {
     color: DarkColors.danger,
