@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
@@ -13,6 +13,10 @@ interface DownloadStepProps {
 
 type DownloadPhase = 'llm' | 'embedding' | 'initializing' | 'complete';
 
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
 function formatBytes(bytes: number): string {
   const gb = bytes / 1_000_000_000;
   if (gb >= 1) {
@@ -22,7 +26,292 @@ function formatBytes(bytes: number): string {
   return `${mb.toFixed(0)} MB`;
 }
 
+/**
+ * Transform technical error messages into user-friendly ones.
+ */
+function getUserFriendlyError(error: string | null | undefined): string {
+  if (!error) return 'Something went wrong. Please try again.';
+
+  const lowerError = error.toLowerCase();
+
+  if (lowerError.includes('model file not found') || lowerError.includes('not downloaded')) {
+    return 'The AI model needs to be downloaded. Please try again.';
+  }
+  if (lowerError.includes('network') || lowerError.includes('connection') || lowerError.includes('timeout')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+  if (lowerError.includes('storage') || lowerError.includes('disk') || lowerError.includes('space')) {
+    return 'Not enough storage space. Please free up some space and try again.';
+  }
+  if (lowerError.includes('corrupt') || lowerError.includes('integrity') || lowerError.includes('verification')) {
+    return 'The download was corrupted. Please try downloading again.';
+  }
+  if (lowerError.includes('memory') || lowerError.includes('ram')) {
+    return 'Not enough memory available. Try closing other apps and try again.';
+  }
+
+  // Keep original if no match, but cap length
+  return error.length > 100 ? error.slice(0, 100) + '...' : error;
+}
+
+// ============================================================================
+// Sub-Components (DRY extraction)
+// ============================================================================
+
+interface StepIndicatorProps {
+  currentStep: number;
+  totalSteps: number;
+  labels: string[];
+}
+
+function StepIndicator({ currentStep, totalSteps, labels }: StepIndicatorProps) {
+  return (
+    <View style={stepStyles.container}>
+      <View style={stepStyles.stepsRow}>
+        {Array.from({ length: totalSteps }).map((_, index) => {
+          const isCompleted = index < currentStep;
+          const isCurrent = index === currentStep;
+
+          return (
+            <React.Fragment key={index}>
+              <View style={stepStyles.stepItem}>
+                <View style={[
+                  stepStyles.stepCircle,
+                  isCompleted && stepStyles.stepCircleCompleted,
+                  isCurrent && stepStyles.stepCircleCurrent,
+                ]}>
+                  {isCompleted ? (
+                    <Ionicons name="checkmark" size={12} color={DarkColors.userMessageText} />
+                  ) : (
+                    <Text style={[
+                      stepStyles.stepNumber,
+                      isCurrent && stepStyles.stepNumberCurrent,
+                    ]}>
+                      {index + 1}
+                    </Text>
+                  )}
+                </View>
+                <Text style={[
+                  stepStyles.stepLabel,
+                  (isCompleted || isCurrent) && stepStyles.stepLabelActive,
+                ]}>
+                  {labels[index]}
+                </Text>
+              </View>
+              {index < totalSteps - 1 && (
+                <View style={[
+                  stepStyles.connector,
+                  isCompleted && stepStyles.connectorCompleted,
+                ]} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const stepStyles = StyleSheet.create({
+  container: {
+    marginBottom: DarkSpacing.xxl,
+    paddingHorizontal: DarkSpacing.md,
+  },
+  stepsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  stepItem: {
+    alignItems: 'center',
+    width: 70,
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: DarkColors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: DarkSpacing.xs,
+  },
+  stepCircleCompleted: {
+    backgroundColor: DarkColors.accent,
+  },
+  stepCircleCurrent: {
+    backgroundColor: DarkColors.accent,
+    borderWidth: 2,
+    borderColor: DarkColors.accentMuted,
+  },
+  stepNumber: {
+    fontSize: 11,
+    fontWeight: DarkTypography.weightSemibold,
+    color: DarkColors.textTertiary,
+  },
+  stepNumberCurrent: {
+    color: DarkColors.userMessageText,
+  },
+  stepLabel: {
+    fontSize: 10,
+    color: DarkColors.textTertiary,
+    textAlign: 'center',
+  },
+  stepLabelActive: {
+    color: DarkColors.textSecondary,
+  },
+  connector: {
+    height: 2,
+    width: 30,
+    backgroundColor: DarkColors.surfaceElevated,
+    marginTop: 11,
+  },
+  connectorCompleted: {
+    backgroundColor: DarkColors.accent,
+  },
+});
+
+interface ErrorStateProps {
+  title: string;
+  description: string;
+  onRetry: () => void;
+}
+
+function ErrorState({ title, description, onRetry }: ErrorStateProps) {
+  return (
+    <>
+      <View style={styles.iconContainer}>
+        <Ionicons name="alert-circle" size={64} color={DarkColors.danger} />
+      </View>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.description}>{description}</Text>
+      <View style={styles.controls}>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={onRetry}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="refresh" size={20} color={DarkColors.userMessageText} />
+          <Text style={styles.retryText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+}
+
+interface LoadingStateProps {
+  title: string;
+  description: string;
+}
+
+function LoadingState({ title, description }: LoadingStateProps) {
+  return (
+    <>
+      <View style={styles.iconContainer}>
+        <ActivityIndicator size="large" color={DarkColors.accent} />
+      </View>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.description}>{description}</Text>
+    </>
+  );
+}
+
+interface DownloadProgressProps {
+  title: string;
+  stepLabel: string;
+  stepDescription: string;
+  progress: number;
+  downloadedBytes: number;
+  totalBytes: number;
+  isPaused: boolean;
+  onPause: () => void;
+  onResume: () => void;
+  onCancel: () => void;
+}
+
+function DownloadProgress({
+  title,
+  stepLabel,
+  stepDescription,
+  progress,
+  downloadedBytes,
+  totalBytes,
+  isPaused,
+  onPause,
+  onResume,
+  onCancel,
+}: DownloadProgressProps) {
+  return (
+    <>
+      <View style={styles.iconContainer}>
+        {isPaused ? (
+          <Ionicons name="pause-circle" size={64} color={DarkColors.accent} />
+        ) : (
+          <Ionicons name="cloud-download" size={64} color={DarkColors.accent} />
+        )}
+      </View>
+
+      <Text style={styles.title}>
+        {isPaused ? 'Download Paused' : title}
+      </Text>
+
+      <Text style={styles.description}>{stepLabel}</Text>
+      <Text style={styles.subDescription}>{stepDescription}</Text>
+
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        </View>
+
+        <View style={styles.progressInfo}>
+          <Text style={styles.progressText}>
+            {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)}
+          </Text>
+          <Text style={styles.progressPercent}>
+            {Math.round(progress)}%
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.controls}>
+        {isPaused ? (
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={onResume}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="play" size={20} color={DarkColors.accent} />
+            <Text style={styles.controlText}>Resume</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={onPause}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="pause" size={20} color={DarkColors.accent} />
+            <Text style={styles.controlText}>Pause</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={onCancel}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="close" size={20} color={DarkColors.danger} />
+          <Text style={[styles.controlText, { color: DarkColors.danger }]}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
 export function DownloadStep({ onComplete }: DownloadStepProps) {
+  // Hooks
   const {
     modelState,
     model,
@@ -44,401 +333,210 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
     cancelDownload: cancelEmbeddingDownload,
   } = useEmbeddingModel();
 
-  const { initialize, isReady: llmReady, isInitializing, hasError: llmHasError, errorMessage: llmError, retry: retryLLMInit } = useLLM();
+  const {
+    initialize,
+    isReady: llmReady,
+    isInitializing,
+    hasError: llmHasError,
+    errorMessage: llmError,
+    retry: retryLLMInit
+  } = useLLM();
 
+  // State
   const [currentPhase, setCurrentPhase] = useState<DownloadPhase>('llm');
-  const [initError, setInitError] = useState<string | null>(null);
-  const hasStartedLLMDownload = useRef(false);
-  const hasStartedEmbeddingDownload = useRef(false);
-  const hasStartedInit = useRef(false);
+  const phaseActionsStarted = useRef({ llm: false, embedding: false, init: false });
 
-  // Store function refs to avoid effect dependency issues
-  const startLLMDownloadRef = useRef(startLLMDownload);
-  const startEmbeddingDownloadRef = useRef(startEmbeddingDownload);
-  const initializeRef = useRef(initialize);
-
+  // Stable function references (consolidated)
+  const actionsRef = useRef({ startLLMDownload, startEmbeddingDownload, initialize });
   useEffect(() => {
-    startLLMDownloadRef.current = startLLMDownload;
-  }, [startLLMDownload]);
+    actionsRef.current = { startLLMDownload, startEmbeddingDownload, initialize };
+  }, [startLLMDownload, startEmbeddingDownload, initialize]);
 
+  // Derived state
+  const llmNeedsDownload = modelState.status === 'not_downloaded';
+  const llmDownloading = modelState.status === 'downloading';
+  const llmPaused = modelState.status === 'download_paused';
+  const llmVerifying = modelState.status === 'verifying';
+  const llmReadyToInit = modelState.status === 'ready_to_initialize';
+  const llmDownloadError = modelState.status === 'error';
+
+  const llmProgress = useMemo(() => {
+    if (llmDownloading || llmPaused) return (modelState.progress ?? 0) * 100;
+    if (llmReadyToInit || llmVerifying) return 100;
+    return 0;
+  }, [llmDownloading, llmPaused, llmReadyToInit, llmVerifying, modelState.progress]);
+
+  const hasInitError = (llmHasError && currentPhase === 'initializing') || false;
+
+  // Calculate current step for indicator (0-indexed)
+  const currentStep = useMemo(() => {
+    if (currentPhase === 'llm') return 0;
+    if (currentPhase === 'embedding') return 1;
+    return 2; // initializing or complete
+  }, [currentPhase]);
+
+  // ============================================================================
+  // Unified State Machine Effect
+  // ============================================================================
   useEffect(() => {
-    startEmbeddingDownloadRef.current = startEmbeddingDownload;
-  }, [startEmbeddingDownload]);
+    const actions = actionsRef.current;
+    const started = phaseActionsStarted.current;
 
-  useEffect(() => {
-    initializeRef.current = initialize;
-  }, [initialize]);
+    // State machine: determine and execute next action
 
-  // Determine what needs to be done on mount
-  useEffect(() => {
-    const llmNeedsDownload = modelState.status === 'not_downloaded';
-    const llmReady = modelState.status === 'ready_to_initialize';
-
-    // Case 1: LLM needs download - start with LLM phase
-    if (llmNeedsDownload && !hasStartedLLMDownload.current) {
-      hasStartedLLMDownload.current = true;
+    // Phase: LLM Download
+    if (llmNeedsDownload && !started.llm) {
+      started.llm = true;
       setCurrentPhase('llm');
-      startLLMDownloadRef.current();
+      actions.startLLMDownload();
       return;
     }
 
-    // Case 2: LLM ready, embedding needs download - start with embedding phase
-    if (llmReady && !embeddingDownloaded && !embeddingDownloading && !hasStartedEmbeddingDownload.current) {
-      hasStartedEmbeddingDownload.current = true;
+    // Phase: Embedding Download (after LLM ready)
+    if (llmReadyToInit && !embeddingDownloaded && !embeddingDownloading && !started.embedding) {
+      started.embedding = true;
       setCurrentPhase('embedding');
-      startEmbeddingDownloadRef.current();
+      actions.startEmbeddingDownload();
       return;
     }
 
-    // Case 3: Both downloaded, need to initialize
-    if (llmReady && embeddingDownloaded && !hasStartedInit.current && !isInitializing) {
-      hasStartedInit.current = true;
+    // Phase: Initialize (after both downloaded)
+    if (llmReadyToInit && embeddingDownloaded && !started.init && !isInitializing && !llmHasError) {
+      started.init = true;
       setCurrentPhase('initializing');
-      setInitError(null);
-      initializeRef.current();
+      actions.initialize();
+      return;
     }
-  }, [modelState.status, embeddingDownloaded, embeddingDownloading, isInitializing]);
 
-  // When LLM download completes, start embedding download if needed
-  useEffect(() => {
-    if (
-      modelState.status === 'ready_to_initialize' &&
-      !embeddingDownloaded &&
-      !embeddingDownloading &&
-      !hasStartedEmbeddingDownload.current
-    ) {
-      hasStartedEmbeddingDownload.current = true;
-      setCurrentPhase('embedding');
-      startEmbeddingDownloadRef.current();
-    }
-  }, [modelState.status, embeddingDownloaded, embeddingDownloading]);
-
-  // When both downloads complete, initialize LLM
-  useEffect(() => {
-    if (
-      modelState.status === 'ready_to_initialize' &&
-      embeddingDownloaded &&
-      !hasStartedInit.current &&
-      !isInitializing &&
-      !llmHasError
-    ) {
-      hasStartedInit.current = true;
-      setCurrentPhase('initializing');
-      setInitError(null);
-      initializeRef.current();
-    }
-  }, [modelState.status, embeddingDownloaded, isInitializing, llmHasError]);
-
-  // Handle LLM initialization error
-  useEffect(() => {
-    if (llmHasError && currentPhase === 'initializing') {
-      setInitError(llmError || 'Failed to initialize AI model');
-    }
-  }, [llmHasError, llmError, currentPhase]);
-
-  // Complete when LLM is ready (embedding auto-initializes)
-  useEffect(() => {
+    // Phase: Complete
     if (llmReady && embeddingDownloaded) {
       setCurrentPhase('complete');
       onComplete();
     }
-  }, [llmReady, embeddingDownloaded, onComplete]);
+  }, [
+    llmNeedsDownload, llmReadyToInit, llmReady, llmHasError,
+    embeddingDownloaded, embeddingDownloading, isInitializing,
+    onComplete
+  ]);
 
-  // Calculate progress based on current phase
-  const llmSize = model?.sizeBytes ?? 0;
-  const embeddingSize = EMBEDDING_MODEL.sizeBytes;
-  const llmProgress = modelState.status === 'downloading' || modelState.status === 'download_paused'
-    ? modelState.progress ?? 0
-    : modelState.status === 'ready_to_initialize' || modelState.status === 'verifying' ? 1 : 0;
-
-  const handlePause = () => {
-    if (currentPhase === 'llm') {
-      pauseLLMDownload();
-    } else if (currentPhase === 'embedding') {
-      pauseEmbeddingDownload();
-    }
-  };
-
-  const handleResume = () => {
-    if (currentPhase === 'llm') {
-      resumeLLMDownload();
-    } else if (currentPhase === 'embedding') {
-      resumeEmbeddingDownload();
-    }
-  };
-
-  const handleCancel = () => {
-    if (currentPhase === 'llm') {
-      cancelLLMDownload();
-    } else if (currentPhase === 'embedding') {
-      cancelEmbeddingDownload();
-    }
-  };
-
-  const handleRetry = () => {
-    if (currentPhase === 'llm' || modelState.status === 'error') {
+  // ============================================================================
+  // Event Handlers
+  // ============================================================================
+  const handleRetry = useCallback(() => {
+    if (currentPhase === 'llm' || llmDownloadError) {
+      phaseActionsStarted.current.llm = false;
       retryLLMDownload();
     } else if (currentPhase === 'embedding' && embeddingError) {
-      hasStartedEmbeddingDownload.current = false;
+      phaseActionsStarted.current.embedding = false;
       startEmbeddingDownload();
-    } else if (currentPhase === 'initializing' && (initError || llmHasError)) {
-      // Retry initialization
-      hasStartedInit.current = false;
-      setInitError(null);
+    } else if (currentPhase === 'initializing' && hasInitError) {
+      phaseActionsStarted.current.init = false;
       retryLLMInit();
     }
-  };
+  }, [currentPhase, llmDownloadError, embeddingError, hasInitError, retryLLMDownload, startEmbeddingDownload, retryLLMInit]);
 
+  // ============================================================================
+  // Render
+  // ============================================================================
   const renderContent = () => {
-    // Error states
-    if (modelState.status === 'error') {
+    // Error states (check first)
+    if (llmDownloadError) {
       return (
-        <>
-          <View style={styles.iconContainer}>
-            <Ionicons name="alert-circle" size={64} color={DarkColors.danger} />
-          </View>
-          <Text style={styles.title}>Download Failed</Text>
-          <Text style={styles.description}>{modelState.error}</Text>
-          <View style={styles.controls}>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={handleRetry}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="refresh" size={20} color={DarkColors.userMessageText} />
-              <Text style={styles.retryText}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </>
+        <ErrorState
+          title="Download Failed"
+          description={getUserFriendlyError(modelState.error)}
+          onRetry={handleRetry}
+        />
       );
     }
 
     if (embeddingError && currentPhase === 'embedding') {
       return (
-        <>
-          <View style={styles.iconContainer}>
-            <Ionicons name="alert-circle" size={64} color={DarkColors.danger} />
-          </View>
-          <Text style={styles.title}>Download Failed</Text>
-          <Text style={styles.description}>{embeddingError}</Text>
-          <View style={styles.controls}>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={handleRetry}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="refresh" size={20} color={DarkColors.userMessageText} />
-              <Text style={styles.retryText}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </>
+        <ErrorState
+          title="Download Failed"
+          description={getUserFriendlyError(embeddingError)}
+          onRetry={handleRetry}
+        />
       );
     }
 
-    // Initialization error
-    if ((initError || llmHasError) && currentPhase === 'initializing') {
+    if (hasInitError) {
       return (
-        <>
-          <View style={styles.iconContainer}>
-            <Ionicons name="alert-circle" size={64} color={DarkColors.danger} />
-          </View>
-          <Text style={styles.title}>Setup Failed</Text>
-          <Text style={styles.description}>
-            {initError || llmError || 'Failed to initialize AI model. Please try again.'}
-          </Text>
-          <View style={styles.controls}>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={handleRetry}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="refresh" size={20} color={DarkColors.userMessageText} />
-              <Text style={styles.retryText}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </>
+        <ErrorState
+          title="Setup Failed"
+          description={getUserFriendlyError(llmError)}
+          onRetry={handleRetry}
+        />
       );
     }
 
-    // Verifying LLM
-    if (modelState.status === 'verifying') {
+    // Verifying
+    if (llmVerifying) {
       return (
-        <>
-          <View style={styles.iconContainer}>
-            <ActivityIndicator size="large" color={DarkColors.accent} />
-          </View>
-          <Text style={styles.title}>Verifying Download</Text>
-          <Text style={styles.description}>Checking file integrity...</Text>
-        </>
+        <LoadingState
+          title="Verifying Download"
+          description="Checking file integrity..."
+        />
       );
     }
 
     // Initializing
     if (currentPhase === 'initializing' || isInitializing) {
       return (
-        <>
-          <View style={styles.iconContainer}>
-            <ActivityIndicator size="large" color={DarkColors.accent} />
-          </View>
-          <Text style={styles.title}>Setting Up AI</Text>
-          <Text style={styles.description}>
-            Initializing the models for first use. This may take a moment...
-          </Text>
-        </>
+        <LoadingState
+          title="Setting Up AI"
+          description="Preparing models for first use. This may take a moment..."
+        />
       );
     }
 
     // Downloading embedding model
     if (currentPhase === 'embedding' && (embeddingDownloading || !embeddingDownloaded)) {
       const isPaused = !embeddingDownloading && embeddingProgress > 0;
-      const downloadedBytes = embeddingSize * (embeddingProgress / 100);
 
       return (
-        <>
-          <View style={styles.iconContainer}>
-            {isPaused ? (
-              <Ionicons name="pause-circle" size={64} color={DarkColors.accent} />
-            ) : (
-              <Ionicons name="cloud-download" size={64} color={DarkColors.accent} />
-            )}
-          </View>
-
-          <Text style={styles.title}>
-            {isPaused ? 'Download Paused' : 'Setting Up Cove'}
-          </Text>
-
-          <Text style={styles.description}>
-            Downloading memory model (2/2)
-          </Text>
-          <Text style={styles.subDescription}>
-            Enables smart memory search
-          </Text>
-
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${embeddingProgress}%` }]} />
-            </View>
-
-            <View style={styles.progressInfo}>
-              <Text style={styles.progressText}>
-                {formatBytes(downloadedBytes)} / {formatBytes(embeddingSize)}
-              </Text>
-              <Text style={styles.progressPercent}>
-                {Math.round(embeddingProgress)}%
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.controls}>
-            {isPaused ? (
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={handleResume}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="play" size={20} color={DarkColors.accent} />
-                <Text style={styles.controlText}>Resume</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={handlePause}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="pause" size={20} color={DarkColors.accent} />
-                <Text style={styles.controlText}>Pause</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={handleCancel}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="close" size={20} color={DarkColors.danger} />
-              <Text style={[styles.controlText, { color: DarkColors.danger }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </>
+        <DownloadProgress
+          title="Setting Up Cove"
+          stepLabel="Downloading memory model (2/2)"
+          stepDescription="Enables smart memory and context"
+          progress={embeddingProgress}
+          downloadedBytes={EMBEDDING_MODEL.sizeBytes * (embeddingProgress / 100)}
+          totalBytes={EMBEDDING_MODEL.sizeBytes}
+          isPaused={isPaused}
+          onPause={pauseEmbeddingDownload}
+          onResume={resumeEmbeddingDownload}
+          onCancel={cancelEmbeddingDownload}
+        />
       );
     }
 
-    // Downloading LLM (default state)
-    const isPaused = modelState.status === 'download_paused';
-    const downloadedBytes = llmSize * llmProgress;
+    // Downloading LLM (default)
+    const llmSize = model?.sizeBytes ?? 0;
 
     return (
-      <>
-        <View style={styles.iconContainer}>
-          {isPaused ? (
-            <Ionicons name="pause-circle" size={64} color={DarkColors.accent} />
-          ) : (
-            <Ionicons name="cloud-download" size={64} color={DarkColors.accent} />
-          )}
-        </View>
-
-        <Text style={styles.title}>
-          {isPaused ? 'Download Paused' : 'Setting Up Cove'}
-        </Text>
-
-        <Text style={styles.description}>
-          Downloading {model?.name ?? 'AI model'} (1/2)
-        </Text>
-        <Text style={styles.subDescription}>
-          Main conversation model
-        </Text>
-
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${llmProgress * 100}%` }]} />
-          </View>
-
-          <View style={styles.progressInfo}>
-            <Text style={styles.progressText}>
-              {formatBytes(downloadedBytes)} / {formatBytes(llmSize)}
-            </Text>
-            <Text style={styles.progressPercent}>
-              {Math.round(llmProgress * 100)}%
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.controls}>
-          {isPaused ? (
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={handleResume}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="play" size={20} color={DarkColors.accent} />
-              <Text style={styles.controlText}>Resume</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={handlePause}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="pause" size={20} color={DarkColors.accent} />
-              <Text style={styles.controlText}>Pause</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={handleCancel}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="close" size={20} color={DarkColors.danger} />
-            <Text style={[styles.controlText, { color: DarkColors.danger }]}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </>
+      <DownloadProgress
+        title="Setting Up Cove"
+        stepLabel={`Downloading ${model?.name ?? 'AI model'} (1/2)`}
+        stepDescription="Main conversation model"
+        progress={llmProgress}
+        downloadedBytes={llmSize * (llmProgress / 100)}
+        totalBytes={llmSize}
+        isPaused={llmPaused}
+        onPause={pauseLLMDownload}
+        onResume={resumeLLMDownload}
+        onCancel={cancelLLMDownload}
+      />
     );
   };
 
   return (
     <View style={styles.container}>
+      <StepIndicator
+        currentStep={currentStep}
+        totalSteps={3}
+        labels={['AI Model', 'Memory', 'Setup']}
+      />
+
       <View style={styles.content}>
         {renderContent()}
       </View>
@@ -457,6 +555,10 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
     </View>
   );
 }
+
+// ============================================================================
+// Styles
+// ============================================================================
 
 const styles = StyleSheet.create({
   container: {
