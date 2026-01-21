@@ -60,7 +60,14 @@ export const EMBEDDING_STORAGE_KEYS = {
   DOWNLOAD_STATE: 'embedding_download_state',
   /** Whether model is ready for use */
   MODEL_READY: 'embedding_model_ready',
+  /** Checksum verification state */
+  CHECKSUM_VERIFIED: 'embedding_checksum_verified',
 } as const;
+
+/**
+ * Download task ID for embedding model (separate from LLM).
+ */
+export const EMBEDDING_DOWNLOAD_TASK_ID = 'embedding-model-download';
 
 /**
  * Cosine similarity threshold for considering memories as duplicates.

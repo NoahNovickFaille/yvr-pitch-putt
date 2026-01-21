@@ -87,12 +87,12 @@ export default function RootLayout() {
     console.log('[RootLayout] Loading extraction queue');
     ExtractionQueue.loadFromStorage();
 
-    // Initialize embedding service early (async, non-blocking)
-    // This ensures semantic retrieval and deduplication are ready before first extraction
-    console.log('[RootLayout] Initializing embedding service');
+    // Initialize embedding service (async, non-blocking)
+    // Safe to call even if model not downloaded - will skip gracefully
     EmbeddingService.initialize().catch((error) => {
-      // Non-fatal: app works without embeddings (falls back to keyword matching)
-      console.warn('[RootLayout] Embedding service init failed:', error);
+      // Only actual initialization failures reach here (memory, corruption)
+      // Model not downloaded is handled gracefully inside EmbeddingService
+      console.warn('[RootLayout] Embedding service init error:', error);
     });
 
     // Mark app as ready (all synchronous operations complete)

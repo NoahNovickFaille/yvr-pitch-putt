@@ -1,11 +1,7 @@
 import { initLlama, LlamaContext } from 'llama.rn';
 import { getInfoAsync } from 'expo-file-system/legacy';
 import { EMBEDDING_MODEL, getEmbeddingModelPath } from '../../constants/embedding';
-import type {
-  EmbeddingServiceState,
-  EmbeddingServiceStatus,
-  EmbeddingVector,
-} from '../../types/embedding';
+import type { EmbeddingServiceState, EmbeddingVector } from '../../types/embedding';
 
 type StateListener = (state: EmbeddingServiceState) => void;
 
@@ -80,7 +76,8 @@ class EmbeddingServiceImpl {
 
   /**
    * Initialize the embedding context.
-   * Call after model is downloaded.
+   * Safe to call even if model is not downloaded - will skip gracefully.
+   * Only throws for actual initialization failures (memory, corruption).
    */
   async initialize(): Promise<void> {
     // Already ready
@@ -98,24 +95,21 @@ class EmbeddingServiceImpl {
   }
 
   private async doInitialize(): Promise<void> {
-    this.setState({ status: 'initializing' });
-
     try {
+      // Check if model is downloaded before attempting initialization
+      // This is NOT an error - it's an expected state on first launch
+      const downloaded = await this.isModelDownloaded();
+      if (!downloaded) {
+        console.log('[EmbeddingService] Model not ready, skipping initialization');
+        this.initPromise = null;
+        return; // Stay in idle state, not an error
+      }
+
+      // Model exists and is valid - now we can initialize
+      this.setState({ status: 'initializing' });
+
       const modelPath = getEmbeddingModelPath();
-
-      // Verify file exists before attempting initialization
-      const info = await getInfoAsync(modelPath);
-      if (!info.exists) {
-        throw new Error('Embedding model not downloaded');
-      }
-
-      // Check file size is reasonable
-      if (info.size && info.size < EMBEDDING_MODEL.sizeBytes * 0.9) {
-        throw new Error('Embedding model file appears incomplete. Please re-download.');
-      }
-
       console.log('[EmbeddingService] Initializing model from:', modelPath);
-      console.log('[EmbeddingService] Config:', EMBEDDING_MODEL.llm);
 
       // Initialize with embedding mode enabled
       this.context = await initLlama({

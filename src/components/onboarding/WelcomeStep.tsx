@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Linking } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface WelcomeStepProps {
   onNext: () => void;
@@ -20,7 +20,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         </View>
 
         <Text style={styles.title}>Cove</Text>
-        <Text style={styles.tagline}>Your private emotional companion</Text>
+        <Text style={styles.tagline}>Your private companion</Text>
 
         <View style={styles.pills}>
           <View style={styles.pill}>

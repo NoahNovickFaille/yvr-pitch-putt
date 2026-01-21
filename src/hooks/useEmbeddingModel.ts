@@ -8,6 +8,7 @@ import {
   EMBEDDING_MODEL,
   getEmbeddingModelPath,
   EMBEDDING_STORAGE_KEYS,
+  EMBEDDING_DOWNLOAD_TASK_ID,
 } from '../constants/embedding';
 import { storage } from '../storage/storage';
 import { EmbeddingService } from '../services/embedding/EmbeddingService';
@@ -116,10 +117,10 @@ export function useEmbeddingModel() {
       } else {
         // File doesn't exist - clear persisted state and mark as not downloaded
         setIsDownloaded(false);
-        storage.delete(EMBEDDING_STORAGE_KEYS.MODEL_READY);
+        storage.remove(EMBEDDING_STORAGE_KEYS.MODEL_READY);
 
-        // Check for persisted download state
-        const persistedState = getPersistedDownloadState();
+        // Check for persisted download state (use embedding-specific storage key)
+        const persistedState = getPersistedDownloadState(EMBEDDING_STORAGE_KEYS.DOWNLOAD_STATE);
         if (persistedState && persistedState.status === 'downloading') {
           // There was an interrupted download - don't auto-resume, let user decide
           setDownloadProgress(
@@ -206,7 +207,12 @@ export function useEmbeddingModel() {
         setIsDownloading(false);
         setError(err.message);
       },
-      embeddingModelDef
+      embeddingModelDef,
+      // Use separate task ID and storage key to avoid conflicts with LLM download
+      {
+        taskId: EMBEDDING_DOWNLOAD_TASK_ID,
+        storageKey: EMBEDDING_STORAGE_KEYS.DOWNLOAD_STATE,
+      }
     );
   }, [isDownloading]);
 

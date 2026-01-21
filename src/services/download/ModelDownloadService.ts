@@ -28,10 +28,18 @@ export async function isModelDownloaded(model?: ModelDefinition): Promise<boolea
   return info.size !== undefined && info.size >= minSize;
 }
 
+// Get model-specific checksum storage key
+function getChecksumKey(model?: ModelDefinition): string {
+  const filename = model?.filename ?? MODEL_CONFIG.filename;
+  return `${STORAGE_KEYS.CHECKSUM_VERIFIED}_${filename}`;
+}
+
 // Verify model integrity using MD5 (from expo-file-system)
 export async function verifyModelChecksum(model?: ModelDefinition): Promise<boolean> {
   // Check if already verified (avoid re-hashing 2GB file)
-  const alreadyVerified = storage.getString(STORAGE_KEYS.CHECKSUM_VERIFIED);
+  // Use model-specific key to avoid cross-model conflicts
+  const checksumKey = getChecksumKey(model);
+  const alreadyVerified = storage.getString(checksumKey);
   if (alreadyVerified === 'true') {
     return true;
   }
@@ -46,7 +54,7 @@ export async function verifyModelChecksum(model?: ModelDefinition): Promise<bool
   // For now, we trust the download if file exists with correct size
   // Full SHA256 verification is expensive for 2GB file
   // Mark as verified to avoid re-checking
-  storage.set(STORAGE_KEYS.CHECKSUM_VERIFIED, 'true');
+  storage.set(checksumKey, 'true');
   return true;
 }
 
@@ -57,7 +65,8 @@ export async function deleteModelFile(model?: ModelDefinition): Promise<void> {
   if (info.exists) {
     await deleteAsync(path);
   }
-  storage.remove(STORAGE_KEYS.CHECKSUM_VERIFIED);
+  // Use model-specific checksum key
+  storage.remove(getChecksumKey(model));
   storage.remove(STORAGE_KEYS.DOWNLOAD_STATE);
 }
 
@@ -69,21 +78,22 @@ export async function deleteAllModels(): Promise<void> {
     if (info.exists) {
       await deleteAsync(path);
     }
+    // Clear model-specific checksum key
+    storage.remove(getChecksumKey(model));
   }
   // Clear all model-related MMKV keys
-  storage.remove(STORAGE_KEYS.CHECKSUM_VERIFIED);
   storage.remove(STORAGE_KEYS.DOWNLOAD_STATE);
   storage.remove(STORAGE_KEYS.MODEL_INITIALIZED_ONCE);
 }
 
 // Persist download state to MMKV
-function persistDownloadState(state: DownloadState): void {
-  storage.set(STORAGE_KEYS.DOWNLOAD_STATE, JSON.stringify(state));
+function persistDownloadState(state: DownloadState, storageKey?: string): void {
+  storage.set(storageKey ?? STORAGE_KEYS.DOWNLOAD_STATE, JSON.stringify(state));
 }
 
 // Get persisted download state
-export function getPersistedDownloadState(): DownloadState | null {
-  const json = storage.getString(STORAGE_KEYS.DOWNLOAD_STATE);
+export function getPersistedDownloadState(storageKey?: string): DownloadState | null {
+  const json = storage.getString(storageKey ?? STORAGE_KEYS.DOWNLOAD_STATE);
   if (!json) return null;
   try {
     return JSON.parse(json) as DownloadState;
@@ -99,16 +109,28 @@ export async function checkForExistingDownloads(): Promise<DownloadTask | null> 
   return modelTask ?? null;
 }
 
-// Active download task reference
-let activeTask: DownloadTask | null = null;
+// Active download task references (keyed by task ID for parallel downloads)
+const activeTasks: Map<string, DownloadTask> = new Map();
+
+/** Options for customizing download behavior */
+export interface DownloadOptions {
+  /** Custom task ID (defaults to DOWNLOAD_TASK_ID) */
+  taskId?: string;
+  /** Custom storage key for download state (defaults to STORAGE_KEYS.DOWNLOAD_STATE) */
+  storageKey?: string;
+}
 
 // Start or resume model download
 export function downloadModel(
   onProgress: (bytesWritten: number, totalBytes: number) => void,
   onComplete: () => void,
   onError: (error: Error) => void,
-  model?: ModelDefinition
+  model?: ModelDefinition,
+  options?: DownloadOptions
 ): DownloadControls {
+  const taskId = options?.taskId ?? DOWNLOAD_TASK_ID;
+  const storageKey = options?.storageKey ?? STORAGE_KEYS.DOWNLOAD_STATE;
+
   const targetModel = model ?? {
     url: MODEL_CONFIG.url,
     filename: MODEL_CONFIG.filename,
@@ -116,8 +138,8 @@ export function downloadModel(
   };
   const destination = getModelPath(model);
 
-  activeTask = createDownloadTask({
-    id: DOWNLOAD_TASK_ID,
+  const task = createDownloadTask({
+    id: taskId,
     url: targetModel.url,
     destination,
     headers: {
@@ -125,86 +147,91 @@ export function downloadModel(
     },
   });
 
-  activeTask
+  activeTasks.set(taskId, task);
+
+  task
     .begin(({ expectedBytes }) => {
-      console.log(`[Download] Starting, expected ${expectedBytes} bytes`);
+      console.log(`[Download:${taskId}] Starting, expected ${expectedBytes} bytes`);
       persistDownloadState({
-        taskId: DOWNLOAD_TASK_ID,
+        taskId,
         bytesWritten: 0,
         totalBytes: expectedBytes,
         status: 'downloading',
-      });
+      }, storageKey);
     })
     .progress(({ bytesDownloaded, bytesTotal }) => {
       onProgress(bytesDownloaded, bytesTotal);
 
       // Persist state periodically (every ~5%)
       const currentPercent = Math.floor((bytesDownloaded / bytesTotal) * 20);
-      const state = getPersistedDownloadState();
+      const state = getPersistedDownloadState(storageKey);
       const lastPercent = state
         ? Math.floor((state.bytesWritten / state.totalBytes) * 20)
         : -1;
 
       if (currentPercent !== lastPercent) {
         persistDownloadState({
-          taskId: DOWNLOAD_TASK_ID,
+          taskId,
           bytesWritten: bytesDownloaded,
           totalBytes: bytesTotal,
           status: 'downloading',
-        });
+        }, storageKey);
       }
     })
     .done(() => {
-      console.log('[Download] Complete');
+      console.log(`[Download:${taskId}] Complete`);
       persistDownloadState({
-        taskId: DOWNLOAD_TASK_ID,
+        taskId,
         bytesWritten: targetModel.sizeBytes,
         totalBytes: targetModel.sizeBytes,
         status: 'completed',
-      });
-      activeTask = null;
+      }, storageKey);
+      activeTasks.delete(taskId);
       onComplete();
     })
     .error(({ error }) => {
-      console.error('[Download] Error:', error);
+      console.error(`[Download:${taskId}] Error:`, error);
       persistDownloadState({
-        taskId: DOWNLOAD_TASK_ID,
+        taskId,
         bytesWritten: 0,
         totalBytes: 0,
         status: 'failed',
         error: error || 'Download failed',
-      });
-      activeTask = null;
+      }, storageKey);
+      activeTasks.delete(taskId);
       onError(new Error(error || 'Download failed'));
     });
 
   // Start the download
-  activeTask.start();
+  task.start();
 
   return {
     pause: () => {
+      const activeTask = activeTasks.get(taskId);
       if (activeTask) {
         activeTask.pause();
-        const state = getPersistedDownloadState();
+        const state = getPersistedDownloadState(storageKey);
         if (state) {
-          persistDownloadState({ ...state, status: 'paused' });
+          persistDownloadState({ ...state, status: 'paused' }, storageKey);
         }
       }
     },
     resume: () => {
+      const activeTask = activeTasks.get(taskId);
       if (activeTask) {
         activeTask.resume();
-        const state = getPersistedDownloadState();
+        const state = getPersistedDownloadState(storageKey);
         if (state) {
-          persistDownloadState({ ...state, status: 'downloading' });
+          persistDownloadState({ ...state, status: 'downloading' }, storageKey);
         }
       }
     },
     cancel: () => {
+      const activeTask = activeTasks.get(taskId);
       if (activeTask) {
         activeTask.stop();
-        storage.remove(STORAGE_KEYS.DOWNLOAD_STATE);
-        activeTask = null;
+        storage.remove(storageKey);
+        activeTasks.delete(taskId);
       }
     },
   };
@@ -216,10 +243,14 @@ export function reattachToDownload(
   onProgress: (bytesWritten: number, totalBytes: number) => void,
   onComplete: () => void,
   onError: (error: Error) => void,
-  model?: ModelDefinition
+  model?: ModelDefinition,
+  options?: DownloadOptions
 ): DownloadControls {
-  activeTask = task;
+  const taskId = options?.taskId ?? DOWNLOAD_TASK_ID;
+  const storageKey = options?.storageKey ?? STORAGE_KEYS.DOWNLOAD_STATE;
   const expectedSize = model?.sizeBytes ?? MODEL_CONFIG.expectedSizeBytes;
+
+  activeTasks.set(taskId, task);
 
   task
     .progress(({ bytesDownloaded, bytesTotal }) => {
@@ -227,23 +258,23 @@ export function reattachToDownload(
     })
     .done(() => {
       persistDownloadState({
-        taskId: DOWNLOAD_TASK_ID,
+        taskId,
         bytesWritten: expectedSize,
         totalBytes: expectedSize,
         status: 'completed',
-      });
-      activeTask = null;
+      }, storageKey);
+      activeTasks.delete(taskId);
       onComplete();
     })
     .error(({ error }) => {
       persistDownloadState({
-        taskId: DOWNLOAD_TASK_ID,
+        taskId,
         bytesWritten: 0,
         totalBytes: 0,
         status: 'failed',
         error: error || 'Download failed',
-      });
-      activeTask = null;
+      }, storageKey);
+      activeTasks.delete(taskId);
       onError(new Error(error || 'Download failed'));
     });
 
@@ -252,8 +283,8 @@ export function reattachToDownload(
     resume: () => task.resume(),
     cancel: () => {
       task.stop();
-      storage.remove(STORAGE_KEYS.DOWNLOAD_STATE);
-      activeTask = null;
+      storage.remove(storageKey);
+      activeTasks.delete(taskId);
     },
   };
 }

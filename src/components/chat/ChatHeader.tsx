@@ -4,19 +4,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 import { Menu } from 'lucide-react-native';
-import { useConversationStore } from '@/src/stores/conversationStore';
+import { useModelStore } from '@/src/stores/modelStore';
+import { getModelById } from '@/src/constants/model';
 import { IconButton } from '@/src/components/ui';
 import { DarkColors, DarkSpacing, DarkTypography } from '@/constants/darkTheme';
 
 export function ChatHeader() {
   const navigation = useNavigation<DrawerNavigationProp<{}>>();
-  const { activeConversationId, getConversation } = useConversationStore();
+  const { selectedModelId } = useModelStore();
 
-  const conversation = activeConversationId
-    ? getConversation(activeConversationId)
-    : null;
-
-  const title = conversation?.title || 'New Conversation';
+  const model = getModelById(selectedModelId);
+  const title = model?.name || 'Cove';
 
   const handleMenuPress = useCallback(() => {
     navigation.openDrawer();
@@ -34,7 +32,7 @@ export function ChatHeader() {
           <Menu size={24} color={DarkColors.textSecondary} />
         </IconButton>
 
-        {/* Conversation title */}
+        {/* Model name */}
         <View style={styles.titleContainer}>
           <Text style={styles.title} numberOfLines={1}>
             {title}

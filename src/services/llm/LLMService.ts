@@ -1,6 +1,6 @@
 import { initLlama, LlamaContext } from 'llama.rn';
 import { getInfoAsync } from 'expo-file-system/legacy';
-import { MODEL_CONFIG } from '../../constants/model';
+import { MODEL_CONFIG, type ModelDefinition } from '../../constants/model';
 import { getModelPath } from '../download/ModelDownloadService';
 import { CompletionQueueManager, Priority } from './CompletionQueue';
 
@@ -52,7 +52,7 @@ class LLMServiceImpl {
   }
 
   // Initialize the LLM context
-  async initialize(): Promise<void> {
+  async initialize(model?: ModelDefinition): Promise<void> {
     // Already ready or initializing
     if (this.state.status === 'ready') {
       return;
@@ -61,15 +61,18 @@ class LLMServiceImpl {
       return this.initPromise;
     }
 
-    this.initPromise = this.doInitialize();
+    this.initPromise = this.doInitialize(model);
     return this.initPromise;
   }
 
-  private async doInitialize(): Promise<void> {
+  private async doInitialize(model?: ModelDefinition): Promise<void> {
     this.setState({ status: 'initializing' });
 
     try {
-      const modelPath = getModelPath();
+      // Use provided model config or fall back to defaults
+      const modelConfig = model?.llm ?? MODEL_CONFIG.llm;
+      const expectedSize = model?.sizeBytes ?? MODEL_CONFIG.expectedSizeBytes;
+      const modelPath = getModelPath(model);
 
       // Verify file exists before attempting initialization
       const info = await getInfoAsync(modelPath);
@@ -80,21 +83,21 @@ class LLMServiceImpl {
       }
 
       // Check file size is reasonable
-      if (info.size && info.size < MODEL_CONFIG.expectedSizeBytes * 0.9) {
+      if (info.size && info.size < expectedSize * 0.9) {
         throw new Error(
           'Model file appears incomplete. Please re-download.'
         );
       }
 
       console.log('[LLMService] Initializing model from:', modelPath);
-      console.log('[LLMService] Config:', MODEL_CONFIG.llm);
+      console.log('[LLMService] Config:', modelConfig);
 
-      // Initialize with conservative settings
+      // Initialize with model-specific settings
       const context = await initLlama({
         model: modelPath,
-        n_ctx: MODEL_CONFIG.llm.n_ctx,
-        n_gpu_layers: MODEL_CONFIG.llm.n_gpu_layers,
-        use_mlock: MODEL_CONFIG.llm.use_mlock,
+        n_ctx: modelConfig.n_ctx,
+        n_gpu_layers: modelConfig.n_gpu_layers,
+        use_mlock: modelConfig.use_mlock,
       });
 
       console.log('[LLMService] Model initialized successfully');

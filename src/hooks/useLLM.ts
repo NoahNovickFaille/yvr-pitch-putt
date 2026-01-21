@@ -3,10 +3,14 @@ import { Alert } from 'react-native';
 import { LLMService, LLMState } from '../services/llm/LLMService';
 import { setupMemoryMonitor } from '../services/llm/memoryMonitor';
 import { useDownloadStore } from '../services/download/downloadStore';
+import { useModelStore } from '../stores/modelStore';
+import { getModelById } from '../constants/model';
 
 export function useLLM() {
   const [llmState, setLLMState] = useState<LLMState>(LLMService.getState());
   const { modelState } = useDownloadStore();
+  const selectedModelId = useModelStore((s) => s.selectedModelId);
+  const model = getModelById(selectedModelId);
   const memoryWarningShown = useRef(false);
 
   // Subscribe to LLM state changes
@@ -45,12 +49,12 @@ export function useLLM() {
     }
 
     try {
-      await LLMService.initialize();
+      await LLMService.initialize(model);
     } catch (error) {
       // Error is already captured in LLMService state
       console.error('[useLLM] Initialization failed:', error);
     }
-  }, [modelState.status, llmState.status]);
+  }, [modelState.status, llmState.status, model]);
 
   // Retry initialization after error
   const retry = useCallback(() => {
