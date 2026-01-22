@@ -297,7 +297,7 @@ export function ProfileScreen() {
               activeOpacity={0.8}
             >
               <View style={styles.crisisIconContainer}>
-                <Phone size={18} color="#FFFFFF" />
+                <Phone size={18} color={DarkColors.text} />
               </View>
               <View style={styles.crisisButtonContent}>
                 <Text style={styles.crisisButtonTitle}>Call 988</Text>
@@ -311,7 +311,7 @@ export function ProfileScreen() {
               activeOpacity={0.8}
             >
               <View style={styles.crisisIconContainer}>
-                <MessageCircle size={18} color="#FFFFFF" />
+                <MessageCircle size={18} color={DarkColors.text} />
               </View>
               <View style={styles.crisisButtonContent}>
                 <Text style={styles.crisisButtonTitle}>Text HOME to 741741</Text>
@@ -572,19 +572,19 @@ const styles = StyleSheet.create({
   },
   privacyCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(50, 215, 75, 0.08)',
+    backgroundColor: DarkColors.successMuted,
     borderRadius: DarkSpacing.radiusMd,
     padding: DarkSpacing.lg,
     marginBottom: DarkSpacing.sectionSpacing,
     borderWidth: 1,
-    borderColor: 'rgba(50, 215, 75, 0.2)',
+    borderColor: DarkColors.successBorder,
     gap: DarkSpacing.md,
   },
   privacyIconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(50, 215, 75, 0.15)',
+    backgroundColor: DarkColors.successContainer,
     justifyContent: 'center',
     alignItems: 'center',
   },

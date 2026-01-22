@@ -8,6 +8,7 @@ import {
   Linking,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { DarkColors, DarkSpacing } from '@/constants/darkTheme';
 
 interface CrisisModalProps {
   visible: boolean;
@@ -129,15 +130,15 @@ export function CrisisModal({ visible, onDismiss }: CrisisModalProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: DarkColors.overlayHeavy,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: DarkSpacing.xl,
   },
   modal: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: DarkColors.modalBackground,
+    borderRadius: DarkSpacing.radiusLg,
+    padding: DarkSpacing.xxl,
     width: '100%',
     maxWidth: 400,
   },
@@ -145,48 +146,48 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 16,
-    color: '#1C1C1E',
+    marginBottom: DarkSpacing.lg,
+    color: DarkColors.modalText,
   },
   message: {
     fontSize: 16,
     lineHeight: 24,
     textAlign: 'center',
-    marginBottom: 24,
-    color: '#3C3C43',
+    marginBottom: DarkSpacing.xxl,
+    color: DarkColors.modalTextSecondary,
   },
   resources: {
-    gap: 12,
-    marginBottom: 16,
+    gap: DarkSpacing.itemSpacing,
+    marginBottom: DarkSpacing.lg,
   },
   hotlineButton: {
-    backgroundColor: '#DC2626',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 14,
+    backgroundColor: DarkColors.dangerBright,
+    paddingVertical: DarkSpacing.lg,
+    paddingHorizontal: DarkSpacing.xl,
+    borderRadius: DarkSpacing.radiusSm + 2,
   },
   hotlineTitle: {
-    color: '#FFFFFF',
+    color: DarkColors.modalBackground,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
   },
   hotlineSubtitle: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: DarkColors.textOnDangerBright,
     fontSize: 14,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: DarkSpacing.xs,
   },
   availability: {
     fontSize: 14,
     textAlign: 'center',
-    color: '#8E8E93',
-    marginBottom: 24,
+    color: DarkColors.modalTextTertiary,
+    marginBottom: DarkSpacing.xxl,
   },
   continueButton: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    backgroundColor: '#F2F2F7',
+    paddingVertical: DarkSpacing.lg,
+    borderRadius: DarkSpacing.radiusSm + 2,
+    backgroundColor: DarkColors.modalSurface,
   },
   continueButtonDisabled: {
     opacity: 0.6,
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   continueText: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#3C3C43',
+    color: DarkColors.modalTextSecondary,
     fontWeight: '500',
   },
 });
