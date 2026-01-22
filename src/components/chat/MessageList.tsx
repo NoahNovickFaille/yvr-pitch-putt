@@ -12,9 +12,10 @@ interface MessageListProps {
   isGenerating: boolean;
   partialResponse: string;
   bottomPadding?: number;
+  onSelectPrompt?: (message: string) => void;
 }
 
-export function MessageList({ messages, isGenerating, partialResponse, bottomPadding = 0 }: MessageListProps) {
+export function MessageList({ messages, isGenerating, partialResponse, bottomPadding = 0, onSelectPrompt }: MessageListProps) {
   const listRef = useRef<FlatList>(null);
   const prevBottomPadding = useRef(bottomPadding);
 
@@ -81,7 +82,7 @@ export function MessageList({ messages, isGenerating, partialResponse, bottomPad
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       ListFooterComponent={ListFooter}
-      ListEmptyComponent={!isGenerating && !partialResponse ? WelcomeMessage : null}
+      ListEmptyComponent={!isGenerating && !partialResponse ? () => <WelcomeMessage onSelectPrompt={onSelectPrompt} /> : null}
       showsVerticalScrollIndicator={false}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"

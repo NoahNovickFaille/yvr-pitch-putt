@@ -48,6 +48,7 @@ export function ChatScreen() {
           isGenerating={isGenerating}
           partialResponse={partialResponse}
           bottomPadding={inputHeight}
+          onSelectPrompt={sendMessage}
         />
 
         <ChatInput
@@ -55,7 +56,6 @@ export function ChatScreen() {
           disabled={false}
           isGenerating={isGenerating}
           bottomInset={insets.bottom}
-          autoFocus={messages.length === 0}
           onHeightChange={handleInputHeightChange}
         />
       </KeyboardAvoidingView>

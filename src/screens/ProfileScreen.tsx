@@ -436,6 +436,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: DarkSpacing.screenPadding,
+    paddingBottom: DarkSpacing.screenPadding + 40,
   },
   section: {
     marginBottom: DarkSpacing.sectionSpacing,
