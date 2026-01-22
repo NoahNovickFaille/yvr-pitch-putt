@@ -21,7 +21,7 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
   {
     id: 'llama-3.2-3b',
     name: 'Llama 3.2 3B',
-    description: 'Balanced performance and quality',
+    description: 'Thoughtful and consistent companion',
     quantization: 'Q4_K_M',
     parameterCount: '3B',
     sizeBytes: 2_020_000_000, // ~2GB
@@ -35,14 +35,29 @@ export const AVAILABLE_MODELS: ModelDefinition[] = [
     },
   },
   {
-    id: 'lfm-1.2b',
-    name: 'LFM 2.5 1.2B',
-    description: 'Fast and lightweight (LiquidAI)',
+    id: 'gemma-2-2b',
+    name: 'Gemma 2 2B',
+    description: 'Warm and expressive, naturally heartfelt',
     quantization: 'Q4_K_M',
-    parameterCount: '1.2B',
-    sizeBytes: 731_000_000, // ~731MB
-    url: 'https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF/resolve/main/LFM2.5-1.2B-Instruct-Q4_K_M.gguf',
-    filename: 'LFM2.5-1.2B-Instruct-Q4_K_M.gguf',
+    parameterCount: '2.6B',
+    sizeBytes: 1_710_000_000, // ~1.71GB
+    url: 'https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf',
+    filename: 'gemma-2-2b-it-Q4_K_M.gguf',
+    llm: {
+      n_ctx: 4096,
+      n_gpu_layers: 99,
+      use_mlock: true,
+    },
+  },
+  {
+    id: 'dolphin-3.0-llama-3.2-3b',
+    name: 'Dolphin 3.0 3B',
+    description: 'Open and judgment-free listener',
+    quantization: 'Q4_K_M',
+    parameterCount: '3B',
+    sizeBytes: 2_020_000_000, // ~2.02GB
+    url: 'https://huggingface.co/bartowski/Dolphin3.0-Llama3.2-3B-GGUF/resolve/main/Dolphin3.0-Llama3.2-3B-Q4_K_M.gguf',
+    filename: 'Dolphin3.0-Llama3.2-3B-Q4_K_M.gguf',
     llm: {
       n_ctx: 4096,
       n_gpu_layers: 99,
@@ -59,8 +74,8 @@ export function getModelById(id: string): ModelDefinition | undefined {
 // Default model ID
 export const DEFAULT_MODEL_ID = 'llama-3.2-3b';
 
-// Legacy MODEL_CONFIG for backward compatibility (points to default Llama 3.2 3B)
-const defaultModel = AVAILABLE_MODELS[0];
+// Legacy MODEL_CONFIG for backward compatibility (points to default model)
+const defaultModel = AVAILABLE_MODELS.find((m) => m.id === DEFAULT_MODEL_ID) ?? AVAILABLE_MODELS[0];
 export const MODEL_CONFIG = {
   url: defaultModel.url,
   filename: defaultModel.filename,
