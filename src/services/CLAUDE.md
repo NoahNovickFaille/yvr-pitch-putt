@@ -62,7 +62,7 @@ CRITICAL: 4096 token budget shared between:
 4. Response buffer: 900 tokens
 5. Overhead: ~46 tokens
 
-Note: Llama 3.2 3B supports 128K context, but 4K balances memory usage and capacity on mobile.
+Note: While models support larger contexts (Llama: 128K, Gemma: 8K), 4K balances memory usage and capacity on mobile.
 
 TokenBudget.ts calculates token counts and truncates history if needed.
 
@@ -99,8 +99,20 @@ App monitors iOS memory warnings:
 - All persistence uses synchronous MMKV operations
 - Safety checks use simple regex patterns (no ML-based detection)
 - Model files stored in app Documents directory:
-  - Chat model: ~1.8GB for Q4_K_M quantization
+  - Chat models: ~1.7-2GB depending on model (Q4_K_M quantization)
   - Embedding model: ~21MB for all-MiniLM-L6-v2
+
+## Available Chat Models
+
+Three models optimized for confidant/companion use (defined in `src/constants/model.ts`):
+
+| Model | Parameters | Size | Personality |
+|-------|------------|------|-------------|
+| **Llama 3.2 3B** | 3.2B | ~2GB | Thoughtful and consistent companion (default) |
+| **Gemma 2 2B** | 2.6B | ~1.7GB | Warm and expressive, naturally heartfelt |
+| **Dolphin 3.0 3B** | 3B | ~2GB | Open and judgment-free listener |
+
+All models use Q4_K_M quantization and are sourced from bartowski's HuggingFace repos.
 
 ## Testing Considerations
 

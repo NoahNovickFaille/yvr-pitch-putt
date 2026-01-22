@@ -1,6 +1,6 @@
 # Download Service
 
-The download service manages the acquisition of the ~1.8GB LLM model file with progress tracking, resume support, and integrity verification.
+The download service manages the acquisition of LLM model files (~1.7-2GB depending on model) with progress tracking, resume support, and integrity verification. Supports multiple model downloads for user model selection.
 
 ## Architecture Overview
 
@@ -237,13 +237,16 @@ This allows resume after:
 
 ## File Size Validation
 
-To detect incomplete downloads:
+To detect incomplete downloads, each model has an expected size defined in `src/constants/model.ts`:
 
 ```typescript
-const EXPECTED_MODEL_SIZE = 1_800_000_000; // ~1.8GB
+// Model sizes (Q4_K_M quantization)
+// Llama 3.2 3B:    ~2.0GB
+// Gemma 2 2B:      ~1.7GB
+// Dolphin 3.0 3B:  ~2.0GB
 
-async function isModelDownloaded(): Promise<boolean> {
-  const path = getModelPath();
+async function isModelDownloaded(model: ModelDefinition): Promise<boolean> {
+  const path = getModelPath(model);
 
   if (!await FileSystem.exists(path)) {
     return false;
@@ -252,11 +255,11 @@ async function isModelDownloaded(): Promise<boolean> {
   const info = await FileSystem.getInfoAsync(path);
 
   // Consider downloaded if >= 99% of expected size
-  return info.size >= EXPECTED_MODEL_SIZE * 0.99;
+  return info.size >= model.sizeBytes * 0.99;
 }
 ```
 
-The 99% threshold accounts for minor size variations in different model versions.
+The 99% threshold accounts for minor size variations.
 
 ## Background Download
 
@@ -284,19 +287,18 @@ Uses `@kesha-antonov/react-native-background-downloader`:
 
 ## Checksum Verification
 
-One-time MD5 verification after download:
+One-time verification after download (per-model):
 
 ```typescript
-const EXPECTED_MD5 = 'abc123...'; // Model-specific
-
-async function verifyModelChecksum(): Promise<boolean> {
-  const path = getModelPath();
-  const actualMd5 = await calculateMd5(path);
-  return actualMd5 === EXPECTED_MD5;
+async function verifyModelChecksum(model: ModelDefinition): Promise<boolean> {
+  const path = getModelPath(model);
+  // Verifies file exists and size matches expected
+  // Full SHA256 verification skipped for performance (1.7-2GB files)
+  return await validateFileIntegrity(path, model.sizeBytes);
 }
 ```
 
-**Note**: MD5 calculation on a 1.8GB file takes several seconds. Only run once after download completes.
+**Note**: Full hash verification on large files is expensive. We rely on size validation + successful llama.rn initialization as integrity checks.
 
 ## Integration with LLM Service
 
@@ -334,18 +336,26 @@ async function initializeApp() {
 
 ## Storage Location
 
-Model stored in app's Documents directory:
+Models stored in app's Documents directory:
 - Survives app updates
 - User can see in Files app (if enabled)
 - Not backed up to iCloud (use `.nosync` or exclude)
+- Each model uses its own filename (e.g., `Llama-3.2-3B-Instruct-Q4_K_M.gguf`)
 
 ```typescript
-const MODEL_FILENAME = 'model.gguf';
-
-function getModelPath(): string {
-  return `${FileSystem.documentDirectory}${MODEL_FILENAME}`;
+// Filename defined per-model in src/constants/model.ts
+function getModelPath(model: ModelDefinition): string {
+  return `${FileSystem.documentDirectory}${model.filename}`;
 }
 ```
+
+## Multi-Model Support
+
+Users can download multiple models and switch between them:
+- Each model has a unique ID, filename, and download URL
+- Download state tracked per-model via `getDownloadStateKey(modelId)`
+- Selected model stored in `modelStore` (Zustand + MMKV)
+- Switching models requires app restart to reinitialize LLMService
 
 ## Debugging
 

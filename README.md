@@ -24,11 +24,19 @@ npm start
 npm run ios
 ```
 
-On first launch, the app downloads two model files:
-- Chat model: ~1.8GB (Llama 3.2 3B Q4_K_M)
-- Embedding model: ~21MB (all-MiniLM-L6-v2)
+On first launch, the app downloads model files:
+- **Chat model**: User selects from available models (~1.7-2GB each)
+- **Embedding model**: ~21MB (all-MiniLM-L6-v2)
 
-Both downloads support resume if interrupted.
+### Available Chat Models
+
+| Model | Size | Personality |
+|-------|------|-------------|
+| **Llama 3.2 3B** | ~2GB | Thoughtful and consistent companion (default) |
+| **Gemma 2 2B** | ~1.7GB | Warm and expressive, naturally heartfelt |
+| **Dolphin 3.0 3B** | ~2GB | Open and judgment-free listener |
+
+All models use Q4_K_M quantization for optimal quality-to-size ratio. Selected based on [research](research/gemini-model-selection-research.md) into companion/confidant applications. Downloads support resume if interrupted.
 
 ## Architecture Overview
 

@@ -11,6 +11,24 @@ React Native/Expo iOS app using on-device LLM for private emotional conversation
 - **State**: Zustand stores in `src/stores/`
 - **Speech**: @jamsch/expo-speech-recognition (on-device voice-to-text)
 
+## Available Models
+
+Users can choose from three conversation models, each optimized for the confidant use case:
+
+| Model | Size | Best For |
+|-------|------|----------|
+| **Llama 3.2 3B** (default) | ~2GB | Balanced all-rounder with strong instruction following |
+| **Gemma 2 2B** | ~1.7GB | Warmer, more expressive conversations - naturally heartfelt |
+| **Dolphin 3.0 3B** | ~2GB | Open and judgment-free listening - no safety refusals |
+
+**Why these models?** Based on research into small language models for confidant/companion applications:
+- All use Q4_K_M quantization (best quality-to-size ratio for mobile)
+- Transformer architecture chosen over SSMs (e.g., LiquidAI) for superior conversational depth
+- Fine-tuned variants selected to avoid "trite" responses and robotic behavior
+- See `research/gemini-model-selection-research.md` for detailed analysis
+
+Model definitions live in `src/constants/model.ts`. The system dynamically loads whichever model the user selects.
+
 ## Key Patterns
 
 ### Storage Strategy

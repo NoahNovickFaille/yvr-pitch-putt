@@ -93,10 +93,23 @@ llm.release();
 The service validates the model file before loading:
 
 1. Checks file exists at provided path
-2. Verifies file size is non-zero
-3. Initializes LlamaContext with parameters:
-   - `n_ctx: 4096` - Context window size (Llama 3.2 supports 128K, but 4K balances memory/capacity)
+2. Verifies file size matches expected (within 99%)
+3. Initializes LlamaContext with model-specific parameters from `src/constants/model.ts`:
+   - `n_ctx: 4096` - Context window size (balances memory/capacity on mobile)
    - `n_gpu_layers: 99` - Offload all layers to Metal GPU
+   - `use_mlock: true` - Lock model in memory
+
+### Available Models
+
+Three models optimized for confidant/companion conversations:
+
+| Model | Size | Personality |
+|-------|------|-------------|
+| **Llama 3.2 3B** | ~2GB | Thoughtful and consistent (default) |
+| **Gemma 2 2B** | ~1.7GB | Warm and expressive, naturally heartfelt |
+| **Dolphin 3.0 3B** | ~2GB | Open and judgment-free listener |
+
+Models chosen based on research into small language models for emotional companion apps - prioritizing conversational warmth, instruction following, and avoiding "trite" responses over raw benchmark performance.
 
 ## ChatService
 
@@ -209,7 +222,7 @@ The queue ensures clean serialization with appropriate preemption.
 
 ## TokenBudget
 
-Manages the 4096 token context window shared between all components. Note: Llama 3.2 3B supports 128K context, but 4K provides a good balance between capacity and mobile memory usage.
+Manages the 4096 token context window shared between all components. Note: While models support larger contexts (Llama 3.2: 128K, Gemma 2: 8K), 4K provides a good balance between capacity and mobile memory usage.
 
 ### Budget Allocation
 
@@ -321,10 +334,12 @@ Memories are organized into three sections for optimal LLM attention:
 
 ### Stop Words
 
-Configured for Llama 3.2 model:
+Configured for all supported models (Llama, Gemma, Dolphin):
 - `</s>` - End of sequence
-- `<|eot_id|>` - End of turn
+- `<|eot_id|>` - End of turn (Llama)
 - `<|end|>` - Alternate end token
+- `<|im_end|>` - ChatML format (Dolphin)
+- `<|end_of_turn|>` - Gemma format
 
 ## Memory Monitor
 
@@ -344,7 +359,7 @@ setupAppStateMonitor();
 
 1. iOS sends `memoryWarning` event when system is low on memory
 2. Monitor immediately calls `LLMService.release()`
-3. LlamaContext is freed (~1.8GB memory returned)
+3. LlamaContext is freed (~1.7-2GB memory returned depending on model)
 4. On next user message, context re-initializes automatically
 
 ### App State Tracking
