@@ -1,38 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ModelSetupScreen } from '@/src/screens/ModelSetupScreen';
 import { ChatScreen } from '@/src/screens/ChatScreen';
-import { useLLM } from '@/src/hooks/useLLM';
+import { useDownloadStore } from '@/src/services/download/downloadStore';
 
+/**
+ * Chat route that handles model download and chat display.
+ *
+ * Logic:
+ * - If model download is NOT complete → show ModelSetupScreen (handles download UI)
+ * - If model download IS complete → show ChatScreen (handles LLM init states)
+ *
+ * ChatScreen manages its own loading states (initializing, error, etc.)
+ * so users can see their conversation history while LLM warms up.
+ */
 export default function ChatRoute() {
-  const [setupComplete, setSetupComplete] = useState(false);
-  const { isReady, wasUnloaded, reinitialize } = useLLM();
+  const { modelState } = useDownloadStore();
 
-  // Check if we need to show setup on mount
-  useEffect(() => {
-    // If model is already ready, skip setup
-    if (isReady) {
-      setSetupComplete(true);
-    }
-  }, [isReady]);
+  // States that indicate download is not yet complete
+  const downloadInProgress =
+    modelState.status === 'not_downloaded' ||
+    modelState.status === 'downloading' ||
+    modelState.status === 'download_paused' ||
+    modelState.status === 'verifying' ||
+    modelState.status === 'error';
 
-  // Handle model unloaded due to memory pressure
-  useEffect(() => {
-    if (wasUnloaded && setupComplete) {
-      // Could auto-reinitialize, or prompt user
-      // For now, auto-reinitialize
-      reinitialize();
-    }
-  }, [wasUnloaded, setupComplete, reinitialize]);
-
-  // Show setup screen if model not ready
-  if (!setupComplete && !isReady) {
+  // Show download/setup screen if model isn't ready
+  if (downloadInProgress) {
     return (
       <ModelSetupScreen
-        onReady={() => setSetupComplete(true)}
+        onReady={() => {
+          // ModelSetupScreen will call onReady when LLM is initialized
+          // Since we're now using download state, this is a no-op
+          // ChatScreen handles the LLM initialization flow
+        }}
       />
     );
   }
 
-  // Show chat screen when model is ready
+  // Model is downloaded - ChatScreen handles LLM init and chat
   return <ChatScreen />;
 }

@@ -15,7 +15,7 @@ interface ChatState {
   addUserMessage: (content: string) => ChatMessage;
   startGeneration: () => void;
   appendToken: (token: string) => void;
-  completeGeneration: (fullText: string) => void;
+  completeGeneration: (fullText: string | null) => void;
   clearConversation: () => void;
   switchConversation: (conversationId: string | null) => void;
   getCurrentConversation: () => Conversation | null;
@@ -109,12 +109,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
   },
 
-  completeGeneration: (fullText: string) => {
+  completeGeneration: (fullText: string | null) => {
     const state = get();
     const conversationId = state.currentConversationId;
 
+    // If fullText is null, just reset generating state without adding a message
+    // This is used when send fails (LLM not ready, error, crisis, etc.)
+    if (fullText === null) {
+      set({
+        isGenerating: false,
+        partialResponse: '',
+      });
+      return;
+    }
+
     if (!conversationId) {
       console.warn('[ChatStore] Cannot complete generation: no active conversation');
+      set({
+        isGenerating: false,
+        partialResponse: '',
+      });
       return;
     }
 

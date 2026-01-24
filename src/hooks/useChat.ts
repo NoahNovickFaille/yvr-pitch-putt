@@ -12,9 +12,11 @@ interface UseChatResult {
   partialResponse: string;
   crisisModalVisible: boolean;
   pendingCrisisMessage: string | null;
+  sendError: string | null;
   sendMessage: (content: string) => Promise<void>;
   dismissCrisisModal: () => void;
   continueAfterCrisis: () => Promise<void>;
+  clearSendError: () => void;
 }
 
 export function useChat(): UseChatResult {
@@ -38,7 +40,12 @@ export function useChat(): UseChatResult {
 
   const [crisisModalVisible, setCrisisModalVisible] = useState(false);
   const [pendingCrisisMessage, setPendingCrisisMessage] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const titleGenerationInProgress = useRef(false);
+
+  const clearSendError = useCallback(() => {
+    setSendError(null);
+  }, []);
 
   // Sync chatStore with active conversation from conversationStore
   useEffect(() => {
@@ -103,6 +110,9 @@ export function useChat(): UseChatResult {
     async (content: string) => {
       if (!content.trim() || isGenerating) return;
 
+      // Clear any previous error when attempting new message
+      setSendError(null);
+
       // Create a new conversation if none exists
       let conversationId = activeConversationId;
       const isFirstMessage = messages.length === 0;
@@ -150,15 +160,18 @@ export function useChat(): UseChatResult {
       // If crisis was detected, generation was stopped
       if (result.crisis) {
         // Reset generating state since we didn't actually generate
-        completeGeneration('');
+        // Pass null to avoid adding empty assistant message
+        completeGeneration(null);
         return;
       }
 
       if (!result.success && result.error) {
         console.error('[useChat] Send failed:', result.error);
-        // Reset state on error
-        completeGeneration('');
+        // Reset generating state and show error to user
+        // Pass null to avoid adding empty assistant message
+        completeGeneration(null);
         setPendingCrisisMessage(null);
+        setSendError(result.error);
       } else if (result.success && conversationId) {
         // Try to generate smart title after successful response
         // Get the latest messages from storage (includes new user + assistant messages)
@@ -208,7 +221,9 @@ export function useChat(): UseChatResult {
 
     if (!result.success && result.error) {
       console.error('[useChat] Continue after crisis failed:', result.error);
-      completeGeneration('');
+      // Pass null to avoid adding empty assistant message
+      completeGeneration(null);
+      setSendError(result.error);
     } else if (result.success && activeConversationId) {
       // Try to generate smart title after successful response
       const updatedConversation = getConversation(activeConversationId);
@@ -234,8 +249,10 @@ export function useChat(): UseChatResult {
     partialResponse,
     crisisModalVisible,
     pendingCrisisMessage,
+    sendError,
     sendMessage,
     dismissCrisisModal,
     continueAfterCrisis,
+    clearSendError,
   };
 }
