@@ -50,12 +50,15 @@ The singleton that manages the LlamaContext lifecycle.
 │   idle   │ ──────────────────▶  │ initializing │
 └──────────┘                      └──────┬───────┘
      ▲                                   │
-     │ release()                         │ success
-     │                                   ▼
-┌──────────┐     release()        ┌──────────┐
-│ unloaded │ ◀────────────────── │  ready   │
-└──────────┘                      └──────────┘
+     │ release()               success   │   failure
+     │                           ┌───────┴───────┐
+     │                           ▼               ▼
+┌──────────┐     release()  ┌──────────┐   ┌─────────┐
+│ unloaded │ ◀───────────── │  ready   │   │  error  │
+└──────────┘                └──────────┘   └─────────┘
 ```
+
+States: `'idle' | 'initializing' | 'ready' | 'error' | 'unloaded'`
 
 ### Key Methods
 
@@ -63,8 +66,8 @@ The singleton that manages the LlamaContext lifecycle.
 // Get the singleton instance
 const llm = LLMService.getInstance();
 
-// Initialize with model path
-await llm.initialize(modelPath);
+// Initialize with model definition (optional - uses selected model if not provided)
+await llm.initialize(modelDefinition);
 
 // Check readiness
 if (llm.isReady()) {
@@ -229,11 +232,13 @@ Manages the 4096 token context window shared between all components. Note: While
 ```
 Total Context: 4096 tokens
 ├── System Prompt:      500 tokens
-├── Memory Context:     650 tokens (605 content + 45 headers)
+├── Memory Context:     600 tokens
 ├── Conversation:      2000 tokens (~20-30 messages)
 └── Response Buffer:    900 tokens (n_predict)
-    + Overhead:          46 tokens
+    + Overhead:          96 tokens
 ```
+
+Note: The memory service uses a separate budget of 650 tokens (605 content + 45 headers) for structured sections, but TokenBudget allocates 600 for the raw memory section.
 
 ### Key Functions
 
@@ -338,8 +343,12 @@ Configured for all supported models (Llama, Gemma, Dolphin):
 - `</s>` - End of sequence
 - `<|eot_id|>` - End of turn (Llama)
 - `<|end|>` - Alternate end token
+- `<|end_of_text|>` - End of text
 - `<|im_end|>` - ChatML format (Dolphin)
+- `<|EOT|>` - Alternate EOT
+- `<|END_OF_TURN_TOKEN|>` - Explicit turn end
 - `<|end_of_turn|>` - Gemma format
+- `<|endoftext|>` - GPT-style end
 
 ## Memory Monitor
 

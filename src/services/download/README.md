@@ -93,23 +93,29 @@ const downloaded = await isModelDownloaded();
 ### Download Model
 
 ```typescript
-const { task, controls } = downloadModel({
-  onBegin: (expectedBytes) => {
-    console.log('Download starting:', expectedBytes, 'bytes');
-  },
-  onProgress: (percent, bytesWritten, totalBytes) => {
+// downloadModel returns DownloadControls directly
+const controls = downloadModel(
+  // onProgress: (bytesWritten, totalBytes) - calculate percent yourself
+  (bytesWritten, totalBytes) => {
+    const percent = Math.round((bytesWritten / totalBytes) * 100);
     console.log(`Progress: ${percent}%`);
     // Update UI progress bar
   },
-  onDone: () => {
+  // onComplete
+  () => {
     console.log('Download complete');
     // Proceed to verification
   },
-  onError: (error) => {
+  // onError
+  (error) => {
     console.error('Download failed:', error);
     // Show error UI
-  }
-});
+  },
+  // model (optional - uses selected model from modelStore if not provided)
+  selectedModel,
+  // options (optional - for custom taskId/storageKey)
+  { taskId: 'my-download', storageKey: 'my-download-state' }
+);
 
 // Download controls
 controls.pause();   // Pause download
@@ -120,20 +126,26 @@ controls.cancel();  // Cancel and delete partial file
 ### Resume After App Restart
 
 ```typescript
-// Called on app startup
-const existingTask = await reattachToDownload({
-  onProgress: (percent, bytesWritten, totalBytes) => {
-    // Update UI
-  },
-  onDone: () => {
-    // Download complete
-  },
-  onError: (error) => {
-    // Handle error
-  }
-});
+// Called on app startup - first check for existing downloads
+const existingTasks = await checkForExistingDownloads(taskId);
 
-if (existingTask) {
+if (existingTasks && existingTasks.length > 0) {
+  // Reattach to the existing task
+  const controls = reattachToDownload(
+    existingTasks[0],  // The DownloadTask to reattach to
+    (bytesWritten, totalBytes) => {
+      const percent = Math.round((bytesWritten / totalBytes) * 100);
+      // Update UI
+    },
+    () => {
+      // Download complete
+    },
+    (error) => {
+      // Handle error
+    },
+    selectedModel,  // optional
+    { taskId, storageKey }  // optional
+  );
   console.log('Reattached to existing download');
 }
 ```
@@ -174,9 +186,13 @@ interface DownloadStoreState {
 type ModelState =
   | 'not_downloaded'
   | 'downloading'
+  | 'download_paused'
   | 'verifying'
   | 'ready_to_initialize'
-  | 'ready';
+  | 'initializing'
+  | 'ready'
+  | 'unloaded'
+  | 'error';
 ```
 
 ### Usage
@@ -330,9 +346,13 @@ async function initializeApp() {
 |-------|-----|
 | `not_downloaded` | Download button + size info |
 | `downloading` | Progress bar + pause/cancel buttons |
+| `download_paused` | Resume button + progress info |
 | `verifying` | Spinner + "Verifying..." text |
 | `ready_to_initialize` | "Start" button |
+| `initializing` | Spinner + "Loading model..." text |
 | `ready` | Chat interface |
+| `unloaded` | "Reload" button (after memory pressure) |
+| `error` | Error message + retry button |
 
 ## Storage Location
 

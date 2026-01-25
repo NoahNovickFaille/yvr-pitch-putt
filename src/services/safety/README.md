@@ -130,8 +130,7 @@ const mediumSeverityPhrases = [
   'trapped',
   'burden to everyone',
   'what\'s the point',
-  'can\'t go on',
-  'give up',
+  'giving up',
   // ... more phrases
 ];
 
@@ -192,12 +191,15 @@ Any single match triggers HIGH severity:
 - `want to die`
 - `end my life`
 - `suicide`
+- `take my own life`
+- `ending it all`
+- `no reason to live`
+- `better off dead`
+- `not worth living`
 - `hurt myself`
 - `harm myself`
-- `take my own life`
-- `don't want to live`
-- `better off dead`
-- `end it all`
+- `don't want to be here` / `dont want to be here`
+- `can't go on` / `cant go on`
 
 ### MEDIUM Severity (Emotional Distress)
 
@@ -206,28 +208,22 @@ Requires 2+ matches:
 - `hopeless`
 - `worthless`
 - `trapped`
-- `burden to everyone`
-- `what's the point`
-- `can't go on`
-- `give up`
-- `no reason to live`
-- `nobody cares`
-- `alone in this`
+- `burden to everyone` / `burden on everyone`
+- `no way out`
+- `giving up`
+- `can't take it anymore` / `cant take it anymore`
+- `what's the point` / `whats the point`
 
 ### Negation Patterns
 
 Checked within 15 characters before phrase:
 
-- `i don't`
-- `i'm not`
-- `i am not`
-- `never`
-- `won't`
-- `wouldn't`
+- `i don't` / `dont`
+- `i'm not` / `im not`
 - `not going to`
-- `don't think`
-- `wasn't`
-- `haven't`
+- `never`
+- `won't` / `wont`
+- `wouldn't` / `wouldnt`
 
 ## UI Integration
 

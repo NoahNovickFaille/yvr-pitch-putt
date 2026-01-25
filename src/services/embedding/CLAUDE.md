@@ -97,7 +97,13 @@ The `cosineSimilarityNormalized` function is optimized for pre-normalized vector
 Binary storage for 256-dim float vectors in MMKV.
 
 ```typescript
-import { storeEmbedding, getEmbedding, deleteEmbedding } from './EmbeddingStorage';
+import {
+  storeEmbedding,
+  getEmbedding,
+  deleteEmbedding,
+  hasEmbedding,
+  getAllEmbeddingKeys
+} from './EmbeddingStorage';
 
 // Store embedding for a memory
 storeEmbedding(memoryId, vector);
@@ -105,6 +111,12 @@ storeEmbedding(memoryId, vector);
 // Retrieve embedding
 const vector = getEmbedding(memoryId);
 // Returns number[] or null if not found
+
+// Check if embedding exists (without loading the full vector)
+const exists = hasEmbedding(memoryId);
+
+// Get all memory IDs that have embeddings
+const memoryIds = getAllEmbeddingKeys();
 
 // Delete embedding
 deleteEmbedding(memoryId);

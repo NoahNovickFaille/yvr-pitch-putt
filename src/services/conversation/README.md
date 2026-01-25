@@ -30,12 +30,12 @@ The conversation service manages multi-conversation support, including creation,
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `ConversationTitleGenerator.ts` | Generates titles from first message |
-| `conversationStore.ts` | Manages conversation list (Zustand store) |
-| `chatStore.ts` | Manages active conversation messages |
-| `conversationMigration.ts` | One-time migration from single to multi-conversation |
+| File | Location | Purpose |
+|------|----------|---------|
+| `ConversationTitleGenerator.ts` | `src/services/conversation/` | Generates titles (simple + LLM-based) |
+| `conversationStore.ts` | `src/stores/` | Manages conversation list (Zustand store) |
+| `chatStore.ts` | `src/stores/` | Manages active conversation messages |
+| `conversationMigration.ts` | `src/services/migration/` | One-time migration from single to multi-conversation |
 
 ## Storage Schema
 
@@ -52,12 +52,14 @@ conversation:conv_2      → { id, title, preview, messages, ... }
 
 ```typescript
 interface Conversation {
-  id: string;           // Unique ID (timestamp-based)
-  title: string;        // Display title (from first message)
-  preview: string;      // Truncated preview text
+  id: string;                    // Unique ID (timestamp-based)
+  title: string;                 // Display title (from first message or LLM)
+  preview: string;               // Truncated preview text
   messages: ChatMessage[];
-  startedAt: number;    // Timestamp of creation
-  lastMessageAt: number; // Timestamp of last message
+  startedAt: number;             // Timestamp of creation
+  endedAt?: number;              // Timestamp when conversation ended (for memory extraction)
+  lastMessageAt: number;         // Timestamp of last message
+  titleGeneratedByLLM?: boolean; // True if smart title was generated
 }
 
 interface ChatMessage {
@@ -216,17 +218,27 @@ const { title, preview } = generateTitleAndPreview(firstUserMessage);
 
 ### Current Implementation
 
-Simple truncation of first user message:
-- Title: First 50 characters
+Two approaches available:
+
+**Simple truncation** (initial title):
+- Title: First 50 characters of first user message
 - Preview: First 100 characters
 - Ellipsis added if truncated
 
-### Future Enhancement
+**Smart title generation** (after conversation develops):
+- Uses LLM to generate 2-5 word thematic titles
+- Runs as LOW priority background task (won't block chat)
+- Triggered after 3+ user messages and 3+ assistant messages
+- Sets `titleGeneratedByLLM: true` on the conversation
+- Fire-and-forget pattern with graceful error handling
 
-Could use LLM to generate smarter titles:
-- After 3-5 messages accumulated
-- Summarize conversation theme
-- Run as LOW priority background task
+```typescript
+import { generateSmartTitle } from './ConversationTitleGenerator';
+
+// Called automatically by useChat after sufficient exchanges
+const title = await generateSmartTitle(messages);
+// → "Work Stress Discussion" or "Family Relationship Concerns"
+```
 
 ## Conversation Switching Flow
 
@@ -271,10 +283,10 @@ conversation:{id}        → Conversation
 ### Migration Flow
 
 ```typescript
-import { runConversationMigration } from './conversationMigration';
+import { migrateToMultiConversation } from '../migration/conversationMigration';
 
 // Called once on app startup
-const migrated = runConversationMigration();
+const migrated = migrateToMultiConversation();
 
 if (migrated) {
   console.log('Migrated legacy conversation to new format');
@@ -361,15 +373,14 @@ User deletes conversation
 
 ```typescript
 function generateConversationId(): string {
-  return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `conv-${Date.now()}`;
 }
-// → "conv_1704067200000_x7kj2m4n9"
+// → "conv-1704067200000"
 ```
 
 Components:
-- `conv_` prefix for clarity
-- Timestamp for rough ordering
-- Random suffix for uniqueness
+- `conv-` prefix for clarity (hyphen, not underscore)
+- Timestamp for ordering and uniqueness
 
 ## Performance Considerations
 
