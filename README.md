@@ -95,9 +95,9 @@ app/                          # Expo Router pages (file-based routing)
 ├── _layout.tsx              # Root layout with navigation
 ├── (drawer)/                # Drawer navigation group
 │   ├── _layout.tsx          # Drawer layout configuration
-│   ├── index.tsx            # Home/landing screen
+│   ├── index.tsx            # Home/conversations list
 │   ├── chat.tsx             # Main chat interface
-│   └── settings.tsx         # Settings screen
+│   └── profile.tsx          # User profile and settings
 └── modal.tsx                # Modal screens
 
 src/
@@ -120,10 +120,11 @@ src/
 │   └── conversation/      # Title generation
 ├── storage/                # MMKV configuration
 ├── stores/                 # Zustand state management
-│   ├── chatStore.ts       # Current conversation messages
+│   ├── chatStore.ts       # Current conversation messages, streaming state
 │   ├── conversationStore.ts # Conversation list management
 │   ├── memoryStore.ts     # Persistent memory state
-│   └── onboardingStore.ts # First-launch state
+│   ├── modelStore.ts      # Selected model, downloaded models
+│   └── onboardingStore.ts # User profile and first-launch state
 └── types/                  # TypeScript type definitions
 
 components/                  # Expo template components (rarely modified)

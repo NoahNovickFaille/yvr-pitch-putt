@@ -79,21 +79,37 @@ IMPORTANT: Apply these standards to ALL code changes.
 
 ```
 app/                    # Expo Router pages (file-based routing)
-  (tabs)/              # Tab navigation screens
+  (drawer)/            # Drawer navigation group
+    index.tsx          # Home/conversations list
+    chat.tsx           # Main chat interface
+    profile.tsx        # User profile and settings
 src/
-  components/          # App-specific components (chat UI, modals)
+  components/          # App-specific components (chat UI, modals, onboarding)
   constants/           # Model definitions, memory constants, app constants
-  hooks/               # App hooks (useChat, useLLM, useModelDownload, useSpeech, useEmbeddingModel)
-  services/            # Core services
-    llm/              # LLM inference and chat
+  hooks/               # App hooks
+    useChat.ts         # Chat interaction and crisis handling
+    useLLM.ts          # LLM lifecycle management
+    useModelDownload.ts # Download progress and controls
+    useEmbeddingModel.ts # Embedding model lifecycle
+    useMemoryExtraction.ts # Triggers extraction on conversation end
+    useConversationEnd.ts # App background detection
+    useEmbeddingMigration.ts # Legacy memory embedding migration
+  services/            # Core services (each has README.md with detailed docs)
+    llm/              # LLM inference, chat orchestration, token budgeting
     memory/           # Memory extraction, decay, semantic retrieval
     embedding/        # Embedding generation, storage, deduplication
-    download/         # Model download management
+    download/         # Model download with resume support
     safety/           # Crisis detection
     speech/           # Voice input
-    conversation/     # Title generation
+    conversation/     # Title generation, conversation persistence
+    migration/        # Data schema migrations
   storage/             # MMKV storage configuration
   stores/              # Zustand state management
+    chatStore.ts       # Active conversation messages, streaming state
+    conversationStore.ts # Conversation list and metadata
+    memoryStore.ts     # Extracted memories
+    modelStore.ts      # Selected model and download status
+    onboardingStore.ts # User profile and onboarding state
   types/               # TypeScript type definitions
 ```
 

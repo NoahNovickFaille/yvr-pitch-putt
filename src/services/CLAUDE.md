@@ -49,6 +49,17 @@ Voice input integration:
 - Push-to-talk interface support
 - Handles permissions and error states
 
+### conversation/
+Conversation management and title generation:
+- **ConversationTitleGenerator** - Auto-generates conversation titles from message content
+- Works with conversationStore for metadata persistence
+- Fire-and-forget title generation after sufficient exchanges
+
+### migration/
+Data schema migrations:
+- **conversationMigration** - Migrates legacy single-conversation format to multi-conversation
+- Handles format upgrades between app versions
+
 ## Key Patterns
 
 ### Service Initialization
