@@ -9,6 +9,7 @@ import { CrisisModal } from '../components/modals/CrisisModal';
 import { useChat } from '../hooks/useChat';
 import { useLLM } from '../hooks/useLLM';
 import { useMemoryExtraction } from '../hooks/useMemoryExtraction';
+import { useFollowUp } from '../hooks/useFollowUp';
 import { DarkColors, DarkSpacing } from '@/constants/darkTheme';
 
 export function ChatScreen() {
@@ -57,6 +58,9 @@ export function ChatScreen() {
 
   // Memory extraction on conversation end and switch
   useMemoryExtraction();
+
+  // Follow-up check on app foreground (generates opening message if due)
+  useFollowUp();
 
   const handleDismissCrisis = () => {
     // When user dismisses after countdown, continue with the message

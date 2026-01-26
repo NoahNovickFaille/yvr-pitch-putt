@@ -1,4 +1,4 @@
-import { Memory } from '../../types/memory';
+import { Memory, FollowUpCandidate } from '../../types/memory';
 import { buildStructuredMemorySection } from './TokenBudget';
 
 /**
@@ -141,4 +141,16 @@ Reference this information naturally when relevant - don't say "I remember" or "
   }
 
   return prompt;
+}
+
+/**
+ * Build a follow-up context section for the system prompt.
+ * Instructs the LLM to open the conversation by checking in about a topic.
+ */
+export function buildFollowUpSection(followUp: FollowUpCandidate): string {
+  return `
+
+IMPORTANT — Follow-up check-in:
+They previously mentioned: "${followUp.memoryContent}"
+Open the conversation by naturally checking in about their ${followUp.topic}. Be warm and brief — one short question. Don't say "I remember" or "you mentioned", just ask naturally like a friend who was thinking about them.`;
 }

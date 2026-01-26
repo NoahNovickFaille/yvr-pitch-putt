@@ -106,7 +106,31 @@ export function inferTypeFromCategory(category: MemoryCategory): MemoryType {
   }
 }
 
+/**
+ * Follow-up candidate — created when a memory contains a temporal reference
+ * (e.g., "I have a job interview tomorrow").
+ * Stored in MMKV and surfaced as a conversation starter when the target date arrives.
+ */
+export type FollowUpStatus = 'pending' | 'delivered' | 'expired';
+
+export interface FollowUpCandidate {
+  id: string;
+  memoryId: string;           // linked memory
+  memoryContent: string;      // "has a job interview"
+  topic: string;              // "job interview" (extracted noun phrase)
+  followUpAt: number;         // target timestamp (when to follow up)
+  createdAt: number;
+  status: FollowUpStatus;
+  deliveredAt?: number;
+  conversationId?: string;    // conversation it was delivered in
+}
+
 // Helper for creating memory IDs
 export function generateMemoryId(): string {
-  return `mem-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `mem-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+// Helper for creating follow-up IDs
+export function generateFollowUpId(): string {
+  return `fup-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }

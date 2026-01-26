@@ -58,3 +58,19 @@ export const MEMORY_SECTION_BUDGET = {
   /** Actual content budget after headers */
   contentBudget: 605,
 } as const;
+
+// ──────────────────────────────────────────────
+// Follow-up detection constants
+// ──────────────────────────────────────────────
+
+/** How long a follow-up candidate stays valid before expiring (ms) */
+export const FOLLOW_UP_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+/** Maximum number of pending follow-ups stored at once */
+export const FOLLOW_UP_MAX_PENDING = 10;
+
+/** Minimum hours from now for a follow-up to be considered (avoids "today" duplicates) */
+export const FOLLOW_UP_MIN_HOURS_AHEAD = 4;
+
+/** Token budget for follow-up context in system prompt */
+export const FOLLOW_UP_PROMPT_BUDGET = 80; // ~80 tokens for follow-up section
