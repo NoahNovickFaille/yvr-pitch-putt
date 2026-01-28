@@ -238,8 +238,22 @@ Guards Pass          Guards Fail
 Run Extraction      Queue for Later
    │                (ExtractionQueue)
    ▼
+Follow-Up Detection (TemporalDetector)
+   │
+   ▼
 Deduplicate & Store
 ```
+
+### Follow-Up Detection Integration
+
+Before LLM extraction begins, the orchestrator runs temporal detection on raw user messages as a background task:
+
+1. Raw conversation messages are scanned by `TemporalDetector.detectTemporalReferences()`
+2. User messages containing time references (e.g., "I have a dentist appointment tomorrow") produce `FollowUpCandidate` objects
+3. Candidates are added to `FollowUpStore` (deduped by sourceMessageId, max 10 pending)
+4. Detection is fully decoupled from LLM extraction — operates on the user's actual words so temporal phrases are never lost to paraphrasing
+
+This runs via `scheduleBackground()` so it never blocks the extraction pipeline. See `../followup/` for full follow-up system documentation.
 
 ### Usage
 
@@ -452,6 +466,12 @@ useMemoryStore.getState().pruneDecayed(0.1);
    ├── Check guards (LLM ready, cooldown, user idle)
    ├── If guards fail → ExtractionQueue.add()
    │
+   ├──▶ 3b. TemporalDetector.detectTemporalReferences() [background]
+   │        ├── Scan raw user messages for temporal phrases
+   │        ├── Create FollowUpCandidates with target timestamps
+   │        └── Store in FollowUpStore (MMKV)
+   │        (runs in parallel, decoupled from steps 4-7)
+   │
    ▼
 4. MemoryExtractor.extractMemories()
    ├── Format conversation (last 20 messages)
@@ -581,3 +601,5 @@ Key log prefixes:
 - `[ExtractionQueue]` - Queue operations
 - `[SemanticRetrieval]` - Retrieval operations
 - `[Deduplicator]` - Duplicate detection
+- `[FollowUpStore]` - Follow-up candidate persistence
+- `[useFollowUp]` - Follow-up delivery on app foreground

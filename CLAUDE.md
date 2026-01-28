@@ -51,6 +51,15 @@ Model definitions live in `src/constants/model.ts`. The system dynamically loads
 - **Token budget**: 650 tokens (605 content + 45 headers)
 - See `src/services/memory/` and `src/services/embedding/`
 
+### Proactive Follow-Ups
+- **Temporal detection**: Regex-based scanning of raw user messages for time references ("tomorrow", "next week", named days, etc.)
+- **Follow-up store**: MMKV-persisted candidates with pending/delivered/expired lifecycle
+- **Priority scoring**: recency×0.7 + specificity×0.3 (prefers just-due, specific topics)
+- **Delivery**: On app foreground, if a follow-up is due and conversation is empty, LLM generates a natural check-in message
+- **Guards**: Cooldown (30s), new-conversation skip, LLM readiness polling, single-generation lock
+- **Limits**: Max 10 pending, 7-day expiry, minimum 4 hours ahead
+- See `src/services/followup/` and `src/hooks/useFollowUp.ts`
+
 ### iOS Memory Pressure
 - LLM context released on iOS memory warning to prevent termination; re-initialized when user returns
 
@@ -93,6 +102,7 @@ src/
     useEmbeddingModel.ts # Embedding model lifecycle
     useMemoryExtraction.ts # Triggers extraction on conversation end
     useConversationEnd.ts # App background detection
+    useFollowUp.ts         # Proactive follow-up check on app foreground
     useEmbeddingMigration.ts # Legacy memory embedding migration
   services/            # Core services (each has README.md with detailed docs)
     llm/              # LLM inference, chat orchestration, token budgeting
@@ -101,6 +111,7 @@ src/
     download/         # Model download with resume support
     safety/           # Crisis detection
     speech/           # Voice input
+    followup/         # Proactive follow-up detection and delivery
     conversation/     # Title generation, conversation persistence
     migration/        # Data schema migrations
   storage/             # MMKV storage configuration
@@ -118,7 +129,7 @@ Note: Root `components/`, `constants/`, `hooks/` are Expo template files (rarely
 ## Common Commands
 
 ```bash
-npm start      # Start development server
-npm run ios    # Run on iOS simulator
-npm run lint   # Lint
+bun start      # Start development server
+bun run ios    # Run on iOS simulator
+bun run lint   # Lint
 ```

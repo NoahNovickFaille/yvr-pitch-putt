@@ -8,6 +8,8 @@ import { EmbeddingService } from '../embedding/EmbeddingService';
 import { storeEmbedding, hasEmbedding } from '../embedding/EmbeddingStorage';
 import { findDuplicate, mergeMemories } from '../embedding/Deduplicator';
 import { inferTypeFromCategory } from '../../types/memory';
+import { detectTemporalReferences } from '../followup/TemporalDetector';
+import { FollowUpStore } from '../followup/FollowUpStore';
 
 // Don't attempt direct extraction if user was active within this time
 const ACTIVE_THRESHOLD_MS = 10000; // 10 seconds
@@ -177,6 +179,21 @@ class MemoryOrchestratorImpl {
 
     try {
       console.log('[MemoryOrchestrator] Starting extraction from', messages.length, 'messages');
+
+      // Run follow-up detection on raw user messages (decoupled from LLM extraction).
+      // This uses the user's actual words, so temporal phrases like "tomorrow" or
+      // "next week" are never lost to LLM paraphrasing.
+      this.scheduleBackground(() => {
+        try {
+          const candidates = detectTemporalReferences(messages);
+          if (candidates.length > 0) {
+            FollowUpStore.add(candidates);
+            console.log('[MemoryOrchestrator] Created', candidates.length, 'follow-up candidates');
+          }
+        } catch (error) {
+          console.error('[MemoryOrchestrator] Follow-up detection failed:', error);
+        }
+      });
 
       // Format conversation and extract
       const conversationText = formatConversationForExtraction(messages);

@@ -18,6 +18,7 @@ import { migrateToMultiConversation } from '@/src/services/migration/conversatio
 import { ExtractionQueue } from '@/src/services/memory/ExtractionQueue';
 import { LLMService } from '@/src/services/llm/LLMService';
 import { EmbeddingService } from '@/src/services/embedding/EmbeddingService';
+import { FollowUpStore } from '@/src/services/followup/FollowUpStore';
 import { DarkColors } from '@/constants/darkTheme';
 import { OnboardingScreen } from '@/src/screens/OnboardingScreen';
 
@@ -88,6 +89,10 @@ export default function RootLayout() {
     // Load extraction queue and process pending extractions once LLM is ready
     console.log('[RootLayout] Loading extraction queue');
     ExtractionQueue.loadFromStorage();
+
+    // Load follow-up candidates from storage
+    console.log('[RootLayout] Loading follow-up candidates');
+    FollowUpStore.load();
 
     // Initialize embedding service (async, non-blocking)
     // Safe to call even if model not downloaded - will skip gracefully
