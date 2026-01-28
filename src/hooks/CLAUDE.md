@@ -51,6 +51,23 @@ if (!isReady) {
 // EmbeddingService.embed() now available
 ```
 
+### useFollowUp
+Proactive follow-up check-in triggered by conversation changes and app foreground. Handles:
+- Checking for due follow-up candidates on conversation switch, app startup, and foreground transitions
+- Subscribes to `activeConversationId` — triggers check whenever the user opens/creates/switches conversations
+- Generating a natural LLM opening message if a follow-up is due and the conversation is empty
+- Guards: cooldown (30s between foreground checks), empty conversation, LLM readiness polling
+- Builds system prompt with memories + follow-up context section
+- Uses LOW priority LLM completion (yields to user-initiated chat)
+- Marks follow-ups as delivered after successful generation
+
+Usage: Called in ChatScreen alongside `useChat`. No return value — side-effect only.
+
+```typescript
+// In ChatScreen
+useFollowUp(); // Triggers on conversation change + foreground transitions
+```
+
 ### useModelDownload
 Handles chat model file download on first launch:
 - Progress tracking (bytes downloaded / total size)

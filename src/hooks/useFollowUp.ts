@@ -22,11 +22,15 @@ const LLM_READY_TIMEOUT_MS = 5_000;
 /** Polling interval when waiting for LLM readiness. */
 const LLM_POLL_INTERVAL_MS = 500;
 
-/** If the active conversation was created within this window, skip follow-up (user wants a blank slate). */
-const NEW_CONVERSATION_THRESHOLD_MS = 2_000;
+/** Small delay before checking on conversation switch to let the UI settle. */
+const CONVERSATION_SWITCH_DELAY_MS = 300;
 
 /**
- * Hook that checks for due follow-ups when the app becomes active.
+ * Hook that checks for due follow-ups when:
+ * 1. The app becomes active (foreground transition)
+ * 2. The active conversation changes to an empty one
+ * 3. Initial mount
+ *
  * If a follow-up is due and the conversation is empty, it triggers
  * the LLM to generate a natural opening message.
  *
@@ -34,9 +38,11 @@ const NEW_CONVERSATION_THRESHOLD_MS = 2_000;
  */
 export function useFollowUp(): void {
   const isGeneratingFollowUp = useRef(false);
-  const hasCheckedThisSession = useRef(false);
   const lastCheckTime = useRef(0);
   const appState = useRef(AppState.currentState);
+
+  // Subscribe to conversation changes so we re-check on switch
+  const activeConversationId = useConversationStore((s) => s.activeConversationId);
 
   const triggerFollowUp = async () => {
     // Guard: only one follow-up at a time
@@ -48,16 +54,6 @@ export function useFollowUp(): void {
 
     // Guard: must not already be generating
     if (useChatStore.getState().isGenerating) return;
-
-    // Guard: skip if the active conversation was just created by the user (blank-slate intent)
-    const activeConvId = useConversationStore.getState().activeConversationId;
-    if (activeConvId) {
-      const conversation = useConversationStore.getState().getConversation(activeConvId);
-      if (conversation && (Date.now() - conversation.startedAt) < NEW_CONVERSATION_THRESHOLD_MS) {
-        console.log('[useFollowUp] Conversation just created, skipping follow-up');
-        return;
-      }
-    }
 
     // Check for due follow-up BEFORE starting generation (avoid UI flash on no follow-up)
     const followUp = getBestDueFollowUp();
@@ -150,22 +146,22 @@ export function useFollowUp(): void {
     return interval;
   };
 
-  // Check on mount (once LLM is ready)
+  // Check when the active conversation changes (including initial mount).
+  // This covers: app startup, user creating a new chat, switching conversations.
   useEffect(() => {
-    if (hasCheckedThisSession.current) return;
+    if (!activeConversationId) return;
 
-    hasCheckedThisSession.current = true;
-    lastCheckTime.current = Date.now();
+    // Small delay to let the conversation UI settle before checking
+    const timeout = setTimeout(() => {
+      if (LLMService.isReady()) {
+        triggerFollowUp();
+      } else {
+        waitForLLMAndTrigger();
+      }
+    }, CONVERSATION_SWITCH_DELAY_MS);
 
-    // If LLM is already ready, trigger immediately; otherwise poll
-    if (LLMService.isReady()) {
-      triggerFollowUp();
-      return;
-    }
-
-    const interval = waitForLLMAndTrigger();
-    return () => clearInterval(interval);
-  }, []);
+    return () => clearTimeout(timeout);
+  }, [activeConversationId]);
 
   // Check when app returns to foreground
   useEffect(() => {
@@ -176,7 +172,7 @@ export function useFollowUp(): void {
           appState.current.match(/inactive|background/) &&
           nextAppState === 'active'
         ) {
-          // Cooldown guard (Fix 9): skip if checked recently
+          // Cooldown guard: skip if checked recently
           const now = Date.now();
           if (now - lastCheckTime.current < CHECK_COOLDOWN_MS) {
             console.log('[useFollowUp] Cooldown active, skipping foreground check');
@@ -185,7 +181,6 @@ export function useFollowUp(): void {
           }
 
           lastCheckTime.current = now;
-          hasCheckedThisSession.current = true;
 
           // If LLM is ready, trigger immediately; otherwise poll
           if (LLMService.isReady()) {

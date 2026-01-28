@@ -35,7 +35,7 @@ The LLM service manages on-device inference using [llama.rn](https://github.com/
 | `ChatService.ts` | High-level chat orchestration with safety and memory |
 | `CompletionQueue.ts` | Priority queue preventing "context busy" errors |
 | `TokenBudget.ts` | Context window management (4096 tokens) |
-| `systemPrompt.ts` | Cove's personality and behavior definition |
+| `systemPrompt.ts` | Cove's personality, behavior definition, and follow-up context builder |
 | `memoryMonitor.ts` | iOS memory pressure handling |
 | `JsonUtils.ts` | LLM response parsing utilities |
 
@@ -329,6 +329,21 @@ Memories are organized into three sections for optimal LLM attention:
 2. **Current situation** - Situation and emotion memories
 3. **Relevant context** - Preference and event memories
 
+### Follow-Up Context Section
+
+When the app triggers a proactive follow-up (see `../followup/`), the system prompt is extended with a follow-up section via `buildFollowUpSection()`:
+
+```typescript
+import { buildFollowUpSection } from './systemPrompt';
+
+// Appended to system prompt when generating a follow-up opening
+const followUpSection = buildFollowUpSection(followUpCandidate);
+// → "IMPORTANT — Follow-up check-in: They previously mentioned: '...'
+//    Open the conversation by naturally checking in about their ..."
+```
+
+This instructs the LLM to open with a brief, warm check-in about the topic (e.g., asking how a job interview went). The follow-up prompt budget is ~80 tokens.
+
 ### Key Personality Traits
 
 - Warm, empathetic, non-judgmental
@@ -401,6 +416,11 @@ The service is designed to degrade gracefully:
 ### Memory Service
 - ChatService retrieves memories before each response
 - MemoryExtractor uses LOW priority queue for extraction
+
+### Follow-Up Service
+- `buildFollowUpSection()` in `systemPrompt.ts` constructs follow-up context for proactive check-ins
+- Follow-up completions use LOW priority and short token limit (128 tokens)
+- See `../followup/` for detection and scheduling logic
 
 ### Safety Service
 - CrisisDetector runs BEFORE any LLM call

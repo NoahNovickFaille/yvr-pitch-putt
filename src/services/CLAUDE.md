@@ -49,6 +49,12 @@ Voice input integration:
 - Push-to-talk interface support
 - Handles permissions and error states
 
+### followup/
+Proactive follow-up detection and delivery:
+- **TemporalDetector** - Regex-based scanning of raw user messages for temporal references (tomorrow, next week, named days, etc.)
+- **FollowUpStore** - MMKV-persisted store for follow-up candidates with pending/delivered/expired lifecycle
+- **FollowUpRetrieval** - Priority scoring (recency×0.7 + specificity×0.3) and retrieval of due candidates
+
 ### conversation/
 Conversation management and title generation:
 - **ConversationTitleGenerator** - Auto-generates conversation titles from message content
@@ -82,9 +88,21 @@ TokenBudget.ts calculates token counts and truncates history if needed.
 2. MemoryOrchestrator checks guards (LLM ready, cooldown, user idle)
 3. MemoryExtractor sends to LLM with extraction prompt
 4. LLM returns JSON with 6 semantic categories (identity, relationship, preference, situation, event, emotion)
-5. Deduplicator checks each memory against existing via embeddings (0.85 threshold)
-6. Duplicate memories merged (importance boosted); new memories get embeddings generated
-7. Memories stored in MMKV with category-based importance + decay rate
+5. **Follow-up detection**: TemporalDetector scans raw user messages for time references (runs in parallel, decoupled from LLM extraction)
+6. Deduplicator checks each memory against existing via embeddings (0.85 threshold)
+7. Duplicate memories merged (importance boosted); new memories get embeddings generated
+8. Memories stored in MMKV with category-based importance + decay rate
+
+### Follow-Up Detection & Delivery Flow
+1. MemoryOrchestrator triggers temporal detection on raw conversation messages (decoupled from LLM extraction)
+2. TemporalDetector scans each user message for temporal patterns (tomorrow, next week, named days, "in N days", etc.)
+3. Matching messages become FollowUpCandidates with resolved target timestamps
+4. FollowUpStore persists candidates to MMKV (deduped by sourceMessageId, max 10 pending)
+5. On app foreground (or mount), `useFollowUp` checks for due candidates
+6. Best candidate selected by priority score (recency×0.7 + specificity×0.3)
+7. System prompt built with memories + follow-up context section
+8. LLM generates a brief, natural check-in message (128 tokens max, LOW priority)
+9. Candidate marked as delivered; expired candidates cleaned up (7-day window)
 
 ### Memory Retrieval Flow
 1. SemanticRetrieval uses 3-bucket architecture:
@@ -127,6 +145,9 @@ All models use Q4_K_M quantization and are sourced from bartowski's HuggingFace 
 
 ## Testing Considerations
 
+- Test follow-up temporal detection with various time expressions ("tomorrow", "next Friday", "in 3 days")
+- Verify follow-up delivery only fires on empty conversations (not mid-chat)
+- Test follow-up expiry and cleanup (7-day window)
 - Test memory extraction with multi-day, multi-topic conversations
 - Verify crisis detection doesn't have false negatives
 - Monitor token budget - logs warnings when approaching 4096 limit

@@ -1,6 +1,14 @@
-import { startOfDay, addDays, addWeeks, addMonths, nextDay, type Day } from 'date-fns';
-import { FollowUpCandidate, generateFollowUpId } from '../../types/memory';
-import { FOLLOW_UP_MIN_HOURS_AHEAD } from '../../constants/memory';
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  nextDay,
+  startOfDay,
+  type Day,
+} from "date-fns";
+import { FOLLOW_UP_MIN_HOURS_AHEAD } from "../../constants/memory";
+import { ChatMessage } from "../../types/chat";
+import { FollowUpCandidate, generateFollowUpId } from "../../types/memory";
 
 /**
  * Temporal pattern definition used by the detector.
@@ -15,13 +23,23 @@ interface TemporalRule {
 
 /** Map day-name strings to JS weekday index (0=Sun … 6=Sat). */
 const DAY_MAP: Record<string, number> = {
-  sunday: 0, sun: 0,
-  monday: 1, mon: 1,
-  tuesday: 2, tue: 2, tues: 2,
-  wednesday: 3, wed: 3,
-  thursday: 4, thu: 4, thur: 4, thurs: 4,
-  friday: 5, fri: 5,
-  saturday: 6, sat: 6,
+  sunday: 0,
+  sun: 0,
+  monday: 1,
+  mon: 1,
+  tuesday: 2,
+  tue: 2,
+  tues: 2,
+  wednesday: 3,
+  wed: 3,
+  thursday: 4,
+  thu: 4,
+  thur: 4,
+  thurs: 4,
+  friday: 5,
+  fri: 5,
+  saturday: 6,
+  sat: 6,
 };
 
 // ── temporal rules ─────────────────────────────────────
@@ -29,7 +47,7 @@ const DAY_MAP: Record<string, number> = {
 const TEMPORAL_RULES: TemporalRule[] = [
   // "tomorrow" / "tomorrow morning/afternoon/evening"
   {
-    label: 'tomorrow',
+    label: "tomorrow",
     pattern: /\btomorrow\b/i,
     resolve: (_m, ref) => {
       return addDays(startOfDay(ref), 1);
@@ -37,7 +55,7 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // "tonight" — follow up the NEXT MORNING to ask how it went
   {
-    label: 'tonight',
+    label: "tonight",
     pattern: /\btonight\b/i,
     resolve: (_m, ref) => {
       const nextMorning = addDays(startOfDay(ref), 1);
@@ -47,7 +65,7 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // "this weekend"
   {
-    label: 'this weekend',
+    label: "this weekend",
     pattern: /\bthis weekend\b/i,
     resolve: (_m, ref) => {
       // Follow up on Monday after the weekend
@@ -58,7 +76,7 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // "next week"
   {
-    label: 'next week',
+    label: "next week",
     pattern: /\bnext week\b/i,
     resolve: (_m, ref) => {
       return addWeeks(startOfDay(ref), 1);
@@ -66,7 +84,7 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // "next month"
   {
-    label: 'next month',
+    label: "next month",
     pattern: /\bnext month\b/i,
     resolve: (_m, ref) => {
       return addMonths(startOfDay(ref), 1);
@@ -74,7 +92,7 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // "in N days/day"
   {
-    label: 'in N days',
+    label: "in N days",
     pattern: /\bin (\d+) days?\b/i,
     resolve: (m, ref) => {
       const days = parseInt(m[1], 10);
@@ -84,7 +102,7 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // "in a couple days" / "in a few days"
   {
-    label: 'in a couple/few days',
+    label: "in a couple/few days",
     pattern: /\bin (?:a couple(?: of)?|a few) days\b/i,
     resolve: (_m, ref) => {
       return addDays(startOfDay(ref), 3);
@@ -92,7 +110,7 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // "in N weeks/week"
   {
-    label: 'in N weeks',
+    label: "in N weeks",
     pattern: /\bin (\d+) weeks?\b/i,
     resolve: (m, ref) => {
       const weeks = parseInt(m[1], 10);
@@ -102,13 +120,14 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // Named days: "on Monday", "this Tuesday", "next Friday", or just "Monday"
   {
-    label: 'named day',
-    pattern: /\b(?:on |this |next )?(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)\b/i,
+    label: "named day",
+    pattern:
+      /\b(?:on |this |next )?(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)\b/i,
     resolve: (m, ref) => {
       const dayStr = m[1].toLowerCase();
       const targetDay = DAY_MAP[dayStr];
       if (targetDay === undefined) return null;
-      const isNext = m[0].toLowerCase().startsWith('next');
+      const isNext = m[0].toLowerCase().startsWith("next");
       // nextDay from date-fns returns the next occurrence of the given weekday
       const d = nextDay(startOfDay(ref), targetDay as Day);
       if (isNext) {
@@ -120,7 +139,7 @@ const TEMPORAL_RULES: TemporalRule[] = [
   },
   // "today" / "this morning" / "this afternoon" / "this evening" / "later today"
   {
-    label: 'today',
+    label: "today",
     pattern: /\b(?:today|this (?:morning|afternoon|evening)|later today)\b/i,
     resolve: (_m, ref) => {
       // Follow up tomorrow
@@ -132,32 +151,40 @@ const TEMPORAL_RULES: TemporalRule[] = [
 // ── topic extraction ───────────────────────────────────
 
 /**
- * Extract a short topic phrase from memory content.
- * Strips the temporal reference and common filler, keeping the core subject.
+ * Extract a short topic phrase from a user message.
+ * Strips the temporal reference, first-person pronouns, and common filler,
+ * keeping the core subject.
  *
- * Example: "has a job interview tomorrow" → "job interview"
+ * Example: "I have a dentist appointment tomorrow" → "dentist appointment"
  */
 function extractTopic(content: string): string {
   let topic = content;
 
   // Remove temporal phrases
   for (const rule of TEMPORAL_RULES) {
-    topic = topic.replace(rule.pattern, '');
+    topic = topic.replace(rule.pattern, "");
   }
 
-  // Remove common lead-ins
+  // Remove first-person pronouns and common lead-in verbs
   topic = topic
-    .replace(/\b(has|have|had|is|are|was|were|will be|going to|gonna|planning to|plans to|needs to|need to)\s+(a |an |the )?/gi, '')
-    .replace(/\b(mentioned|said|told|talked about|shared)\s+(a |an |the |that )?/gi, '')
-    .replace(/^(a |an |the |their |his |her |my )/i, '')
+    .replace(/\b(I'm |I've |I'll |I |we're |we've |we )/gi, "")
+    .replace(
+      /\b(has|have|had|is|are|was|were|will be|going to|gonna|planning to|plans to|needs to|need to)\s+(a |an |the )?/gi,
+      "",
+    )
+    .replace(
+      /\b(mentioned|said|told|talked about|shared)\s+(a |an |the |that )?/gi,
+      "",
+    )
+    .replace(/^(a |an |the |their |his |her |my )/i, "")
     .trim();
 
   // Remove trailing/leading punctuation and whitespace
-  topic = topic.replace(/^[\s,.\-:;]+|[\s,.\-:;]+$/g, '');
+  topic = topic.replace(/^[\s,.\-:;]+|[\s,.\-:;]+$/g, "");
 
   // Truncate to reasonable length
   if (topic.length > 60) {
-    topic = topic.substring(0, 57) + '...';
+    topic = topic.substring(0, 57) + "...";
   }
 
   return topic || content.substring(0, 40);
@@ -166,22 +193,29 @@ function extractTopic(content: string): string {
 // ── public API ─────────────────────────────────────────
 
 /**
- * Scan an array of newly extracted memories for temporal references.
+ * Scan raw conversation messages for temporal references.
+ * Only inspects user messages (assistant messages are excluded).
  * Returns follow-up candidates with resolved target dates.
+ *
+ * Operates on raw user input — not LLM-extracted summaries — so temporal
+ * phrases are never lost to paraphrasing.
  *
  * Only creates candidates where the target date is at least
  * FOLLOW_UP_MIN_HOURS_AHEAD from now.
  */
 export function detectTemporalReferences(
-  memories: { id: string; content: string }[],
-  referenceDate: Date = new Date()
+  messages: ChatMessage[],
+  referenceDate: Date = new Date(),
 ): FollowUpCandidate[] {
   const candidates: FollowUpCandidate[] = [];
-  const minTimestamp = referenceDate.getTime() + FOLLOW_UP_MIN_HOURS_AHEAD * 60 * 60 * 1000;
+  const minTimestamp =
+    referenceDate.getTime() + FOLLOW_UP_MIN_HOURS_AHEAD * 60 * 60 * 1000;
 
-  for (const memory of memories) {
+  const userMessages = messages.filter((m) => m.role === "user");
+
+  for (const message of userMessages) {
     for (const rule of TEMPORAL_RULES) {
-      const match = memory.content.match(rule.pattern);
+      const match = message.content.match(rule.pattern);
       if (!match) continue;
 
       const targetDate = rule.resolve(match, referenceDate);
@@ -192,15 +226,15 @@ export function detectTemporalReferences(
 
       candidates.push({
         id: generateFollowUpId(),
-        memoryId: memory.id,
-        memoryContent: memory.content,
-        topic: extractTopic(memory.content),
+        sourceMessageId: message.id,
+        sourceContent: message.content,
+        topic: extractTopic(message.content),
         followUpAt: targetDate.getTime(),
         createdAt: referenceDate.getTime(),
-        status: 'pending',
+        status: "pending",
       });
 
-      // One candidate per memory — take the first temporal match
+      // One candidate per message — take the first temporal match
       break;
     }
   }

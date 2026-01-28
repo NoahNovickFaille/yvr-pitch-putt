@@ -27,15 +27,15 @@ class FollowUpStoreImpl {
 
   /**
    * Add new follow-up candidates.
-   * Deduplicates by memoryId — if a candidate for the same memory already
-   * exists (in any status), the new one is skipped.
+   * Deduplicates by sourceMessageId — if a candidate for the same user message
+   * already exists (in any status), the new one is skipped.
    * Enforces FOLLOW_UP_MAX_PENDING limit (oldest pending dropped).
    */
   add(candidates: FollowUpCandidate[]): void {
     this.load();
 
-    const existingMemoryIds = new Set(this.candidates.map((c) => c.memoryId));
-    const newCandidates = candidates.filter((c) => !existingMemoryIds.has(c.memoryId));
+    const existingSourceIds = new Set(this.candidates.map((c) => c.sourceMessageId));
+    const newCandidates = candidates.filter((c) => !existingSourceIds.has(c.sourceMessageId));
 
     if (newCandidates.length === 0) return;
 

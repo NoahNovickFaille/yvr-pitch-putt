@@ -107,16 +107,19 @@ export function inferTypeFromCategory(category: MemoryCategory): MemoryType {
 }
 
 /**
- * Follow-up candidate — created when a memory contains a temporal reference
+ * Follow-up candidate — created when a user message contains a temporal reference
  * (e.g., "I have a job interview tomorrow").
  * Stored in MMKV and surfaced as a conversation starter when the target date arrives.
+ *
+ * Detection runs on raw user messages (not LLM-extracted summaries) to ensure
+ * temporal phrases are never lost to paraphrasing.
  */
 export type FollowUpStatus = 'pending' | 'delivered' | 'expired';
 
 export interface FollowUpCandidate {
   id: string;
-  memoryId: string;           // linked memory
-  memoryContent: string;      // "has a job interview"
+  sourceMessageId: string;    // user message that triggered detection
+  sourceContent: string;      // raw user message text
   topic: string;              // "job interview" (extracted noun phrase)
   followUpAt: number;         // target timestamp (when to follow up)
   createdAt: number;

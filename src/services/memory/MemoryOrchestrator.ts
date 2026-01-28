@@ -7,7 +7,7 @@ import { ExtractionQueue } from './ExtractionQueue';
 import { EmbeddingService } from '../embedding/EmbeddingService';
 import { storeEmbedding, hasEmbedding } from '../embedding/EmbeddingStorage';
 import { findDuplicate, mergeMemories } from '../embedding/Deduplicator';
-import { inferTypeFromCategory, generateMemoryId } from '../../types/memory';
+import { inferTypeFromCategory } from '../../types/memory';
 import { detectTemporalReferences } from '../followup/TemporalDetector';
 import { FollowUpStore } from '../followup/FollowUpStore';
 
@@ -180,30 +180,27 @@ class MemoryOrchestratorImpl {
     try {
       console.log('[MemoryOrchestrator] Starting extraction from', messages.length, 'messages');
 
+      // Run follow-up detection on raw user messages (decoupled from LLM extraction).
+      // This uses the user's actual words, so temporal phrases like "tomorrow" or
+      // "next week" are never lost to LLM paraphrasing.
+      this.scheduleBackground(() => {
+        try {
+          const candidates = detectTemporalReferences(messages);
+          if (candidates.length > 0) {
+            FollowUpStore.add(candidates);
+            console.log('[MemoryOrchestrator] Created', candidates.length, 'follow-up candidates');
+          }
+        } catch (error) {
+          console.error('[MemoryOrchestrator] Follow-up detection failed:', error);
+        }
+      });
+
       // Format conversation and extract
       const conversationText = formatConversationForExtraction(messages);
       const extracted = await extractMemories(conversationText);
 
       // Process extracted memories with deduplication
       if (extracted.length > 0) {
-        // Run follow-up detection on raw extracted items BEFORE dedup
-        // (merged memories would have different content, missing temporal refs)
-        this.scheduleBackground(() => {
-          try {
-            const extractedWithIds = extracted.map((e) => ({
-              id: generateMemoryId(),
-              content: e.content,
-            }));
-            const candidates = detectTemporalReferences(extractedWithIds);
-            if (candidates.length > 0) {
-              FollowUpStore.add(candidates);
-              console.log('[MemoryOrchestrator] Created', candidates.length, 'follow-up candidates');
-            }
-          } catch (error) {
-            console.error('[MemoryOrchestrator] Follow-up detection failed:', error);
-          }
-        });
-
         const memoriesToAdd: typeof extracted = [];
         const existingMemories = useMemoryStore.getState().memories;
 

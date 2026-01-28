@@ -151,6 +151,6 @@ export function buildFollowUpSection(followUp: FollowUpCandidate): string {
   return `
 
 IMPORTANT — Follow-up check-in:
-They previously mentioned: "${followUp.memoryContent}"
+They previously mentioned: "${followUp.sourceContent}"
 Open the conversation by naturally checking in about their ${followUp.topic}. Be warm and brief — one short question. Don't say "I remember" or "you mentioned", just ask naturally like a friend who was thinking about them.`;
 }
