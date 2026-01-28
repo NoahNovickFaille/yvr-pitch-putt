@@ -15,13 +15,13 @@ Cove is a warm, empathetic AI companion that remembers your conversations and bu
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start development server
-npm start
+bun start
 
 # Run on iOS simulator
-npm run ios
+bun run ios
 ```
 
 On first launch, the app downloads model files:
@@ -311,9 +311,9 @@ All services log with prefixes in `__DEV__` mode:
 ### Common Commands
 
 ```bash
-npm start          # Start Expo dev server
-npm run ios        # Run on iOS simulator
-npm run lint       # Run ESLint
+bun start          # Start Expo dev server
+bun run ios        # Run on iOS simulator
+bun run lint       # Run ESLint
 ```
 
 ### Testing Scenarios

@@ -21,6 +21,10 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# lockfiles (using bun)
+package-lock.json
+yarn.lock
+
 # debug
 npm-debug.*
 yarn-debug.*

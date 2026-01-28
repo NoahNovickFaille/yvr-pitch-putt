@@ -118,7 +118,7 @@ Note: Root `components/`, `constants/`, `hooks/` are Expo template files (rarely
 ## Common Commands
 
 ```bash
-npm start      # Start development server
-npm run ios    # Run on iOS simulator
-npm run lint   # Lint
+bun start      # Start development server
+bun run ios    # Run on iOS simulator
+bun run lint   # Lint
 ```
