@@ -233,18 +233,20 @@ function useSetupFlow(onComplete: () => void) {
   const llmVerifying = llmStatus === 'verifying';
   const llmReadyToInit = llmStatus === 'ready_to_initialize';
   const llmDownloadError = llmStatus === 'error';
+  const llmStateProgress = 'progress' in llmDownload.modelState ? llmDownload.modelState.progress : 0;
+  const llmStateError = 'error' in llmDownload.modelState ? llmDownload.modelState.error : undefined;
 
   const llmProgress = useMemo(() => {
-    if (llmDownloading || llmPaused) return (llmDownload.modelState.progress ?? 0) * 100;
+    if (llmDownloading || llmPaused) return (llmStateProgress ?? 0) * 100;
     if (llmReadyToInit || llmVerifying) return 100;
     return 0;
-  }, [llmDownloading, llmPaused, llmReadyToInit, llmVerifying, llmDownload.modelState.progress]);
+  }, [llmDownloading, llmPaused, llmReadyToInit, llmVerifying, llmStateProgress]);
 
   // Determine current visual phase (pure derivation, no state)
   const phase: SetupPhase = useMemo(() => {
     // Error states first
     if (llmDownloadError) {
-      return { type: 'error', errorType: 'llm_download', message: llmDownload.modelState.error ?? '' };
+      return { type: 'error', errorType: 'llm_download', message: llmStateError ?? '' };
     }
     if (embeddingModel.error && llmReadyToInit && !embeddingModel.isDownloaded) {
       return { type: 'error', errorType: 'embedding_download', message: embeddingModel.error };
@@ -262,7 +264,7 @@ function useSetupFlow(onComplete: () => void) {
     return { type: 'downloading_llm' };
   }, [
     llmDownloadError, llmVerifying, llmReadyToInit,
-    llmDownload.modelState.error,
+    llmStateError,
     embeddingModel.error, embeddingModel.isDownloaded,
     llm.hasError, llm.errorMessage, llm.isReady,
   ]);
@@ -402,7 +404,7 @@ export function DownloadStep({ onComplete }: DownloadStepProps) {
       case 'verifying':
         return (
           <>
-            <StatusIcon showSpinner />
+            <StatusIcon icon="cloud-download" showSpinner />
             <Text style={styles.title}>Verifying Download</Text>
             <Text style={styles.description}>Checking file integrity...</Text>
           </>
