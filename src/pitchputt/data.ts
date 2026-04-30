@@ -1,6 +1,6 @@
 import { Course } from './types';
 
-const HOLE_TEMPLATE = [3, 3, 4, 3, 4, 4, 3, 4, 3, 4, 3, 3, 4, 3, 4, 4, 3, 4];
+const HOLE_TEMPLATE = new Array(18).fill(3);
 
 function buildCourse(id: string, slug: string, name: string): Course {
   return {

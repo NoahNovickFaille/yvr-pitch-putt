@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 
 import { getCourseById } from '@/src/pitchputt/data';
-import { roundTotals } from '@/src/pitchputt/scoring';
 import { useRoundsStore } from '@/src/pitchputt/store';
 
 export default function FinalScorecardScreen() {
@@ -12,10 +12,21 @@ export default function FinalScorecardScreen() {
   const completeRound = useRoundsStore((state) => state.completeRound);
 
   const course = useMemo(() => (round ? getCourseById(round.courseId) : undefined), [round]);
-  const totals = useMemo(() => {
+  const totalPar = useMemo(() => (course ? course.holes.reduce((sum, hole) => sum + hole.par, 0) : 0), [course]);
+  const totalsByPlayer = useMemo(() => {
     if (!round || !course) return [];
-    return roundTotals(round, course.holes, round.players).sort((a, b) => a.total - b.total);
-  }, [round, course]);
+    return round.players.map((player) => {
+      const total = course.holes.reduce((sum, hole) => {
+        const strokes = round.holeScores[hole.number]?.[player.id];
+        return sum + (typeof strokes === 'number' ? strokes : hole.par);
+      }, 0);
+      return {
+        playerId: player.id,
+        total,
+        vsPar: total - totalPar,
+      };
+    });
+  }, [round, course, totalPar]);
 
   if (!round || !course) {
     return (
@@ -25,30 +36,151 @@ export default function FinalScorecardScreen() {
     );
   }
 
+  const scoreType = (score: number, par: number) => {
+    const delta = score - par;
+    if (score === 1) return 'hio';
+    if (delta < 0) return 'birdie';
+    if (delta === 1) return 'bogey';
+    if (delta >= 2) return 'double';
+    return 'plain';
+  };
+
+  const formatVsPar = (value: number) => {
+    if (value === 0) return 'E';
+    return value > 0 ? `+${value}` : `${value}`;
+  };
+  const playerColGap =
+    round.players.length <= 2 ? 32 : round.players.length === 3 ? 24 : round.players.length === 4 ? 30 : 30;
+  const playerColsOffset = round.players.length >= 4 ? 14 : 25;
+  const playerColWidth = round.players.length <= 2 ? 62 : round.players.length === 3 ? 56 : 44;
+  const handleSaveScorecard = () => {
+    if (!round.completedAt) {
+      completeRound(round.id);
+    }
+    router.replace('/(tabs)');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.heading}>Final Scorecard</Text>
-        <Text style={styles.subheading}>{course.name}</Text>
-        {totals.map((result, index) => (
-          <View key={result.player.id} style={styles.row}>
-            <Text style={styles.rank}>#{index + 1}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.player}>{result.player.name}</Text>
-              <Text style={styles.vsPar}>{result.vsPar > 0 ? `+${result.vsPar}` : result.vsPar} vs par</Text>
-            </View>
-            <Text style={styles.total}>{result.total}</Text>
+        <View style={styles.scTopbar}>
+          <Text style={styles.scTitle}>Round complete</Text>
+          <Pressable
+            style={styles.editBtn}
+            onPress={() => router.replace({ pathname: '/hole', params: { roundId: round.id, hole: String(course.holes.length) } })}
+          >
+            <Feather name="edit-2" size={16} color="#6b6b6b" />
+          </Pressable>
+        </View>
+        <Text style={styles.scMeta}>{course.name.replace(' Pitch & Putt', '')} · {course.holes.length} holes</Text>
+
+        <View style={styles.scTable}>
+          <View style={[styles.scHeadRow, { columnGap: playerColGap }]}>
+            <View style={styles.scHoleCol} />
+            {round.players.map((player, index) => (
+              <View
+                key={player.id}
+                style={[styles.scPlayerCol, { width: playerColWidth }, index === 0 && { marginLeft: playerColsOffset }]}
+              >
+                <Text style={styles.scHeadCell}>{player.name}</Text>
+              </View>
+            ))}
           </View>
-        ))}
+
+          {course.holes.map((hole) => (
+            <View key={hole.id} style={[styles.scBodyRow, { columnGap: playerColGap }]}>
+              <View style={styles.scHoleCol}>
+                <Text style={styles.scHoleCell}>{hole.number}</Text>
+              </View>
+              {round.players.map((player, index) => {
+                const score = round.holeScores[hole.number]?.[player.id] ?? hole.par;
+                const cellType = scoreType(score, hole.par);
+                return (
+                  <View
+                    key={player.id}
+                    style={[
+                      styles.scScoreCol,
+                      styles.scPlayerCol,
+                      { width: playerColWidth },
+                      index === 0 && { marginLeft: playerColsOffset },
+                    ]}
+                  >
+                    {cellType === 'hio' ? (
+                      <View style={styles.doubleCircleOuter}>
+                        <View style={styles.doubleCircleInner}>
+                          <Text style={styles.scScoreText}>{score}</Text>
+                        </View>
+                      </View>
+                    ) : null}
+                    {cellType === 'birdie' ? (
+                      <View style={styles.singleCircle}>
+                        <Text style={styles.scScoreText}>{score}</Text>
+                      </View>
+                    ) : null}
+                    {cellType === 'bogey' ? (
+                      <View style={styles.singleSquare}>
+                        <Text style={styles.scScoreText}>{score}</Text>
+                      </View>
+                    ) : null}
+                    {cellType === 'double' ? (
+                      <View style={styles.doubleSquareOuter}>
+                        <View style={styles.doubleSquareInner}>
+                          <Text style={styles.scScoreText}>{score}</Text>
+                        </View>
+                      </View>
+                    ) : null}
+                    {cellType === 'plain' ? <Text style={styles.scScoreText}>{score}</Text> : null}
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+
+          <View style={[styles.scBodyRow, styles.scTotalRow, { columnGap: playerColGap }]}>
+            <View style={styles.scHoleCol}>
+              <Text style={styles.scTotalLabel}>Total</Text>
+            </View>
+            {round.players.map((player, index) => {
+              const total = totalsByPlayer.find((item) => item.playerId === player.id)?.total ?? 0;
+              return (
+                <View
+                  key={player.id}
+                  style={[styles.scPlayerCol, { width: playerColWidth }, index === 0 && { marginLeft: playerColsOffset }]}
+                >
+                  <Text style={styles.scTotalVal}>{total}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.summaryRow}>
+          {round.players.map((player) => {
+            const totals = totalsByPlayer.find((item) => item.playerId === player.id);
+            const vsPar = totals?.vsPar ?? 0;
+            return (
+              <View key={player.id} style={styles.summaryCell}>
+                <Text style={styles.summaryName}>{player.name}</Text>
+                <Text
+                  style={[
+                    styles.summaryValue,
+                    vsPar < 0 && styles.summaryUnder,
+                    vsPar === 0 && styles.summaryEven,
+                    vsPar > 0 && styles.summaryOver,
+                  ]}
+                >
+                  {formatVsPar(vsPar)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
 
         <Pressable
-          style={styles.doneButton}
-          onPress={() => {
-            completeRound(round.id);
-            router.replace('/(tabs)/history');
-          }}
+          style={styles.finishButton}
+          onPress={handleSaveScorecard}
         >
-          <Text style={styles.doneButtonText}>Save to History</Text>
+          <Text style={styles.finishButtonText}>Save scorecard</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -56,24 +188,138 @@ export default function FinalScorecardScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#030712' },
-  container: { padding: 16, gap: 12 },
-  heading: { color: 'white', fontSize: 30, fontWeight: '700' },
-  subheading: { color: '#9ca3af' },
-  row: {
+  safeArea: { flex: 1, backgroundColor: '#f7f6f2' },
+  container: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 22, gap: 10 },
+  scTopbar: {
+    paddingTop: 2,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1f2937',
-    backgroundColor: '#111827',
-    borderRadius: 12,
-    padding: 12,
   },
-  rank: { color: '#6ee7b7', fontWeight: '700', width: 36 },
-  player: { color: 'white', fontWeight: '600', fontSize: 16 },
-  vsPar: { color: '#9ca3af' },
-  total: { color: '#f8fafc', fontWeight: '800', fontSize: 24 },
-  doneButton: { marginTop: 10, backgroundColor: '#10b981', borderRadius: 12, alignItems: 'center', padding: 14 },
-  doneButtonText: { color: '#022c22', fontWeight: '700' },
-  errorText: { color: '#fca5a5', padding: 20 },
+  scTitle: { color: '#1a1a1a', fontSize: 31, fontWeight: '700' },
+  editBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  scMeta: { color: '#6b6b6b', fontSize: 14, marginTop: -2, marginBottom: 2 },
+  scTable: {
+    backgroundColor: 'transparent',
+    borderRadius: 10,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 8,
+    paddingRight: 2,
+  },
+  scHeadRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    paddingVertical: 7,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomWidth: 0.5,
+  },
+  scHeadCell: { textAlign: 'center', color: '#6b6b6b', fontSize: 12, fontWeight: '700' },
+  scHoleCol: { width: 45, flex: 0, alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 4 },
+  scPlayerCol: { width: 62, alignItems: 'center', justifyContent: 'center' },
+  scBodyRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    minHeight: 40,
+    paddingVertical: 6,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  scHoleCell: { color: '#6b6b6b', fontSize: 12, fontWeight: '600' },
+  scScoreCol: { alignItems: 'center' },
+  scScorePill: {
+    minWidth: 30,
+    minHeight: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scScoreText: { color: '#1a1a1a', fontWeight: '700', fontSize: 12 },
+  singleCircle: {
+    minWidth: 30,
+    minHeight: 30,
+    borderRadius: 15,
+    borderWidth: 1.2,
+    borderColor: '#2D6A4F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doubleCircleOuter: {
+    minWidth: 32,
+    minHeight: 32,
+    borderRadius: 16,
+    borderWidth: 1.2,
+    borderColor: '#2D5A8E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doubleCircleInner: {
+    minWidth: 24,
+    minHeight: 24,
+    borderRadius: 12,
+    borderWidth: 1.2,
+    borderColor: '#2D5A8E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  singleSquare: {
+    minWidth: 30,
+    minHeight: 30,
+    borderRadius: 4,
+    borderWidth: 1.2,
+    borderColor: '#B85C38',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doubleSquareOuter: {
+    minWidth: 32,
+    minHeight: 32,
+    borderRadius: 4,
+    borderWidth: 1.2,
+    borderColor: '#B85C38',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doubleSquareInner: {
+    minWidth: 24,
+    minHeight: 24,
+    borderRadius: 3,
+    borderWidth: 1.2,
+    borderColor: '#B85C38',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scTotalRow: { borderBottomWidth: 0, borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.06)', paddingTop: 8, paddingBottom: 8 },
+  scTotalLabel: { color: '#6b6b6b', fontSize: 12, fontWeight: '700' },
+  scTotalVal: { textAlign: 'center', color: '#1a1a1a', fontSize: 14, fontWeight: '800' },
+  summaryRow: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 360,
+    justifyContent: 'space-evenly',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    paddingVertical: 8,
+  },
+  summaryCell: { alignItems: 'center', minWidth: 88 },
+  summaryName: { color: '#6b6b6b', fontSize: 12, fontWeight: '600' },
+  summaryValue: { marginTop: 1, fontSize: 20, fontWeight: '800' },
+  summaryUnder: { color: '#2D6A4F' },
+  summaryEven: { color: '#6b6b6b' },
+  summaryOver: { color: '#B85C38' },
+  finishButton: { backgroundColor: '#2D6A4F', borderRadius: 12, alignItems: 'center', paddingVertical: 14, marginTop: 6 },
+  finishButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
+  errorText: { color: '#B85C38', padding: 20 },
 });

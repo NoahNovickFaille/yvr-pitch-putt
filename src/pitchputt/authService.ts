@@ -9,8 +9,22 @@ export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
-export async function signUpWithEmail(email: string, password: string) {
-  return supabase.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl } });
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  profile?: { firstName?: string; lastName?: string },
+) {
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: authRedirectUrl,
+      data: {
+        first_name: profile?.firstName ?? '',
+        last_name: profile?.lastName ?? '',
+      },
+    },
+  });
 }
 
 export async function signInWithGoogle() {
