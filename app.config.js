@@ -14,8 +14,8 @@ module.exports = {
       resizeMode: 'contain',
       backgroundColor: '#0F0F0F',
     },
-    scheme: IS_DEV ? 'cove-dev' : 'cove',
-    platforms: ['ios', 'android'],
+    scheme: IS_DEV ? 'pitchputt-dev' : 'pitchputt',
+    platforms: ['ios', 'android', 'web'],
     updates: {
       enabled: true,
       fallbackToCacheTimeout: 0,
@@ -29,11 +29,8 @@ module.exports = {
       buildNumber: '3',                                                                                      
       supportsTablet: false,
       infoPlist: {
-        UIBackgroundModes: ['fetch'], // For background downloads
-        NSMicrophoneUsageDescription: 'Cove needs microphone access to hear your voice messages.',
-        NSSpeechRecognitionUsageDescription: 'Cove uses on-device speech recognition to transcribe your voice.',
-        NSPhotoLibraryUsageDescription: 'Cove does not access your photos.',
-        ITSAppUsesNonExemptEncryption: false, // App does not use custom encryption
+        NSPhotoLibraryUsageDescription: 'Pitch Putt YVR does not access your photos.',
+        ITSAppUsesNonExemptEncryption: false,
       },
     },
     android: {
@@ -46,7 +43,6 @@ module.exports = {
     },
     plugins: [
       'expo-router',
-      './plugins/withMMKV',
       './plugins/withBundleIdentifier',
       [
         'expo-splash-screen',
@@ -58,32 +54,11 @@ module.exports = {
         },
       ],
       [
-        './plugins/withLlamaRN',
-        {
-          enableEntitlements: false,
-          entitlementsProfile: 'production',
-          forceCxx20: true,
-        },
-      ],
-      [
-        '@kesha-antonov/react-native-background-downloader',
-        {
-          addMmkvDependency: true, // Let plugin add MMKV pod for native headers
-        },
-      ],
-      [
         'expo-build-properties',
         {
           ios: {
-            newArchEnabled: true, // Required for llama.rn v0.10+
+            newArchEnabled: true,
           },
-        },
-      ],
-      [
-        'expo-speech-recognition',
-        {
-          microphonePermission: 'Cove needs microphone access to hear your voice messages.',
-          speechRecognitionPermission: 'Cove uses speech recognition to transcribe your voice.',
         },
       ],
       'expo-apple-authentication',

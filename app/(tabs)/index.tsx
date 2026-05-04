@@ -5,8 +5,8 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 
-import { COURSES } from '@/src/pitchputt/data';
-import { useSessionStore } from '@/src/pitchputt/store';
+import { COURSES, getCourseById } from '@/src/pitchputt/data';
+import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 const COURSE_NEIGHBORHOODS: Record<string, string> = {
   'course-stanley': 'Coal Harbour',
@@ -19,6 +19,8 @@ const COURSE_BG_STYLES = ['#d6eadf', '#e8f0f9', '#f3eefa'];
 export default function HomeScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['36%'], []);
+  const rounds = useRoundsStore((state) => state.rounds);
+  const activeRoundId = useRoundsStore((state) => state.activeRoundId);
   const userName = useSessionStore((state) => state.userName);
   const userEmail = useSessionStore((state) => state.userEmail);
   const firstName = useMemo(() => {
@@ -35,6 +37,23 @@ export default function HomeScreen() {
   );
 
   const avatarLetter = firstName.charAt(0).toUpperCase();
+  const activeRound = useMemo(() => {
+    if (!activeRoundId) return null;
+    const match = rounds.find((round) => round.id === activeRoundId);
+    if (!match || match.completedAt) return null;
+    return match;
+  }, [activeRoundId, rounds]);
+  const resumeHoleNumber = useMemo(() => {
+    if (!activeRound) return null;
+    const course = getCourseById(activeRound.courseId);
+    if (!course) return 1;
+    const enteredHoles = Object.entries(activeRound.holeScores)
+      .filter(([, byPlayer]) => Object.values(byPlayer).some((score) => typeof score === 'number'))
+      .map(([holeNum]) => Number(holeNum))
+      .filter((holeNum) => Number.isFinite(holeNum));
+    if (enteredHoles.length === 0) return 1;
+    return Math.min(course.holes.length, Math.max(...enteredHoles) + 1);
+  }, [activeRound]);
   const navigateFromMenu = (path: '/(tabs)' | '/logout' | '/(tabs)/stats' | '/membership-card') => {
     bottomSheetRef.current?.close();
     router.push(path);
@@ -51,6 +70,18 @@ export default function HomeScreen() {
             </Pressable>
           </View>
           <Text style={styles.greetingSub}>Pick your course</Text>
+
+          {activeRound && resumeHoleNumber ? (
+            <Pressable
+              style={styles.resumeRow}
+              onPress={() => router.push({ pathname: '/hole', params: { roundId: activeRound.id, hole: String(resumeHoleNumber) } })}
+            >
+              <View style={styles.resumeIconCircle}>
+                <Feather name="play" size={11} color="#2D6A4F" />
+              </View>
+              <Text style={styles.resumeText}>Resume round</Text>
+            </Pressable>
+          ) : null}
 
           {COURSES.map((course, index) => (
             <Pressable
@@ -211,4 +242,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   historyText: { color: '#1a1a1a', fontSize: 14, fontWeight: '600' },
+  resumeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2D6A4F',
+    backgroundColor: '#e8f4ee',
+    gap: 8,
+    marginTop: 6,
+  },
+  resumeIconCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#2D6A4F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  resumeText: { color: '#1f5a41', fontSize: 14, fontWeight: '700' },
 });

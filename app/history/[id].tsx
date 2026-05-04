@@ -12,20 +12,32 @@ export default function RoundHistoryDetailScreen() {
   const round = useRoundsStore((state) => state.rounds.find((item) => item.id === id));
   const course = round ? getCourseById(round.courseId) : undefined;
   const totalPar = useMemo(() => (course ? course.holes.reduce((sum, hole) => sum + hole.par, 0) : 0), [course]);
+  const isRoundComplete = Boolean(round?.completedAt);
+  const screenTitle = isRoundComplete ? 'Round complete' : 'Scorecard';
   const totalsByPlayer = useMemo(() => {
     if (!round || !course) return [];
     return round.players.map((player) => {
-      const total = course.holes.reduce((sum, hole) => {
+      let total = 0;
+      let enteredPar = 0;
+      course.holes.forEach((hole) => {
         const strokes = round.holeScores[hole.number]?.[player.id];
-        return sum + (typeof strokes === 'number' ? strokes : hole.par);
-      }, 0);
+        if (typeof strokes === 'number') {
+          total += strokes;
+          enteredPar += hole.par;
+          return;
+        }
+        if (isRoundComplete) {
+          total += hole.par;
+          enteredPar += hole.par;
+        }
+      });
       return {
         playerId: player.id,
         total,
-        vsPar: total - totalPar,
+        vsPar: enteredPar > 0 ? total - enteredPar : 0,
       };
     });
-  }, [round, course, totalPar]);
+  }, [round, course, isRoundComplete]);
 
   if (!round || !course) {
     return (
@@ -61,7 +73,7 @@ export default function RoundHistoryDetailScreen() {
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
             <Feather name="arrow-left" size={20} color="#1a1a1a" />
           </Pressable>
-          <Text style={styles.scTitle}>Round complete</Text>
+          <Text style={styles.scTitle}>{screenTitle}</Text>
           <View style={styles.backBtnPlaceholder} />
         </View>
         <Text style={styles.scMeta}>{course.name.replace(' Pitch & Putt', '')} · {course.holes.length} holes</Text>
@@ -85,8 +97,9 @@ export default function RoundHistoryDetailScreen() {
                 <Text style={styles.scHoleCell}>{hole.number}</Text>
               </View>
               {round.players.map((player, index) => {
-                const score = round.holeScores[hole.number]?.[player.id] ?? hole.par;
-                const cellType = scoreType(score, hole.par);
+                const enteredScore = round.holeScores[hole.number]?.[player.id];
+                const score = typeof enteredScore === 'number' ? enteredScore : isRoundComplete ? hole.par : null;
+                const cellType = typeof score === 'number' ? scoreType(score, hole.par) : 'plain';
                 return (
                   <View
                     key={player.id}
@@ -97,31 +110,31 @@ export default function RoundHistoryDetailScreen() {
                       index === 0 && { marginLeft: playerColsOffset },
                     ]}
                   >
-                    {cellType === 'hio' ? (
+                    {cellType === 'hio' && typeof score === 'number' ? (
                       <View style={styles.doubleCircleOuter}>
                         <View style={styles.doubleCircleInner}>
                           <Text style={styles.scScoreText}>{score}</Text>
                         </View>
                       </View>
                     ) : null}
-                    {cellType === 'birdie' ? (
+                    {cellType === 'birdie' && typeof score === 'number' ? (
                       <View style={styles.singleCircle}>
                         <Text style={styles.scScoreText}>{score}</Text>
                       </View>
                     ) : null}
-                    {cellType === 'bogey' ? (
+                    {cellType === 'bogey' && typeof score === 'number' ? (
                       <View style={styles.singleSquare}>
                         <Text style={styles.scScoreText}>{score}</Text>
                       </View>
                     ) : null}
-                    {cellType === 'double' ? (
+                    {cellType === 'double' && typeof score === 'number' ? (
                       <View style={styles.doubleSquareOuter}>
                         <View style={styles.doubleSquareInner}>
                           <Text style={styles.scScoreText}>{score}</Text>
                         </View>
                       </View>
                     ) : null}
-                    {cellType === 'plain' ? <Text style={styles.scScoreText}>{score}</Text> : null}
+                    {cellType === 'plain' ? <Text style={styles.scScoreText}>{score ?? '—'}</Text> : null}
                   </View>
                 );
               })}

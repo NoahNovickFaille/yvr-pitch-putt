@@ -18,8 +18,8 @@
    - Google
    - Email/Password
 2. Add redirect URLs:
-   - `cove://auth`
-   - `cove-dev://auth`
+   - `pitchputt://auth`
+   - `pitchputt-dev://auth`
 3. Run SQL migration in `supabase/migrations/20260428093000_pitch_putt_schema.sql`.
 4. Run seed SQL in `supabase/seed/20260428_pitch_putt_seed.sql`.
 

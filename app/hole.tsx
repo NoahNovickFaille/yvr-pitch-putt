@@ -1,27 +1,45 @@
-import { useCallback, useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from "@expo/vector-icons";
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import { router, useLocalSearchParams } from "expo-router";
+import { useCallback, useMemo, useRef } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { getCourseById } from '@/src/pitchputt/data';
-import { HoleIllustration } from '@/src/pitchputt/HoleIllustration';
-import { useRoundsStore } from '@/src/pitchputt/store';
+import { getCourseById } from "@/src/pitchputt/data";
+import { HoleIllustration } from "@/src/pitchputt/HoleIllustration";
+import { useRoundsStore } from "@/src/pitchputt/store";
 
 export default function HoleScreen() {
-  const { roundId, hole } = useLocalSearchParams<{ roundId: string; hole: string }>();
-  const holeNumber = Number(hole || '1');
-  const round = useRoundsStore((state) => state.rounds.find((item) => item.id === roundId));
+  const { roundId, hole } = useLocalSearchParams<{
+    roundId: string;
+    hole: string;
+  }>();
+  const holeNumber = Number(hole || "1");
+  const round = useRoundsStore((state) =>
+    state.rounds.find((item) => item.id === roundId),
+  );
   const updateScore = useRoundsStore((state) => state.updateScore);
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['68%'], []);
+  const snapPoints = useMemo(() => ["68%"], []);
   const renderBackdrop = useCallback(
-    (props: any) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.42} />,
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.42}
+      />
+    ),
     [],
   );
 
-  const course = useMemo(() => (round ? getCourseById(round.courseId) : undefined), [round]);
+  const course = useMemo(
+    () => (round ? getCourseById(round.courseId) : undefined),
+    [round],
+  );
   const currentHole = course?.holes.find((item) => item.number === holeNumber);
 
   if (!round || !course || !currentHole) {
@@ -34,8 +52,8 @@ export default function HoleScreen() {
   const isFinalHole = holeNumber === course.holes.length;
 
   const formatScore = (delta: number | null) => {
-    if (delta === null) return 'E';
-    if (delta === 0) return 'E';
+    if (delta === null) return "E";
+    if (delta === 0) return "E";
     return delta > 0 ? `+${delta}` : `${delta}`;
   };
 
@@ -53,7 +71,7 @@ export default function HoleScreen() {
       if (!holeDef) continue;
 
       const strokes = round.holeScores[i]?.[playerId];
-      if (typeof strokes !== 'number') continue;
+      if (typeof strokes !== "number") continue;
 
       strokesTotal += strokes;
       parTotal += holeDef.par;
@@ -62,22 +80,39 @@ export default function HoleScreen() {
     if (parTotal === 0) return null;
     return strokesTotal - parTotal;
   };
+  const getRunningRoundStrokes = (playerId: string) => {
+    let strokesTotal = 0;
+    let hasScores = false;
+
+    for (const holeDef of course.holes) {
+      const i = holeDef.number;
+      const strokes = round.holeScores[i]?.[playerId];
+      if (typeof strokes !== "number") continue;
+      hasScores = true;
+      strokesTotal += strokes;
+    }
+
+    return hasScores ? strokesTotal : null;
+  };
 
   const saveAndContinue = () => {
     // Persist default par score for untouched players so "3" is saved without extra taps.
     round.players.forEach((player) => {
       const existing = round.holeScores[holeNumber]?.[player.id];
-      if (typeof existing !== 'number') {
+      if (typeof existing !== "number") {
         updateScore(round.id, holeNumber, player.id, currentHole.par);
       }
     });
 
     bottomSheetRef.current?.close();
     if (isFinalHole) {
-      router.replace({ pathname: '/final-scorecard', params: { roundId } });
+      router.replace({ pathname: "/final-scorecard", params: { roundId } });
       return;
     }
-    router.replace({ pathname: '/hole', params: { roundId, hole: String(holeNumber + 1) } });
+    router.replace({
+      pathname: "/hole",
+      params: { roundId, hole: String(holeNumber + 1) },
+    });
   };
 
   return (
@@ -85,12 +120,34 @@ export default function HoleScreen() {
       <View style={styles.container}>
         <View style={styles.topbar}>
           <Text style={styles.holeTitle}>Hole {currentHole.number}</Text>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => router.push({ pathname: '/hole-picker', params: { roundId, hole: String(holeNumber) } })}
-          >
-            <Ionicons name="document-text-outline" size={16} color="#888" />
-          </Pressable>
+          <View style={styles.topbarActions}>
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() =>
+                router.push({
+                  pathname: "/hole-picker",
+                  params: { roundId, hole: String(holeNumber) },
+                })
+              }
+            >
+              <Ionicons name="grid-outline" size={20} color="#5f5f5f" />
+            </Pressable>
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() =>
+                router.push({
+                  pathname: "/history/[id]",
+                  params: { id: round.id },
+                })
+              }
+            >
+              <Ionicons
+                name="document-text-outline"
+                size={20}
+                color="#5f5f5f"
+              />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.illustrationWrap}>
@@ -101,18 +158,29 @@ export default function HoleScreen() {
           <View style={styles.playersRow}>
             {round.players.map((player, index) => {
               const delta = getRunningRoundDelta(player.id);
+              const totalStrokes = getRunningRoundStrokes(player.id);
               return (
                 <View key={player.id} style={styles.playerCell}>
-                  <Text style={[styles.pScore, scoreTone(delta)]}>{formatScore(delta)}</Text>
+                  <Text style={[styles.pScore, scoreTone(delta)]}>
+                    {formatScore(delta)}
+                  </Text>
+                  <Text style={styles.pStrokes}>
+                    {totalStrokes === null ? "(—)" : `(${totalStrokes})`}
+                  </Text>
                   <Text style={styles.pName}>{player.name}</Text>
-                  {index < round.players.length - 1 ? <View style={styles.sep} /> : null}
+                  {index < round.players.length - 1 ? (
+                    <View style={styles.sep} />
+                  ) : null}
                 </View>
               );
             })}
           </View>
         </View>
 
-        <Pressable style={styles.primaryBtn} onPress={() => bottomSheetRef.current?.snapToIndex(0)}>
+        <Pressable
+          style={styles.primaryBtn}
+          onPress={() => bottomSheetRef.current?.snapToIndex(0)}
+        >
           <Text style={styles.primaryBtnText}>Enter scores</Text>
         </Pressable>
 
@@ -128,7 +196,10 @@ export default function HoleScreen() {
           <BottomSheetView style={styles.scorePanel}>
             <View style={styles.scorePanelHeader}>
               <Text style={styles.scorePanelTitle}>Enter scores</Text>
-              <Pressable style={styles.closeBtn} onPress={() => bottomSheetRef.current?.close()}>
+              <Pressable
+                style={styles.closeBtn}
+                onPress={() => bottomSheetRef.current?.close()}
+              >
                 <Feather name="x" size={18} color="#6b6b6b" />
               </Pressable>
             </View>
@@ -140,19 +211,35 @@ export default function HoleScreen() {
                 <View key={player.id} style={styles.scoreRow}>
                   <View style={styles.scoreRowHeader}>
                     <Text style={styles.scoreRowName}>{player.name}</Text>
-                    <Text style={[styles.scoreRowDelta, scoreTone(delta)]}>{formatScore(delta)}</Text>
+                    <Text style={[styles.scoreRowDelta, scoreTone(delta)]}>
+                      {formatScore(delta)}
+                    </Text>
                   </View>
                   <View style={styles.stepper}>
                     <Pressable
                       style={styles.stepperBtn}
-                      onPress={() => updateScore(round.id, holeNumber, player.id, Math.max(1, displayValue - 1))}
+                      onPress={() =>
+                        updateScore(
+                          round.id,
+                          holeNumber,
+                          player.id,
+                          Math.max(1, displayValue - 1),
+                        )
+                      }
                     >
                       <Feather name="minus" size={18} color="#1a1a1a" />
                     </Pressable>
                     <Text style={styles.stepperValue}>{displayValue}</Text>
                     <Pressable
                       style={styles.stepperBtn}
-                      onPress={() => updateScore(round.id, holeNumber, player.id, Math.min(15, displayValue + 1))}
+                      onPress={() =>
+                        updateScore(
+                          round.id,
+                          holeNumber,
+                          player.id,
+                          Math.min(15, displayValue + 1),
+                        )
+                      }
                     >
                       <Feather name="plus" size={18} color="#1a1a1a" />
                     </Pressable>
@@ -172,90 +259,115 @@ export default function HoleScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f7f6f2' },
-  container: { flex: 1, paddingHorizontal: 15, paddingTop: 8, paddingBottom: 16 },
-  errorText: { color: '#B85C38', padding: 20 },
-  topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  holeTitle: { color: '#1a1a1a', fontSize: 30, fontWeight: '700' },
+  safeArea: { flex: 1, backgroundColor: "#f7f6f2" },
+  container: {
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  errorText: { color: "#B85C38", padding: 20 },
+  topbar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    minHeight: 48,
+  },
+  topbarActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  holeTitle: { color: "#1a1a1a", fontSize: 30, fontWeight: "700" },
   iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    borderColor: "rgba(0,0,0,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
   },
   illustrationWrap: {
     flex: 1,
     minHeight: 320,
     marginTop: 10,
-    overflow: 'hidden',
-    backgroundColor: '#f7f6f2',
+    overflow: "hidden",
+    backgroundColor: "#f7f6f2",
   },
   bottomStrip: {
     marginTop: 8,
     paddingVertical: 6,
   },
-  playersRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  playerCell: { flex: 1, alignItems: 'center' },
-  pScore: { fontSize: 26, fontWeight: '800', lineHeight: 30 },
-  scoreUnder: { color: '#2D6A4F' },
-  scoreEven: { color: '#6b6b6b' },
-  scoreOver: { color: '#B85C38' },
-  pName: { color: '#6b6b6b', marginTop: 2, fontSize: 13, fontWeight: '600' },
+  playersRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  playerCell: { flex: 1, alignItems: "center" },
+  pScore: { fontSize: 26, fontWeight: "800", lineHeight: 30 },
+  scoreUnder: { color: "#2D6A4F" },
+  scoreEven: { color: "#6b6b6b" },
+  scoreOver: { color: "#B85C38" },
+  pStrokes: { color: "#1a1a1a", marginTop: 1, fontSize: 14, fontWeight: "700" },
+  pName: { color: "#6b6b6b", marginTop: 2, fontSize: 13, fontWeight: "600" },
   sep: {
-    position: 'absolute',
+    position: "absolute",
     right: -1,
     top: 4,
     bottom: 4,
     width: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
   primaryBtn: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: "#2D6A4F",
     borderRadius: 12,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 2,
   },
-  primaryBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
+  primaryBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
   sheetBackground: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderColor: "rgba(0,0,0,0.1)",
   },
-  sheetHandle: { backgroundColor: '#aaaaaa', width: 42 },
+  sheetHandle: { backgroundColor: "#aaaaaa", width: 42 },
   scorePanel: {
     flex: 1,
     paddingHorizontal: 14,
     paddingBottom: 12,
     gap: 12,
   },
-  scorePanelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  scorePanelTitle: { color: '#1a1a1a', fontSize: 20, fontWeight: '700' },
+  scorePanelHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  scorePanelTitle: { color: "#1a1a1a", fontSize: 20, fontWeight: "700" },
   closeBtn: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 2,
   },
-  scoreRowHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  scoreRowName: { color: '#1a1a1a', fontWeight: '600', fontSize: 18, minWidth: 96 },
-  scoreRowDelta: { fontWeight: '800', fontSize: 20 },
+  scoreRowHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  scoreRowName: {
+    color: "#1a1a1a",
+    fontWeight: "600",
+    fontSize: 18,
+    minWidth: 96,
+  },
+  scoreRowDelta: { fontWeight: "800", fontSize: 20 },
   stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   stepperBtn: {
@@ -263,12 +375,24 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f7f6f2',
+    borderColor: "rgba(0,0,0,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f7f6f2",
   },
-  stepperValue: { minWidth: 34, textAlign: 'center', color: '#1a1a1a', fontWeight: '800', fontSize: 20 },
-  saveBtn: { backgroundColor: '#2D6A4F', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  saveBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
+  stepperValue: {
+    minWidth: 34,
+    textAlign: "center",
+    color: "#1a1a1a",
+    fontWeight: "800",
+    fontSize: 20,
+  },
+  saveBtn: {
+    backgroundColor: "#2D6A4F",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  saveBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
 });

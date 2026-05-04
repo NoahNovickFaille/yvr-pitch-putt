@@ -11,6 +11,7 @@ export default function RootLayout() {
         <Stack.Screen name="logout" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="player-setup" options={{ presentation: 'card' }} />
+        <Stack.Screen name="membership-card" options={{ presentation: 'card' }} />
         <Stack.Screen name="hole" />
         <Stack.Screen
           name="hole-picker"
