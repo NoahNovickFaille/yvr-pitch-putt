@@ -1,11 +1,14 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnUI, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { COURSES, getCourseById } from '@/src/pitchputt/data';
+import type { Round } from '@/src/pitchputt/types';
 import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 const COURSE_NEIGHBORHOODS: Record<string, string> = {
@@ -16,11 +19,113 @@ const COURSE_NEIGHBORHOODS: Record<string, string> = {
 
 const COURSE_BG_STYLES = ['#d6eadf', '#e8f0f9', '#f3eefa'];
 
+const RESUME_DELETE_WIDTH = 56;
+const RESUME_SWIPE_SPRING = { damping: 34, stiffness: 400 };
+
+type ResumeRoundRowProps = {
+  round: Round;
+  resumeHoleNumber: number;
+  subtitle: string;
+  onConfirmDelete: () => void;
+};
+
+function ResumeRoundRow({
+  round,
+  resumeHoleNumber,
+  subtitle,
+  onConfirmDelete,
+}: ResumeRoundRowProps) {
+  const translateX = useSharedValue(0);
+  const panStartX = useSharedValue(0);
+
+  const snapClosed = useCallback(() => {
+    runOnUI(() => {
+      'worklet';
+      translateX.value = withSpring(0, RESUME_SWIPE_SPRING);
+    })();
+  }, [translateX]);
+
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-10, 10])
+        .failOffsetY([-22, 22])
+        .onStart(() => {
+          panStartX.value = translateX.value;
+        })
+        .onUpdate((e) => {
+          const next = panStartX.value + e.translationX;
+          translateX.value = Math.min(0, Math.max(-RESUME_DELETE_WIDTH, next));
+        })
+        .onEnd((e) => {
+          const shouldOpen =
+            translateX.value < -RESUME_DELETE_WIDTH / 2 || e.velocityX < -380;
+          if (shouldOpen) {
+            translateX.value = withSpring(-RESUME_DELETE_WIDTH, RESUME_SWIPE_SPRING);
+          } else {
+            translateX.value = withSpring(0, RESUME_SWIPE_SPRING);
+          }
+        }),
+    [panStartX, translateX],
+  );
+
+  const foregroundStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  return (
+    <View
+      style={styles.resumeSwipeShell}
+      accessibilityHint="Swipe left to discard this in-progress round."
+    >
+      <View style={styles.resumeSwipeUnderlay} pointerEvents="box-none">
+        <Pressable
+          style={styles.resumeSwipeDeleteBtn}
+          onPress={() => {
+            snapClosed();
+            onConfirmDelete();
+          }}
+          accessibilityLabel="Discard round"
+          accessibilityRole="button"
+        >
+          <View style={styles.resumeTrashCircle}>
+            <Feather name="trash-2" size={20} color="#B85C38" />
+          </View>
+        </Pressable>
+      </View>
+      <GestureDetector gesture={pan}>
+        <Animated.View style={[styles.resumeSwipeForeground, foregroundStyle]}>
+          <Pressable
+            style={styles.resumeRow}
+            onPress={() =>
+              router.push({
+                pathname: '/hole',
+                params: { roundId: round.id, hole: String(resumeHoleNumber) },
+              })
+            }
+          >
+            <View style={styles.resumePlayCircle}>
+              <Feather name="play" size={20} color="#ffffff" style={styles.resumePlayIcon} />
+            </View>
+            <View style={styles.resumeTextCol}>
+              <Text style={styles.resumeTitle}>Resume round</Text>
+              <Text style={styles.resumeDetail} numberOfLines={2}>
+                {subtitle}
+              </Text>
+            </View>
+          </Pressable>
+        </Animated.View>
+      </GestureDetector>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['36%'], []);
   const rounds = useRoundsStore((state) => state.rounds);
   const activeRoundId = useRoundsStore((state) => state.activeRoundId);
+  const deleteRound = useRoundsStore((state) => state.deleteRound);
   const userName = useSessionStore((state) => state.userName);
   const userEmail = useSessionStore((state) => state.userEmail);
   const firstName = useMemo(() => {
@@ -43,6 +148,10 @@ export default function HomeScreen() {
     if (!match || match.completedAt) return null;
     return match;
   }, [activeRoundId, rounds]);
+  const activeCourse = useMemo(
+    () => (activeRound ? getCourseById(activeRound.courseId) : undefined),
+    [activeRound],
+  );
   const resumeHoleNumber = useMemo(() => {
     if (!activeRound) return null;
     const course = getCourseById(activeRound.courseId);
@@ -54,10 +163,34 @@ export default function HomeScreen() {
     if (enteredHoles.length === 0) return 1;
     return Math.min(course.holes.length, Math.max(...enteredHoles) + 1);
   }, [activeRound]);
+  const resumeRoundSubtitle = useMemo(() => {
+    if (!activeRound || resumeHoleNumber == null) return '';
+    const courseName = activeCourse?.name.replace(' Pitch & Putt', '') ?? 'Your round';
+    const n = activeRound.players.length;
+    const players = `${n} ${n === 1 ? 'player' : 'players'}`;
+    const totalHoles = activeCourse?.holes.length ?? 18;
+    return `${courseName} · ${players} · Hole ${resumeHoleNumber} of ${totalHoles}`;
+  }, [activeRound, activeCourse, resumeHoleNumber]);
   const navigateFromMenu = (path: '/(tabs)' | '/logout' | '/(tabs)/stats' | '/membership-card') => {
     bottomSheetRef.current?.close();
     router.push(path);
   };
+
+  const confirmDiscardActiveRound = useCallback(() => {
+    if (!activeRound) return;
+    Alert.alert(
+      'Discard this round?',
+      'This removes the in-progress round and all scores entered so far. If you are signed in, it is removed from your account too. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => deleteRound(activeRound.id),
+        },
+      ],
+    );
+  }, [activeRound, deleteRound]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -71,16 +204,13 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.greetingSub}>Pick your course</Text>
 
-          {activeRound && resumeHoleNumber ? (
-            <Pressable
-              style={styles.resumeRow}
-              onPress={() => router.push({ pathname: '/hole', params: { roundId: activeRound.id, hole: String(resumeHoleNumber) } })}
-            >
-              <View style={styles.resumeIconCircle}>
-                <Feather name="play" size={11} color="#2D6A4F" />
-              </View>
-              <Text style={styles.resumeText}>Resume round</Text>
-            </Pressable>
+          {activeRound && resumeHoleNumber != null ? (
+            <ResumeRoundRow
+              round={activeRound}
+              resumeHoleNumber={resumeHoleNumber}
+              subtitle={resumeRoundSubtitle}
+              onConfirmDelete={confirmDiscardActiveRound}
+            />
           ) : null}
 
           {COURSES.map((course, index) => (
@@ -242,27 +372,68 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   historyText: { color: '#1a1a1a', fontSize: 14, fontWeight: '600' },
+  resumeSwipeShell: {
+    position: 'relative',
+    alignSelf: 'stretch',
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#f7f6f2',
+    marginTop: 6,
+  },
+  resumeSwipeUnderlay: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 0,
+    width: RESUME_DELETE_WIDTH,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resumeSwipeDeleteBtn: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 72,
+  },
+  resumeTrashCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#B85C38',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  resumeSwipeForeground: {
+    zIndex: 1,
+    width: '100%',
+    backgroundColor: 'transparent',
+  },
   resumeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#2D6A4F',
     backgroundColor: '#e8f4ee',
-    gap: 8,
-    marginTop: 6,
+    gap: 14,
   },
-  resumeIconCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: '#2D6A4F',
+  resumePlayCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#2D6A4F',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
   },
-  resumeText: { color: '#1f5a41', fontSize: 14, fontWeight: '700' },
+  resumePlayIcon: { marginLeft: 2 },
+  resumeTextCol: { flex: 1, gap: 4, minWidth: 0 },
+  resumeTitle: { color: '#1a1a1a', fontSize: 16, fontWeight: '800' },
+  resumeDetail: { color: '#4a5c52', fontSize: 13, fontWeight: '600', lineHeight: 18 },
 });

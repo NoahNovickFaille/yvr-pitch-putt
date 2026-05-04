@@ -38,9 +38,25 @@ export async function signInWithGoogle() {
 
   if (error) return { error };
   if (data?.url) {
-    await WebBrowser.openAuthSessionAsync(data.url, authRedirectUrl);
+    const browserResult = await WebBrowser.openAuthSessionAsync(
+      data.url,
+      authRedirectUrl,
+    );
+    if (browserResult.type === 'cancel' || browserResult.type === 'dismiss') {
+      return { error: new Error('Google sign-in was cancelled.') };
+    }
   }
-  return { data, error: null };
+
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
+  if (sessionError) return { error: sessionError };
+  const user = sessionData.session?.user;
+  if (!user) {
+    return {
+      error: new Error('Google sign-in did not establish a session.'),
+    };
+  }
+  return { data: { user }, error: null };
 }
 
 export async function signInWithApple() {

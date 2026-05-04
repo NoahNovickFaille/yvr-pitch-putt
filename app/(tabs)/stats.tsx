@@ -129,11 +129,15 @@ export default function StatsScreen() {
     completedRounds.forEach((round) => {
       const course = getCourseById(round.courseId);
       if (!course) return;
-      const parTotal = course.holes.reduce((sum, hole) => sum + hole.par, 0);
 
       round.players.forEach((player) => {
-        const playerTotal = course.holes.reduce((sum, hole) => {
-          const strokes = round.holeScores[hole.number]?.[player.id] ?? hole.par;
+        let strokeSum = 0;
+        let parSum = 0;
+
+        course.holes.forEach((hole) => {
+          const strokes = round.holeScores[hole.number]?.[player.id];
+          if (typeof strokes !== 'number') return;
+
           const delta = strokes - hole.par;
 
           if (strokes === 1) hioCount += 1;
@@ -153,12 +157,15 @@ export default function StatsScreen() {
           current.count += 1;
           holeAverages.set(holeKey, current);
 
-          return sum + strokes;
-        }, 0);
+          strokeSum += strokes;
+          parSum += hole.par;
+        });
 
-        const vsPar = playerTotal - parTotal;
+        if (parSum === 0) return;
+
+        const vsPar = strokeSum - parSum;
         if (vsPar < bestRound) bestRound = vsPar;
-        totalScore += playerTotal;
+        totalScore += strokeSum;
         totalEntries += 1;
       });
     });

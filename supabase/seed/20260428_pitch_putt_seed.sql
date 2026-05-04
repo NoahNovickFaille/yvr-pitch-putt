@@ -20,19 +20,14 @@ seed_rows as (
     c.id as course_id,
     c.slug,
     h.hole_number,
-    case
-      when h.hole_number in (1, 2, 4, 7, 9, 12, 14, 17) then 3
-      else 4
-    end as par,
-    (70 + (h.hole_number * 5))::int as yardage,
+    3 as par,
     format('%s/hole-%s', c.slug, h.hole_number) as asset_key
   from c
   cross join hole_numbers h
 )
-insert into public.holes (course_id, hole_number, par, yardage, asset_key)
-select course_id, hole_number, par, yardage, asset_key
+insert into public.holes (course_id, hole_number, par, asset_key)
+select course_id, hole_number, par, asset_key
 from seed_rows
 on conflict (course_id, hole_number) do update set
   par = excluded.par,
-  yardage = excluded.yardage,
   asset_key = excluded.asset_key;

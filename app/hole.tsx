@@ -4,12 +4,19 @@ import BottomSheet, {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useMemo, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getCourseById } from "@/src/pitchputt/data";
 import { HoleIllustration } from "@/src/pitchputt/HoleIllustration";
+import { isRoundFullyScored } from "@/src/pitchputt/roundCompleteness";
 import { useRoundsStore } from "@/src/pitchputt/store";
 
 export default function HoleScreen() {
@@ -23,6 +30,7 @@ export default function HoleScreen() {
   );
   const updateScore = useRoundsStore((state) => state.updateScore);
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
   const snapPoints = useMemo(() => ["68%"], []);
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -96,30 +104,50 @@ export default function HoleScreen() {
   };
 
   const saveAndContinue = () => {
-    // Persist default par score for untouched players so "3" is saved without extra taps.
-    round.players.forEach((player) => {
-      const existing = round.holeScores[holeNumber]?.[player.id];
-      if (typeof existing !== "number") {
-        updateScore(round.id, holeNumber, player.id, currentHole.par);
-      }
-    });
+    if (!round || !course) return;
 
-    bottomSheetRef.current?.close();
-    if (isFinalHole) {
-      router.replace({ pathname: "/final-scorecard", params: { roundId } });
+    const latestRound =
+      useRoundsStore.getState().rounds.find((r) => r.id === roundId) ?? round;
+
+    const proceed = () => {
+      bottomSheetRef.current?.close();
+      if (isFinalHole) {
+        router.replace({ pathname: "/final-scorecard", params: { roundId } });
+        return;
+      }
+      router.replace({
+        pathname: "/hole",
+        params: { roundId, hole: String(holeNumber + 1) },
+      });
+    };
+
+    if (isFinalHole && !isRoundFullyScored(latestRound, course)) {
+      setIncompleteModalVisible(true);
       return;
     }
-    router.replace({
-      pathname: "/hole",
-      params: { roundId, hole: String(holeNumber + 1) },
-    });
+
+    proceed();
+  };
+
+  const dismissIncompleteModal = () => {
+    setIncompleteModalVisible(false);
+  };
+
+  const confirmIncompleteSave = () => {
+    setIncompleteModalVisible(false);
+    bottomSheetRef.current?.close();
+    router.replace({ pathname: "/final-scorecard", params: { roundId } });
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.topbar}>
-          <Text style={styles.holeTitle}>Hole {currentHole.number}</Text>
+          <View style={styles.holeTitleWrap}>
+            <Text style={styles.holeTitle}>
+              {`Hole ${currentHole.number} - ${currentHole.yardage} yards`}
+            </Text>
+          </View>
           <View style={styles.topbarActions}>
             <Pressable
               style={styles.iconBtn}
@@ -192,6 +220,21 @@ export default function HoleScreen() {
           backdropComponent={renderBackdrop}
           backgroundStyle={styles.sheetBackground}
           handleIndicatorStyle={styles.sheetHandle}
+          onChange={(index) => {
+            if (index !== 0) return;
+            const par = currentHole.par;
+            round.players.forEach((player) => {
+              const snap = useRoundsStore
+                .getState()
+                .rounds.find((r) => r.id === roundId);
+              if (!snap) return;
+              if (
+                typeof snap.holeScores[holeNumber]?.[player.id] !== "number"
+              ) {
+                updateScore(snap.id, holeNumber, player.id, par);
+              }
+            });
+          }}
         >
           <BottomSheetView style={styles.scorePanel}>
             <View style={styles.scorePanelHeader}>
@@ -253,6 +296,48 @@ export default function HoleScreen() {
             </Pressable>
           </BottomSheetView>
         </BottomSheet>
+
+        <Modal
+          visible={incompleteModalVisible}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          presentationStyle="overFullScreen"
+          onRequestClose={dismissIncompleteModal}
+        >
+          <View style={styles.incompleteModalRoot}>
+            <Pressable
+              style={styles.incompleteModalBackdrop}
+              onPress={dismissIncompleteModal}
+              accessibilityLabel="Dismiss"
+            />
+            <View style={styles.incompleteModalCard}>
+              <Text style={styles.incompleteModalTitle}>Round incomplete</Text>
+              <Text style={styles.incompleteModalBody}>
+                Some holes are still missing scores. You can keep editing to fill
+                them in, or continue and review the scorecard as-is.
+              </Text>
+              <View style={styles.incompleteModalActions}>
+                <Pressable
+                  style={styles.incompleteModalBtnSecondary}
+                  onPress={dismissIncompleteModal}
+                >
+                  <Text style={styles.incompleteModalBtnSecondaryText}>
+                    Keep editing
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.incompleteModalBtnPrimary}
+                  onPress={confirmIncompleteSave}
+                >
+                  <Text style={styles.incompleteModalBtnPrimaryText}>
+                    Save anyway
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -274,7 +359,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   topbarActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  holeTitle: { color: "#1a1a1a", fontSize: 30, fontWeight: "700" },
+  holeTitleWrap: { flex: 1, marginRight: 10, minWidth: 0 },
+  holeTitle: {
+    color: "#1a1a1a",
+    fontSize: 26,
+    fontWeight: "700",
+    lineHeight: 32,
+  },
   iconBtn: {
     width: 42,
     height: 42,
@@ -395,4 +486,67 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   saveBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
+  incompleteModalRoot: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  incompleteModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  incompleteModalCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    zIndex: 1,
+    gap: 14,
+  },
+  incompleteModalTitle: {
+    color: "#1a1a1a",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  incompleteModalBody: {
+    color: "#5f5f5f",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  incompleteModalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  incompleteModalBtnSecondary: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.12)",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+  },
+  incompleteModalBtnSecondaryText: {
+    color: "#1a1a1a",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  incompleteModalBtnPrimary: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: "#2D6A4F",
+  },
+  incompleteModalBtnPrimaryText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
 });

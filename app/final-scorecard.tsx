@@ -13,21 +13,25 @@ export default function FinalScorecardScreen() {
   const completeRound = useRoundsStore((state) => state.completeRound);
 
   const course = useMemo(() => (round ? getCourseById(round.courseId) : undefined), [round]);
-  const totalPar = useMemo(() => (course ? course.holes.reduce((sum, hole) => sum + hole.par, 0) : 0), [course]);
   const totalsByPlayer = useMemo(() => {
     if (!round || !course) return [];
     return round.players.map((player) => {
-      const total = course.holes.reduce((sum, hole) => {
+      let total = 0;
+      let parForScoredHoles = 0;
+      for (const hole of course.holes) {
         const strokes = round.holeScores[hole.number]?.[player.id];
-        return sum + (typeof strokes === 'number' ? strokes : hole.par);
-      }, 0);
+        if (typeof strokes === 'number') {
+          total += strokes;
+          parForScoredHoles += hole.par;
+        }
+      }
       return {
         playerId: player.id,
         total,
-        vsPar: total - totalPar,
+        vsPar: total - parForScoredHoles,
       };
     });
-  }, [round, course, totalPar]);
+  }, [round, course]);
 
   if (!round || !course) {
     return (
@@ -94,8 +98,9 @@ export default function FinalScorecardScreen() {
                 <Text style={styles.scHoleCell}>{hole.number}</Text>
               </View>
               {round.players.map((player, index) => {
-                const score = round.holeScores[hole.number]?.[player.id] ?? hole.par;
-                const cellType = scoreType(score, hole.par);
+                const raw = round.holeScores[hole.number]?.[player.id];
+                const hasScore = typeof raw === 'number';
+                const cellType = hasScore ? scoreType(raw, hole.par) : null;
                 return (
                   <View
                     key={player.id}
@@ -106,31 +111,34 @@ export default function FinalScorecardScreen() {
                       index === 0 && { marginLeft: playerColsOffset },
                     ]}
                   >
-                    {cellType === 'hio' ? (
+                    {!hasScore ? (
+                      <Text style={styles.scScoreEmpty}>—</Text>
+                    ) : null}
+                    {hasScore && cellType === 'hio' ? (
                       <View style={styles.doubleCircleOuter}>
                         <View style={styles.doubleCircleInner}>
-                          <Text style={styles.scScoreText}>{score}</Text>
+                          <Text style={styles.scScoreText}>{raw}</Text>
                         </View>
                       </View>
                     ) : null}
-                    {cellType === 'birdie' ? (
+                    {hasScore && cellType === 'birdie' ? (
                       <View style={styles.singleCircle}>
-                        <Text style={styles.scScoreText}>{score}</Text>
+                        <Text style={styles.scScoreText}>{raw}</Text>
                       </View>
                     ) : null}
-                    {cellType === 'bogey' ? (
+                    {hasScore && cellType === 'bogey' ? (
                       <View style={styles.singleSquare}>
-                        <Text style={styles.scScoreText}>{score}</Text>
+                        <Text style={styles.scScoreText}>{raw}</Text>
                       </View>
                     ) : null}
-                    {cellType === 'double' ? (
+                    {hasScore && cellType === 'double' ? (
                       <View style={styles.doubleSquareOuter}>
                         <View style={styles.doubleSquareInner}>
-                          <Text style={styles.scScoreText}>{score}</Text>
+                          <Text style={styles.scScoreText}>{raw}</Text>
                         </View>
                       </View>
                     ) : null}
-                    {cellType === 'plain' ? <Text style={styles.scScoreText}>{score}</Text> : null}
+                    {hasScore && cellType === 'plain' ? <Text style={styles.scScoreText}>{raw}</Text> : null}
                   </View>
                 );
               })}
@@ -245,6 +253,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scScoreText: { color: '#1a1a1a', fontWeight: '700', fontSize: 12 },
+  scScoreEmpty: { color: '#aaaaaa', fontWeight: '600', fontSize: 12 },
   singleCircle: {
     minWidth: 30,
     minHeight: 30,

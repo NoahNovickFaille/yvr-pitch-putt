@@ -15,7 +15,7 @@ import {
   signInWithEmail,
   signInWithGoogle,
 } from "@/src/pitchputt/authService";
-import { useSessionStore } from "@/src/pitchputt/store";
+import { useRoundsStore, useSessionStore } from "@/src/pitchputt/store";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -68,26 +68,45 @@ export default function AuthScreen() {
           ? emailName.charAt(0).toUpperCase() + emailName.slice(1)
           : null;
         const normalizedName = firstNameFromMetadata ?? normalizedEmailName;
-        setSession(`supabase-email-${Date.now()}`, email, normalizedName);
+        const user = signInResult.data.user;
+        if (!user?.id) {
+          throw new Error("Sign in did not return a user.");
+        }
+        setSession(user.id, user.email ?? email, normalizedName);
       } else if (provider === "google") {
         const result = await signInWithGoogle();
         if (result.error) {
           throw result.error;
         }
-        setSession(
-          `supabase-google-${Date.now()}`,
-          `${provider}@example.com`,
-          "Google User",
-        );
+        const user = result.data?.user;
+        if (!user?.id) {
+          throw new Error("Google sign-in did not return a user.");
+        }
+        const metaName = user.user_metadata?.full_name;
+        const displayName =
+          typeof metaName === "string" && metaName.trim().length > 0
+            ? metaName.trim()
+            : "Google user";
+        setSession(user.id, user.email ?? "", displayName);
       } else {
         const result = await signInWithApple();
         if (result.error) {
           throw result.error;
         }
+        const user = result.data?.user;
+        if (!user?.id) {
+          throw new Error("Apple sign in did not return a user.");
+        }
+        const given =
+          user.user_metadata?.first_name ?? user.user_metadata?.full_name;
+        const displayName =
+          typeof given === "string" && given.trim().length > 0
+            ? given.trim()
+            : "Apple user";
         setSession(
-          `supabase-apple-${Date.now()}`,
-          `${provider}@example.com`,
-          "Apple User",
+          user.id,
+          user.email ?? "",
+          displayName,
         );
       }
     } catch (error) {
@@ -102,12 +121,14 @@ export default function AuthScreen() {
       setIsSubmitting(false);
     }
 
+    void useRoundsStore.getState().hydrateRoundsFromDatabase();
     router.replace("/(tabs)");
   };
 
   const continueAsGuest = () => {
     setErrorMessage(null);
-    setSession(`guest-${Date.now()}`, "guest@local.dev", "Guest");
+    // Local-only session (no Supabase user). Rounds use this id as ownerId until the user signs in.
+    setSession(`guest-${Date.now()}`, "", "Guest");
     router.replace("/(tabs)");
   };
 
@@ -201,8 +222,16 @@ export default function AuthScreen() {
           <Text style={styles.signupLink}>New here? Create an account</Text>
         </Pressable>
 
-        <Pressable style={styles.guestBtn} onPress={continueAsGuest}>
-          <Text style={styles.guestBtnText}>Bypass login (temporary)</Text>
+        <Pressable
+          style={styles.guestBtn}
+          onPress={continueAsGuest}
+          accessibilityRole="button"
+          accessibilityLabel="Continue as guest"
+        >
+          <Text style={styles.guestBtnText}>Continue as guest</Text>
+          <Text style={styles.guestCaption}>
+            Scores stay on this device until you create an account or sign in.
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -348,9 +377,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.15)",
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     alignItems: "center",
     backgroundColor: "#ffffff",
+    gap: 4,
   },
-  guestBtnText: { color: "#6b6b6b", fontWeight: "600", fontSize: 14 },
+  guestBtnText: { color: "#1a1a1a", fontWeight: "600", fontSize: 15 },
+  guestCaption: {
+    color: "#6b6b6b",
+    fontSize: 12,
+    fontWeight: "400",
+    textAlign: "center",
+    lineHeight: 16,
+  },
 });

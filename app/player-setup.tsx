@@ -4,7 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
+import { randomUUID } from 'expo-crypto';
+
 import { getCourseById } from '@/src/pitchputt/data';
+import { insertRoundRemote } from '@/src/pitchputt/roundsRemote';
+import type { Round } from '@/src/pitchputt/types';
 import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 const PLAYER_COLORS = ['#2D6A4F', '#2D5A8E', '#B85C38', '#6B3FA0'];
@@ -38,16 +42,22 @@ export default function PlayerSetupScreen() {
   }
 
   const startRound = () => {
-    const roundId = `round-${Date.now()}`;
+    const roundId = randomUUID();
     const ownerId = userId ?? 'local-user';
     const activePlayers = players.slice(0, playerCount).map((name) => name.trim()).filter(Boolean);
-    createRound({
+    const round: Round = {
       id: roundId,
       ownerId,
       courseId: course.id,
       createdAt: new Date().toISOString(),
-      players: activePlayers.map((name, index) => ({ id: `${roundId}-p${index}`, name })),
+      players: activePlayers.map((name) => ({ id: randomUUID(), name })),
       holeScores: {},
+    };
+    createRound(round);
+    void insertRoundRemote(round).then((remote) => {
+      if (!remote.ok) {
+        console.warn('[player-setup] Supabase round insert:', remote.message);
+      }
     });
 
     router.replace({ pathname: '/hole', params: { roundId, hole: '1' } });

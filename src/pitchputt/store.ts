@@ -2,6 +2,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
 
+import {
+  completeRoundRemote,
+  deleteRoundRemote,
+  fetchRemoteRounds,
+  getAuthedUserId,
+  upsertHoleScoreRemote,
+} from "./roundsRemote";
+import { isSupabaseAuthUserId } from "./sessionUtils";
+import { Round } from "./types";
+
 /** In-memory mirror when AsyncStorage native module is unavailable (same class of error as Supabase). */
 const persistMemoryByKey = new Map<string, string>();
 
@@ -32,161 +42,10 @@ const resilientPersistStorage: StateStorage = {
     }
   },
 };
-import { Round } from "./types";
 
-const buildParThreeHoleScores = (
-  playerIds: string[],
-  adjustments: Record<number, number[]>,
-) => {
-  const holeScores: Round["holeScores"] = {};
-  for (let hole = 1; hole <= 18; hole += 1) {
-    holeScores[hole] = {};
-    playerIds.forEach((playerId, index) => {
-      const delta = adjustments[hole]?.[index] ?? 0;
-      holeScores[hole][playerId] = 3 + delta;
-    });
-  }
-  return holeScores;
-};
-
-const SAMPLE_ROUNDS: Round[] = [
-  {
-    id: "sample-round-stanley-2026-04-14",
-    courseId: "course-stanley",
-    ownerId: "seed-user",
-    createdAt: "2026-04-14T18:00:00.000Z",
-    completedAt: "2026-04-14T19:35:00.000Z",
-    players: [
-      { id: "sr1-p1", name: "Marcus" },
-      { id: "sr1-p2", name: "Jess" },
-      { id: "sr1-p3", name: "Tom" },
-    ],
-    holeScores: buildParThreeHoleScores(["sr1-p1", "sr1-p2", "sr1-p3"], {
-      1: [-1, 0, 0],
-      3: [-2, 0, 0],
-      4: [-1, -1, 0],
-      5: [0, 0, 2],
-      6: [1, 0, 0],
-      7: [-1, 0, 1],
-      8: [0, -1, 0],
-      9: [0, 0, 1],
-      10: [-1, 1, 2],
-      12: [-1, -1, 1],
-      14: [0, 1, 0],
-      15: [-2, 0, 0],
-      16: [0, 0, 1],
-      17: [-1, 0, 0],
-      18: [0, -1, 3],
-    }),
-  },
-  {
-    id: "sample-round-qe-2026-04-08",
-    courseId: "course-qe",
-    ownerId: "seed-user",
-    createdAt: "2026-04-08T16:20:00.000Z",
-    completedAt: "2026-04-08T17:48:00.000Z",
-    players: [
-      { id: "sr2-p1", name: "Marcus" },
-      { id: "sr2-p2", name: "Jess" },
-    ],
-    holeScores: buildParThreeHoleScores(["sr2-p1", "sr2-p2"], {
-      2: [0, -1],
-      4: [-1, 0],
-      6: [1, 0],
-      8: [0, -1],
-      10: [1, 0],
-      11: [0, -1],
-      13: [0, 1],
-      15: [0, -1],
-      17: [-1, 0],
-    }),
-  },
-  {
-    id: "sample-round-rupert-2026-03-29",
-    courseId: "course-rupert",
-    ownerId: "seed-user",
-    createdAt: "2026-03-29T15:10:00.000Z",
-    completedAt: "2026-03-29T16:40:00.000Z",
-    players: [
-      { id: "sr3-p1", name: "Marcus" },
-      { id: "sr3-p2", name: "Tom" },
-    ],
-    holeScores: buildParThreeHoleScores(["sr3-p1", "sr3-p2"], {
-      1: [1, 0],
-      3: [-1, 1],
-      5: [0, 1],
-      7: [1, 0],
-      8: [0, 1],
-      11: [0, 1],
-      14: [0, -1],
-      16: [1, 1],
-    }),
-  },
-  {
-    id: "sample-round-stanley-2026-03-22-4p",
-    courseId: "course-stanley",
-    ownerId: "seed-user",
-    createdAt: "2026-03-22T17:00:00.000Z",
-    completedAt: "2026-03-22T18:42:00.000Z",
-    players: [
-      { id: "sr4-p1", name: "Marcus" },
-      { id: "sr4-p2", name: "Jess" },
-      { id: "sr4-p3", name: "Tom" },
-      { id: "sr4-p4", name: "Ava" },
-    ],
-    holeScores: buildParThreeHoleScores(
-      ["sr4-p1", "sr4-p2", "sr4-p3", "sr4-p4"],
-      {
-        1: [-1, 0, 0, 1],
-        2: [0, -1, 1, 0],
-        3: [0, 0, 2, -1],
-        4: [-1, 0, 0, 1],
-        5: [0, 1, 0, 0],
-        6: [1, 0, 1, -1],
-        7: [-1, 0, 0, 0],
-        8: [0, 1, -1, 0],
-        9: [0, 0, 1, 0],
-        10: [1, -1, 2, 0],
-        11: [0, 0, 0, 1],
-        12: [-1, 1, 0, 0],
-        13: [0, 0, 1, -1],
-        14: [0, 1, 0, 0],
-        15: [-1, 0, 1, 0],
-        16: [1, 0, 0, 1],
-        17: [0, -1, 0, 0],
-        18: [0, 1, 2, -1],
-      },
-    ),
-  },
-  {
-    id: "sample-round-qe-2026-03-15-1p",
-    courseId: "course-qe",
-    ownerId: "seed-user",
-    createdAt: "2026-03-15T10:10:00.000Z",
-    completedAt: "2026-03-15T11:32:00.000Z",
-    players: [{ id: "sr5-p1", name: "Marcus" }],
-    holeScores: buildParThreeHoleScores(["sr5-p1"], {
-      1: [-1],
-      2: [0],
-      3: [1],
-      4: [-1],
-      5: [0],
-      6: [0],
-      7: [-2],
-      8: [1],
-      9: [0],
-      10: [-1],
-      11: [0],
-      12: [0],
-      13: [1],
-      14: [0],
-      15: [-1],
-      16: [0],
-      17: [0],
-      18: [1],
-    }),
-  },
-];
+function isPersistedSampleRound(round: Round): boolean {
+  return round.ownerId === "seed-user" || round.id.startsWith("sample-");
+}
 
 interface SessionState {
   userId: string | null;
@@ -203,6 +62,8 @@ interface SessionState {
 interface RoundsState {
   activeRoundId: string | null;
   rounds: Round[];
+  /** When signed in with Supabase, merges server rounds into local state (source of truth for synced rows). */
+  hydrateRoundsFromDatabase: () => Promise<void>;
   createRound: (round: Round) => void;
   updateScore: (
     roundId: string,
@@ -212,6 +73,7 @@ interface RoundsState {
   ) => void;
   setActiveRound: (roundId: string | null) => void;
   completeRound: (roundId: string) => void;
+  deleteRound: (roundId: string) => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -225,15 +87,55 @@ export const useSessionStore = create<SessionState>((set) => ({
 
 export const useRoundsStore = create<RoundsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       activeRoundId: null,
-      rounds: SAMPLE_ROUNDS,
+      rounds: [],
+      hydrateRoundsFromDatabase: async () => {
+        const authId = await getAuthedUserId();
+        if (!authId || !isSupabaseAuthUserId(authId)) return;
+
+        const remote = await fetchRemoteRounds();
+        const remoteIds = new Set(remote.map((r) => r.id));
+        const local = get().rounds;
+
+        const localsToKeep = local.filter((r) => {
+          if (isPersistedSampleRound(r)) return false;
+          if (!isSupabaseAuthUserId(r.ownerId)) return true;
+          if (r.ownerId !== authId) return true;
+          return !remoteIds.has(r.id);
+        });
+
+        const byId = new Map<string, Round>();
+        for (const r of remote) {
+          byId.set(r.id, r);
+        }
+        for (const r of localsToKeep) {
+          if (!byId.has(r.id)) {
+            byId.set(r.id, r);
+          }
+        }
+
+        const merged = Array.from(byId.values()).sort(
+          (a, b) =>
+            new Date(b.completedAt ?? b.createdAt).getTime() -
+            new Date(a.completedAt ?? a.createdAt).getTime(),
+        );
+
+        set((state) => ({
+          rounds: merged,
+          activeRoundId:
+            state.activeRoundId != null &&
+            merged.some((r) => r.id === state.activeRoundId)
+              ? state.activeRoundId
+              : null,
+        }));
+      },
       createRound: (round) =>
         set((state) => ({
           rounds: [round, ...state.rounds],
           activeRoundId: round.id,
         })),
-      updateScore: (roundId, holeNumber, playerId, strokes) =>
+      updateScore: (roundId, holeNumber, playerId, strokes) => {
         set((state) => ({
           rounds: state.rounds.map((round) => {
             if (round.id !== roundId) {
@@ -251,17 +153,53 @@ export const useRoundsStore = create<RoundsState>()(
               },
             };
           }),
-        })),
+        }));
+        const updated = get().rounds.find((r) => r.id === roundId);
+        if (updated) {
+          queueMicrotask(() => {
+            void upsertHoleScoreRemote(
+              updated,
+              holeNumber,
+              playerId,
+              strokes,
+            );
+          });
+        }
+      },
       setActiveRound: (roundId) => set({ activeRoundId: roundId }),
-      completeRound: (roundId) =>
+      deleteRound: (roundId) => {
+        const removed = get().rounds.find((r) => r.id === roundId);
         set((state) => ({
-          rounds: state.rounds.map((round) =>
+          rounds: state.rounds.filter((r) => r.id !== roundId),
+          activeRoundId:
+            state.activeRoundId === roundId ? null : state.activeRoundId,
+        }));
+        if (removed) {
+          queueMicrotask(() => {
+            void deleteRoundRemote(removed);
+          });
+        }
+      },
+      completeRound: (roundId) => {
+        const completedAt = new Date().toISOString();
+        set((state) => {
+          const rounds = state.rounds.map((round) =>
             round.id === roundId
-              ? { ...round, completedAt: new Date().toISOString() }
+              ? { ...round, completedAt }
               : round,
-          ),
-          activeRoundId: null,
-        })),
+          );
+          const done = rounds.find((r) => r.id === roundId);
+          if (done?.completedAt) {
+            queueMicrotask(() => {
+              void completeRoundRemote(done, done.completedAt!);
+            });
+          }
+          return {
+            rounds,
+            activeRoundId: null,
+          };
+        });
+      },
     }),
     {
       name: "pitchputt-rounds-storage",
@@ -270,6 +208,24 @@ export const useRoundsStore = create<RoundsState>()(
         activeRoundId: state.activeRoundId,
         rounds: state.rounds,
       }),
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== "object") {
+          return current;
+        }
+        const p = persisted as Pick<RoundsState, "rounds" | "activeRoundId">;
+        const filtered = (p.rounds ?? []).filter((r) => !isPersistedSampleRound(r));
+        const activeRoundId =
+          p.activeRoundId != null &&
+          filtered.some((r) => r.id === p.activeRoundId)
+            ? p.activeRoundId
+            : null;
+        return {
+          ...current,
+          ...p,
+          rounds: filtered,
+          activeRoundId,
+        };
+      },
     },
   ),
 );

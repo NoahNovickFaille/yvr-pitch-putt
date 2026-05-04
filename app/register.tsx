@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { signUpWithEmail } from '@/src/pitchputt/authService';
-import { useSessionStore } from '@/src/pitchputt/store';
+import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -49,7 +49,16 @@ export default function RegisterScreen() {
       if (result.error) {
         throw result.error;
       }
-      setSession(`supabase-email-${Date.now()}`, email, firstName.trim());
+      const sessionUser = result.data.session?.user ?? result.data.user;
+      if (!sessionUser?.id) {
+        Alert.alert(
+          'Check your email',
+          'If we sent a confirmation link, open it to finish creating your account. You can sign in after that.',
+        );
+        return;
+      }
+      setSession(sessionUser.id, email, firstName.trim());
+      void useRoundsStore.getState().hydrateRoundsFromDatabase();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sign up failed. Please try again.';
       Alert.alert('Sign up failed', message);

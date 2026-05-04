@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -10,8 +10,8 @@ import { useRoundsStore } from '@/src/pitchputt/store';
 export default function RoundHistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const round = useRoundsStore((state) => state.rounds.find((item) => item.id === id));
+  const deleteRound = useRoundsStore((state) => state.deleteRound);
   const course = round ? getCourseById(round.courseId) : undefined;
-  const totalPar = useMemo(() => (course ? course.holes.reduce((sum, hole) => sum + hole.par, 0) : 0), [course]);
   const isRoundComplete = Boolean(round?.completedAt);
   const screenTitle = isRoundComplete ? 'Round complete' : 'Scorecard';
   const totalsByPlayer = useMemo(() => {
@@ -61,6 +61,24 @@ export default function RoundHistoryDetailScreen() {
     return value > 0 ? `+${value}` : `${value}`;
   };
 
+  const confirmDeleteRound = () => {
+    Alert.alert(
+      'Delete this round?',
+      'This removes the round from your history. If you are signed in, the copy on your account is removed too. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteRound(round.id);
+            router.back();
+          },
+        },
+      ],
+    );
+  };
+
   const playerColGap =
     round.players.length <= 2 ? 32 : round.players.length === 3 ? 24 : round.players.length === 4 ? 30 : 30;
   const playerColsOffset = round.players.length >= 4 ? 14 : 25;
@@ -70,11 +88,35 @@ export default function RoundHistoryDetailScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.scTopbar}>
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={20} color="#1a1a1a" />
-          </Pressable>
-          <Text style={styles.scTitle}>{screenTitle}</Text>
-          <View style={styles.backBtnPlaceholder} />
+          <View style={styles.scTopbarSide}>
+            <Pressable style={styles.backBtn} onPress={() => router.back()}>
+              <Feather name="arrow-left" size={20} color="#1a1a1a" />
+            </Pressable>
+          </View>
+          <Text style={styles.scTitle} numberOfLines={1}>
+            {screenTitle}
+          </Text>
+          <View style={[styles.scTopbarSide, styles.scTopbarSideRight]}>
+            {isRoundComplete ? (
+              <Pressable
+                style={styles.deleteBtn}
+                onPress={confirmDeleteRound}
+                accessibilityLabel="Delete round"
+                accessibilityRole="button"
+              >
+                <Feather name="trash-2" size={18} color="#B85C38" />
+              </Pressable>
+            ) : (
+              <Pressable
+                style={styles.exitRoundBtn}
+                onPress={() => router.replace('/(tabs)')}
+                accessibilityLabel="Exit round"
+                accessibilityRole="button"
+              >
+                <Text style={styles.exitRoundBtnText}>Exit round</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
         <Text style={styles.scMeta}>{course.name.replace(' Pitch & Putt', '')} · {course.holes.length} holes</Text>
 
@@ -191,9 +233,15 @@ const styles = StyleSheet.create({
   scTopbar: {
     paddingTop: 2,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 6,
   },
+  scTopbarSide: {
+    minWidth: 100,
+    flexShrink: 0,
+    justifyContent: 'center',
+  },
+  scTopbarSideRight: { alignItems: 'flex-end' },
   backBtn: {
     width: 32,
     height: 32,
@@ -201,8 +249,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backBtnPlaceholder: { width: 32, height: 32 },
-  scTitle: { color: '#1a1a1a', fontSize: 31, fontWeight: '700' },
+  deleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exitRoundBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: '#e8f4ee',
+    borderWidth: 1,
+    borderColor: '#2D6A4F',
+  },
+  exitRoundBtnText: { color: '#2D6A4F', fontSize: 12, fontWeight: '700' },
+  scTitle: {
+    flex: 1,
+    color: '#1a1a1a',
+    fontSize: 31,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
   scMeta: { color: '#6b6b6b', fontSize: 14, marginTop: -2, marginBottom: 2 },
   scTable: {
     backgroundColor: 'transparent',
