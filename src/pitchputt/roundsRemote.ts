@@ -172,14 +172,14 @@ export async function completeRoundRemote(
  */
 export async function deleteRoundRemote(
   round: Pick<Round, "id" | "ownerId">,
-): Promise<void> {
+): Promise<RemoteRoundResult> {
   if (!shouldSyncRound(round.ownerId, round.id)) {
-    return;
+    return { ok: true };
   }
 
   const authId = await getAuthedUserId();
   if (!authId || authId !== round.ownerId) {
-    return;
+    return { ok: false, message: "Not signed in or owner mismatch." };
   }
 
   const { error } = await supabase
@@ -190,7 +190,9 @@ export async function deleteRoundRemote(
 
   if (error) {
     console.warn("[roundsRemote] delete round", error.message);
+    return { ok: false, message: error.message };
   }
+  return { ok: true };
 }
 
 type DbRoundRow = {

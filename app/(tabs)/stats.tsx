@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import { COURSES, getCourseById } from '@/src/pitchputt/data';
+import { isRoundFullyScored } from '@/src/pitchputt/roundCompleteness';
 import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 type RangeKey = 'year' | '90d' | '30d' | 'all';
@@ -101,13 +102,13 @@ export default function StatsScreen() {
     return null;
   }, [range]);
 
-  const completedRounds = useMemo(
+  const filteredRounds = useMemo(
     () =>
       rounds.filter((round) => {
-        if (!round.completedAt) return false;
         if (courseId !== 'all' && round.courseId !== courseId) return false;
         if (!rangeStart) return true;
-        return new Date(round.completedAt) >= rangeStart;
+        const roundDate = round.completedAt ?? round.createdAt;
+        return new Date(roundDate) >= rangeStart;
       }),
     [rounds, courseId, rangeStart],
   );
@@ -117,7 +118,7 @@ export default function StatsScreen() {
     let totalScore = 0;
     let totalEntries = 0;
     let hioCount = 0;
-    let roundsPlayed = completedRounds.length;
+    const roundsPlayed = filteredRounds.length;
 
     let underCount = 0;
     let parCount = 0;
@@ -126,9 +127,10 @@ export default function StatsScreen() {
 
     const holeAverages = new Map<string, { sum: number; count: number; courseName: string; holeNumber: number }>();
 
-    completedRounds.forEach((round) => {
+    filteredRounds.forEach((round) => {
       const course = getCourseById(round.courseId);
       if (!course) return;
+      const isFullyScored = isRoundFullyScored(round, course);
 
       round.players.forEach((player) => {
         let strokeSum = 0;
@@ -165,8 +167,10 @@ export default function StatsScreen() {
 
         const vsPar = strokeSum - parSum;
         if (vsPar < bestRound) bestRound = vsPar;
-        totalScore += strokeSum;
-        totalEntries += 1;
+        if (isFullyScored) {
+          totalScore += strokeSum;
+          totalEntries += 1;
+        }
       });
     });
 
@@ -195,7 +199,7 @@ export default function StatsScreen() {
         { label: 'Double+', count: doubleCount, color: '#d4755a' },
       ],
     };
-  }, [completedRounds]);
+  }, [filteredRounds]);
 
   const selectedCourse = courseId === 'all' ? null : getCourseById(courseId);
   const courseLabel = selectedCourse?.name.replace(' Pitch & Putt', '') ?? 'All courses';
@@ -204,7 +208,7 @@ export default function StatsScreen() {
     return selectedCourse.holes.map((hole) => {
       let sum = 0;
       let count = 0;
-      completedRounds.forEach((round) => {
+      filteredRounds.forEach((round) => {
         if (round.courseId !== selectedCourse.id) return;
         round.players.forEach((player) => {
           const strokes = round.holeScores[hole.number]?.[player.id];
@@ -217,7 +221,7 @@ export default function StatsScreen() {
       const avg = count > 0 ? Number((sum / count).toFixed(1)) : null;
       return { holeNumber: hole.number, par: hole.par, avg };
     });
-  }, [selectedCourse, completedRounds]);
+  }, [selectedCourse, filteredRounds]);
   const selectedHoleDist = useMemo(() => {
     if (!selectedCourse || selectedHole === null) return null;
 
@@ -228,7 +232,7 @@ export default function StatsScreen() {
     let doubleCount = 0;
     const holePar = selectedCourse.holes.find((hole) => hole.number === selectedHole)?.par ?? 3;
 
-    completedRounds.forEach((round) => {
+    filteredRounds.forEach((round) => {
       if (round.courseId !== selectedCourse.id) return;
       round.players.forEach((player) => {
         const strokes = round.holeScores[selectedHole]?.[player.id];
@@ -249,7 +253,7 @@ export default function StatsScreen() {
       { label: 'Bogey', count: bogeyCount, color: '#e8a87c' },
       { label: 'Double+', count: doubleCount, color: '#d4755a' },
     ];
-  }, [completedRounds, selectedCourse, selectedHole]);
+  }, [filteredRounds, selectedCourse, selectedHole]);
   const displayedDist = selectedHoleDist ?? metrics.dist;
   const maxDist = Math.max(...displayedDist.map((item) => item.count), 1);
   const distTitle = selectedHole ? `Hole ${selectedHole} breakdown` : 'Scoring breakdown';
@@ -537,16 +541,15 @@ const styles = StyleSheet.create({
   holeAvgGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    columnGap: '2%',
+    justifyContent: 'space-between',
     rowGap: 8,
   },
   holeCell: {
-    width: '15%',
+    width: '15.5%',
     aspectRatio: 1,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderWidth: 2,
+    borderColor: 'transparent',
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',

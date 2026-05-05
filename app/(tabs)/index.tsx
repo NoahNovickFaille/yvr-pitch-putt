@@ -186,7 +186,15 @@ export default function HomeScreen() {
         {
           text: 'Discard',
           style: 'destructive',
-          onPress: () => deleteRound(activeRound.id),
+          onPress: async () => {
+            const result = await deleteRound(activeRound.id);
+            if (!result.ok) {
+              Alert.alert(
+                'Could not discard round',
+                result.message ?? 'Check your connection and try again.',
+              );
+            }
+          },
         },
       ],
     );

@@ -11,6 +11,8 @@ export default function RoundHistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const round = useRoundsStore((state) => state.rounds.find((item) => item.id === id));
   const deleteRound = useRoundsStore((state) => state.deleteRound);
+  const completeRound = useRoundsStore((state) => state.completeRound);
+  const setActiveRound = useRoundsStore((state) => state.setActiveRound);
   const course = round ? getCourseById(round.courseId) : undefined;
   const isRoundComplete = Boolean(round?.completedAt);
   const screenTitle = isRoundComplete ? 'Round complete' : 'Scorecard';
@@ -21,15 +23,11 @@ export default function RoundHistoryDetailScreen() {
       let enteredPar = 0;
       course.holes.forEach((hole) => {
         const strokes = round.holeScores[hole.number]?.[player.id];
-        if (typeof strokes === 'number') {
-          total += strokes;
-          enteredPar += hole.par;
+        if (typeof strokes !== 'number') {
           return;
         }
-        if (isRoundComplete) {
-          total += hole.par;
-          enteredPar += hole.par;
-        }
+        total += strokes;
+        enteredPar += hole.par;
       });
       return {
         playerId: player.id,
@@ -37,7 +35,7 @@ export default function RoundHistoryDetailScreen() {
         vsPar: enteredPar > 0 ? total - enteredPar : 0,
       };
     });
-  }, [round, course, isRoundComplete]);
+  }, [round, course]);
 
   if (!round || !course) {
     return (
@@ -70,9 +68,41 @@ export default function RoundHistoryDetailScreen() {
         {
           text: 'Delete',
           style: 'destructive',
+          onPress: async () => {
+            const result = await deleteRound(round.id);
+            if (result.ok) {
+              router.back();
+            } else {
+              Alert.alert(
+                'Could not delete round',
+                result.message ?? 'Check your connection and try again.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmExitRound = () => {
+    Alert.alert(
+      'Exit this round?',
+      'Choose whether to return to this round now, or finish it as incomplete.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Come back to round',
           onPress: () => {
-            deleteRound(round.id);
-            router.back();
+            setActiveRound(round.id);
+            router.replace('/hole');
+          },
+        },
+        {
+          text: 'Finish incomplete round',
+          style: 'destructive',
+          onPress: () => {
+            completeRound(round.id);
+            router.replace('/(tabs)/history');
           },
         },
       ],
@@ -88,15 +118,17 @@ export default function RoundHistoryDetailScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.scTopbar}>
-          <View style={styles.scTopbarSide}>
+          <View style={styles.scTopbarSideLeft}>
             <Pressable style={styles.backBtn} onPress={() => router.back()}>
               <Feather name="arrow-left" size={20} color="#1a1a1a" />
             </Pressable>
           </View>
-          <Text style={styles.scTitle} numberOfLines={1}>
-            {screenTitle}
-          </Text>
-          <View style={[styles.scTopbarSide, styles.scTopbarSideRight]}>
+          <View style={styles.scTitleWrap}>
+            <Text style={styles.scTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.82}>
+              {screenTitle}
+            </Text>
+          </View>
+          <View style={styles.scTopbarSideRight}>
             {isRoundComplete ? (
               <Pressable
                 style={styles.deleteBtn}
@@ -109,7 +141,7 @@ export default function RoundHistoryDetailScreen() {
             ) : (
               <Pressable
                 style={styles.exitRoundBtn}
-                onPress={() => router.replace('/(tabs)')}
+                onPress={confirmExitRound}
                 accessibilityLabel="Exit round"
                 accessibilityRole="button"
               >
@@ -140,7 +172,7 @@ export default function RoundHistoryDetailScreen() {
               </View>
               {round.players.map((player, index) => {
                 const enteredScore = round.holeScores[hole.number]?.[player.id];
-                const score = typeof enteredScore === 'number' ? enteredScore : isRoundComplete ? hole.par : null;
+                const score = typeof enteredScore === 'number' ? enteredScore : null;
                 const cellType = typeof score === 'number' ? scoreType(score, hole.par) : 'plain';
                 return (
                   <View
@@ -236,12 +268,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  scTopbarSide: {
-    minWidth: 100,
+  scTopbarSideLeft: {
+    width: 40,
     flexShrink: 0,
     justifyContent: 'center',
+    alignItems: 'flex-start',
   },
-  scTopbarSideRight: { alignItems: 'flex-end' },
+  scTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    paddingHorizontal: 4,
+  },
+  scTopbarSideRight: {
+    flexShrink: 0,
+    maxWidth: '42%',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    alignSelf: 'stretch',
+  },
   backBtn: {
     width: 32,
     height: 32,
@@ -266,9 +312,8 @@ const styles = StyleSheet.create({
   },
   exitRoundBtnText: { color: '#2D6A4F', fontSize: 12, fontWeight: '700' },
   scTitle: {
-    flex: 1,
     color: '#1a1a1a',
-    fontSize: 31,
+    fontSize: 27,
     fontWeight: '700',
     textAlign: 'center',
   },

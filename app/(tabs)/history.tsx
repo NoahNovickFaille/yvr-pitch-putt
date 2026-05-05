@@ -201,7 +201,15 @@ export default function HistoryScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteRound(round.id),
+          onPress: async () => {
+            const result = await deleteRound(round.id);
+            if (!result.ok) {
+              Alert.alert(
+                'Could not delete round',
+                result.message ?? 'Check your connection and try again.',
+              );
+            }
+          },
         },
       ],
     );

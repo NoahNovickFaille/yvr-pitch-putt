@@ -7,6 +7,7 @@ import {
   deleteRoundRemote,
   fetchRemoteRounds,
   getAuthedUserId,
+  type RemoteRoundResult,
   upsertHoleScoreRemote,
 } from "./roundsRemote";
 import { isSupabaseAuthUserId } from "./sessionUtils";
@@ -73,7 +74,7 @@ interface RoundsState {
   ) => void;
   setActiveRound: (roundId: string | null) => void;
   completeRound: (roundId: string) => void;
-  deleteRound: (roundId: string) => void;
+  deleteRound: (roundId: string) => Promise<RemoteRoundResult>;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -167,18 +168,21 @@ export const useRoundsStore = create<RoundsState>()(
         }
       },
       setActiveRound: (roundId) => set({ activeRoundId: roundId }),
-      deleteRound: (roundId) => {
+      deleteRound: async (roundId) => {
         const removed = get().rounds.find((r) => r.id === roundId);
+        if (!removed) {
+          return { ok: true };
+        }
+        const remote = await deleteRoundRemote(removed);
+        if (!remote.ok) {
+          return remote;
+        }
         set((state) => ({
           rounds: state.rounds.filter((r) => r.id !== roundId),
           activeRoundId:
             state.activeRoundId === roundId ? null : state.activeRoundId,
         }));
-        if (removed) {
-          queueMicrotask(() => {
-            void deleteRoundRemote(removed);
-          });
-        }
+        return { ok: true };
       },
       completeRound: (roundId) => {
         const completedAt = new Date().toISOString();

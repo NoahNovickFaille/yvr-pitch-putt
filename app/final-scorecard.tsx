@@ -69,7 +69,11 @@ export default function FinalScorecardScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.scTopbar}>
-          <Text style={styles.scTitle}>Round complete</Text>
+          <View style={styles.scTitleWrap}>
+            <Text style={styles.scTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.82}>
+              Round complete
+            </Text>
+          </View>
           <Pressable
             style={styles.editBtn}
             onPress={() => router.replace({ pathname: '/hole', params: { roundId: round.id, hole: String(course.holes.length) } })}
@@ -204,8 +208,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
   },
-  scTitle: { color: '#1a1a1a', fontSize: 31, fontWeight: '700' },
+  scTitleWrap: { flex: 1, minWidth: 0, paddingRight: 4 },
+  scTitle: {
+    color: '#1a1a1a',
+    fontSize: 27,
+    fontWeight: '700',
+  },
   editBtn: {
     width: 34,
     height: 34,
