@@ -12,7 +12,7 @@
     "lfg:ios": "bun run prebuild --clean && bun run ios",
     "lfg:android": "bun run prebuild --clean && bun run android",
     "lint": "expo lint",
-    "build:ios": "eas build --platform ios --profile production",
+    "build:ios": "EAS_BUILD_NO_EXPO_GO_WARNING=true NODE_OPTIONS=\"${NODE_OPTIONS:-} --disable-warning=DEP0040\" eas build --platform ios --profile production",
     "release:ios": "node ./release.mjs",
     "submit:ios": "eas submit --platform ios --latest",
     "update:ios": "eas update --channel production"

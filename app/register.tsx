@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -71,11 +71,12 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.logoMark}>
-          <View style={styles.logoCircle} />
-          <View style={styles.logoPole} />
-          <View style={styles.logoFlag} />
-        </View>
+        <Image
+          source={require('@/assets/images/icon.png')}
+          style={styles.logoImage}
+          resizeMode="cover"
+          accessibilityLabel="Pitch and Putt YVR"
+        />
         <Text style={styles.appName}>Create Account</Text>
         <Text style={styles.appTagline}>Set up your Pitch & Putt YVR profile</Text>
 
@@ -143,45 +144,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
-  logoMark: {
+  logoImage: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#2D6A4F',
-    alignItems: 'center',
-    justifyContent: 'center',
     alignSelf: 'center',
     marginBottom: 2,
-  },
-  logoCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1.2,
-    borderColor: '#ffffff',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginTop: 8,
-  },
-  logoPole: {
-    position: 'absolute',
-    top: 10,
-    width: 1.2,
-    height: 15,
-    backgroundColor: '#ffffff',
-  },
-  logoFlag: {
-    position: 'absolute',
-    top: 10,
-    left: 22,
-    width: 0,
-    height: 0,
-    borderTopWidth: 4.5,
-    borderBottomWidth: 4.5,
-    borderLeftWidth: 0,
-    borderRightWidth: 7.5,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderRightColor: '#ffffff',
   },
   appName: { color: '#1a1a1a', fontSize: 30, fontWeight: '700', textAlign: 'center' },
   appTagline: { color: '#6b6b6b', textAlign: 'center', marginBottom: 8, fontSize: 14 },
