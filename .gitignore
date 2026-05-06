@@ -48,3 +48,6 @@ app-example
 
 
 .env
+
+# Local-only notes / todos (not committed)
+TODO.local.md
