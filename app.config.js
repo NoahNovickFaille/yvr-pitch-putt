@@ -28,7 +28,7 @@ module.exports = {
       bundleIdentifier: IS_DEV
         ? "ca.noahnovick.pitchputt.dev"
         : "ca.noahnovick.pitchputt",
-      buildNumber: "4",
+      buildNumber: "5",
       supportsTablet: false,
       infoPlist: {
         NSPhotoLibraryUsageDescription:
