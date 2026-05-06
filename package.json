@@ -13,6 +13,7 @@
     "lfg:android": "bun run prebuild --clean && bun run android",
     "lint": "expo lint",
     "build:ios": "eas build --platform ios --profile production",
+    "release:ios": "node ./release.mjs",
     "submit:ios": "eas submit --platform ios --latest",
     "update:ios": "eas update --channel production"
   },

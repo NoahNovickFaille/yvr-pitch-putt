@@ -2,7 +2,7 @@ import { ImageSourcePropType } from "react-native";
 
 export type HoleAssetKey = `${string}/hole-${number}`;
 
-const fallbackAsset = require("@/assets/images/partial-react-logo.png");
+const fallbackAsset = require("@/assets/images/fallback-hole.png");
 
 const HOLE_ASSET_MAP: Partial<Record<HoleAssetKey, ImageSourcePropType>> = {
   "queen-elizabeth/hole-1": require("@/assets/images/holes/queen-elizabeth/hole-1.png"),
