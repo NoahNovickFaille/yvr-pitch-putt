@@ -14,7 +14,6 @@ export default function MembershipCardScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['30%'], []);
   const userId = useSessionStore((state) => state.userId);
-  const userEmail = useSessionStore((state) => state.userEmail);
   const [membershipNumber, setMembershipNumber] = useState<string | null>(null);
   const [draftNumber, setDraftNumber] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -103,10 +102,6 @@ export default function MembershipCardScreen() {
     await saveMembershipNumber(value);
   };
 
-  const displayLabel =
-    userEmail?.split('@')[0] ??
-    (membershipNumber ? 'Your membership number' : 'Your account');
-
   const renderBackdrop = useCallback(
     (props: any) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.35} />,
     [],
@@ -167,7 +162,6 @@ export default function MembershipCardScreen() {
           <>
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Pitch &amp; Putt YVR</Text>
-              <Text style={styles.cardSubtitle}>{displayLabel}</Text>
               {membershipNumber ? (
                 <View style={styles.barcodeWrap}>
                   <Barcode
@@ -234,16 +228,16 @@ export default function MembershipCardScreen() {
             </View>
             <View style={styles.scannerBody}>
               <CameraView
-                style={StyleSheet.absoluteFillObject}
+                style={styles.cameraView}
                 facing={facing}
-                barcodeScannerSettings={{
-                  barcodeTypes: ['code128', 'code39', 'ean13', 'ean8', 'upc_a', 'upc_e', 'qr'],
-                }}
                 onBarcodeScanned={handleBarcodeScanned}
               />
               <View style={styles.scannerOverlay}>
                 <View style={styles.scannerFrame} />
                 <Text style={styles.scannerHint}>Align the card barcode inside the frame.</Text>
+                <Pressable style={styles.closeScannerBtn} onPress={() => setScannerVisible(false)}>
+                  <Text style={styles.closeScannerBtnText}>Cancel scan</Text>
+                </Pressable>
               </View>
             </View>
           </SafeAreaView>
@@ -323,7 +317,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardTitle: { color: '#1a1a1a', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
-  cardSubtitle: { color: '#6b6b6b', fontSize: 13, fontWeight: '600' },
   barcodeWrap: {
     marginTop: 10,
     paddingVertical: 10,
@@ -377,20 +370,46 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   scannerTitle: { color: '#ffffff', fontSize: 18, fontWeight: '700' },
-  scannerBody: { flex: 1, position: 'relative' },
-  scannerOverlay: {
+  scannerBody: {
     flex: 1,
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  cameraView: {
+    width: '100%',
+    maxWidth: 460,
+    height: '62%',
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  scannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   scannerFrame: {
-    width: '70%',
-    aspectRatio: 1.8,
+    width: '86%',
+    maxWidth: 360,
+    aspectRatio: 1.9,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#ffffff',
   },
   scannerHint: { marginTop: 14, color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  closeScannerBtn: {
+    marginTop: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  closeScannerBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
   sheetBackground: {
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,

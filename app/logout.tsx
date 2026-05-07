@@ -4,17 +4,23 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/src/lib/supabase';
-import { useSessionStore } from '@/src/pitchputt/store';
+import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 export default function LogoutScreen() {
   const clearSession = useSessionStore((state) => state.clearSession);
+  const clearRounds = useRoundsStore((state) => state.clearRounds);
 
   useEffect(() => {
     let isMounted = true;
 
     const runLogout = async () => {
-      await supabase.auth.signOut();
-      clearSession();
+      try {
+        await supabase.auth.signOut();
+      } finally {
+        // Always clear local user data on logout to prevent cross-session leakage.
+        clearSession();
+        clearRounds();
+      }
       if (isMounted) {
         router.replace('/auth');
       }
@@ -25,7 +31,7 @@ export default function LogoutScreen() {
     return () => {
       isMounted = false;
     };
-  }, [clearSession]);
+  }, [clearRounds, clearSession]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

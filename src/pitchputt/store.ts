@@ -63,6 +63,7 @@ interface SessionState {
 interface RoundsState {
   activeRoundId: string | null;
   rounds: Round[];
+  clearRounds: () => void;
   /** When signed in with Supabase, merges server rounds into local state (source of truth for synced rows). */
   hydrateRoundsFromDatabase: () => Promise<void>;
   createRound: (round: Round) => void;
@@ -91,6 +92,7 @@ export const useRoundsStore = create<RoundsState>()(
     (set, get) => ({
       activeRoundId: null,
       rounds: [],
+      clearRounds: () => set({ activeRoundId: null, rounds: [] }),
       hydrateRoundsFromDatabase: async () => {
         const authId = await getAuthedUserId();
         if (!authId || !isSupabaseAuthUserId(authId)) return;

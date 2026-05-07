@@ -12,7 +12,6 @@ export default function RoundHistoryDetailScreen() {
   const round = useRoundsStore((state) => state.rounds.find((item) => item.id === id));
   const deleteRound = useRoundsStore((state) => state.deleteRound);
   const completeRound = useRoundsStore((state) => state.completeRound);
-  const setActiveRound = useRoundsStore((state) => state.setActiveRound);
   const course = round ? getCourseById(round.courseId) : undefined;
   const isRoundComplete = Boolean(round?.completedAt);
   const screenTitle = isRoundComplete ? 'Round complete' : 'Scorecard';
@@ -87,16 +86,9 @@ export default function RoundHistoryDetailScreen() {
   const confirmExitRound = () => {
     Alert.alert(
       'Exit this round?',
-      'Choose whether to return to this round now, or finish it as incomplete.',
+      'This will finish the round as incomplete and move it to history.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Come back to round',
-          onPress: () => {
-            setActiveRound(round.id);
-            router.replace('/hole');
-          },
-        },
         {
           text: 'Finish incomplete round',
           style: 'destructive',
