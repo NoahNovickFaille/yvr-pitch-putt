@@ -28,7 +28,7 @@ module.exports = {
       bundleIdentifier: IS_DEV
         ? "ca.noahnovick.pitchputt.dev"
         : "ca.noahnovick.pitchputt",
-      buildNumber: "7",
+      buildNumber: "8",
       supportsTablet: false,
       infoPlist: {
         NSCameraUsageDescription:
