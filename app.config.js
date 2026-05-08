@@ -31,6 +31,8 @@ module.exports = {
       buildNumber: "7",
       supportsTablet: false,
       infoPlist: {
+        NSCameraUsageDescription:
+          "Pitch Putt YVR uses your camera to scan membership barcodes.",
         NSPhotoLibraryUsageDescription:
           "Pitch Putt YVR does not access your photos.",
         ITSAppUsesNonExemptEncryption: false,
@@ -48,6 +50,7 @@ module.exports = {
     },
     plugins: [
       "expo-router",
+      "./plugins/withAndroidCameraPermission",
       "./plugins/withBundleIdentifier",
       [
         "expo-splash-screen",

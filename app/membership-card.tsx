@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { BarcodeScanningResult, CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import Barcode from 'react-native-barcode-svg';
 
+import { MembershipCardScanner } from '@/components/MembershipCardScanner';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/pitchputt/store';
 
@@ -14,9 +22,26 @@ function normalizeMembershipNumber(value: string): string {
   return value.replace(/[^0-9a-z]/gi, '').toUpperCase();
 }
 
+/** CODE128 accepts ASCII; oversized payloads can choke react-native-svg on iOS. */
+const MAX_BARCODE_ENCODE_LENGTH = 48;
+
+function barcodeDisplayValue(raw: string): string {
+  const n = normalizeMembershipNumber(raw);
+  return n.length > MAX_BARCODE_ENCODE_LENGTH ? n.slice(0, MAX_BARCODE_ENCODE_LENGTH) : n;
+}
+
+function isAsciiBarcodeSafe(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    if (value.charCodeAt(i) > 127) return false;
+  }
+  return true;
+}
+
 export default function MembershipCardScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['30%'], []);
+  const sheetHeight = useMemo(() => Math.round(Dimensions.get('window').height * 0.28), []);
+  const snapPoints = useMemo(() => [sheetHeight], [sheetHeight]);
+  const barcodeMaxWidth = useMemo(() => Math.min(Dimensions.get('window').width - 72, 400), []);
   const userId = useSessionStore((state) => state.userId);
   const [membershipNumber, setMembershipNumber] = useState<string | null>(null);
   const [draftNumber, setDraftNumber] = useState('');
@@ -24,9 +49,11 @@ export default function MembershipCardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scannerVisible, setScannerVisible] = useState(false);
-  const [facing] = useState<CameraType>('back');
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [hasScannedInSession, setHasScannedInSession] = useState(false);
+
+  const barcodeEncodePayload = useMemo(() => {
+    if (!membershipNumber) return '';
+    return barcodeDisplayValue(membershipNumber);
+  }, [membershipNumber]);
 
   useEffect(() => {
     if (!userId) {
@@ -46,7 +73,9 @@ export default function MembershipCardScreen() {
           console.warn('[membership-card] load profile', dbError.message);
           setError('Could not load your membership number.');
         } else {
-          setMembershipNumber((data?.membership_number as string | null) ?? null);
+          const raw = (data?.membership_number as string | null)?.trim();
+          const normalizedStored = raw ? normalizeMembershipNumber(raw) : null;
+          setMembershipNumber(normalizedStored && normalizedStored.length > 0 ? normalizedStored : null);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -80,31 +109,8 @@ export default function MembershipCardScreen() {
     }
   };
 
-  const ensureCameraPermission = async () => {
-    if (cameraPermission?.granted) {
-      return true;
-    }
-    const response = await requestCameraPermission();
-    return response.granted;
-  };
-
-  const handleScanPress = async () => {
-    const ok = await ensureCameraPermission();
-    if (!ok) {
-      setError('Camera permission is required to scan your card.');
-      return;
-    }
-    setHasScannedInSession(false);
+  const handleScanPress = () => {
     setScannerVisible(true);
-  };
-
-  const handleBarcodeScanned = async (result: BarcodeScanningResult) => {
-    if (hasScannedInSession) return;
-    setHasScannedInSession(true);
-    setScannerVisible(false);
-    const value = typeof result.data === 'string' ? result.data.trim() : '';
-    if (!value) return;
-    await saveMembershipNumber(value);
   };
 
   const renderBackdrop = useCallback(
@@ -169,14 +175,21 @@ export default function MembershipCardScreen() {
               <Text style={styles.cardTitle}>Pitch &amp; Putt YVR</Text>
               {membershipNumber ? (
                 <View style={styles.barcodeWrap}>
-                  <Barcode
-                    value={membershipNumber}
-                    format="CODE128"
-                    singleBarWidth={2}
-                    height={80}
-                    lineColor="#1a1a1a"
-                    backgroundColor="transparent"
-                  />
+                  {isAsciiBarcodeSafe(barcodeEncodePayload) && barcodeEncodePayload.length > 0 ? (
+                    <Barcode
+                      value={barcodeEncodePayload}
+                      format="CODE128"
+                      singleBarWidth={2}
+                      height={80}
+                      maxWidth={barcodeMaxWidth}
+                      lineColor="#1a1a1a"
+                      backgroundColor="transparent"
+                    />
+                  ) : (
+                    <Text style={styles.barcodeUnavailable}>
+                      Unable to generate barcode from this membership number.
+                    </Text>
+                  )}
                   <Text style={styles.barcodeNumber}>{membershipNumber}</Text>
                 </View>
               ) : (
@@ -222,53 +235,42 @@ export default function MembershipCardScreen() {
           </>
         )}
 
-        <Modal visible={scannerVisible} animationType="slide" presentationStyle="fullScreen">
-          <SafeAreaView style={styles.scannerSafeArea}>
-            <View style={styles.scannerTopbar}>
-              <Pressable style={styles.backBtn} onPress={() => setScannerVisible(false)}>
-                <Feather name="x" size={20} color="#1a1a1a" />
-              </Pressable>
-              <Text style={styles.scannerTitle}>Scan membership card</Text>
-              <View style={styles.backBtnPlaceholder} />
-            </View>
-            <View style={styles.scannerBody}>
-              <CameraView
-                style={styles.cameraView}
-                facing={facing}
-                onBarcodeScanned={handleBarcodeScanned}
-              />
-              <View style={styles.scannerOverlay}>
-                <View style={styles.scannerFrame} />
-                <Text style={styles.scannerHint}>Align the card barcode inside the frame.</Text>
-                <Pressable style={styles.closeScannerBtn} onPress={() => setScannerVisible(false)}>
-                  <Text style={styles.closeScannerBtnText}>Cancel scan</Text>
-                </Pressable>
-              </View>
-            </View>
-          </SafeAreaView>
-        </Modal>
+        {scannerVisible ? (
+          <MembershipCardScanner
+            onClose={() => setScannerVisible(false)}
+            onScan={(raw) => saveMembershipNumber(raw)}
+          />
+        ) : null}
 
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={-1}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          backdropComponent={renderBackdrop}
-          backgroundStyle={styles.sheetBackground}
-          handleIndicatorStyle={styles.sheetHandle}
-        >
-          <BottomSheetView style={styles.sheetContent}>
-            <Text style={styles.sheetTitle}>Manage card</Text>
-            <Pressable style={styles.sheetItem} onPress={() => { bottomSheetRef.current?.close(); void handleScanPress(); }}>
-              <Text style={styles.sheetItemText}>Scan new card</Text>
-              <Feather name="camera" size={16} color="#2D6A4F" />
-            </Pressable>
-            <Pressable style={styles.sheetItem} onPress={() => void deleteCurrentCard()} disabled={isSaving}>
-              <Text style={styles.sheetItemDanger}>Delete current card</Text>
-              <Feather name="trash-2" size={16} color="#B85C38" />
-            </Pressable>
-          </BottomSheetView>
-        </BottomSheet>
+        {membershipNumber && userId ? (
+          <BottomSheet
+            ref={bottomSheetRef}
+            index={-1}
+            snapPoints={snapPoints}
+            enablePanDownToClose
+            backdropComponent={renderBackdrop}
+            backgroundStyle={styles.sheetBackground}
+            handleIndicatorStyle={styles.sheetHandle}
+          >
+            <BottomSheetView style={styles.sheetContent}>
+              <Text style={styles.sheetTitle}>Manage card</Text>
+              <Pressable
+                style={styles.sheetItem}
+                onPress={() => {
+                  bottomSheetRef.current?.close();
+                  handleScanPress();
+                }}
+              >
+                <Text style={styles.sheetItemText}>Scan new card</Text>
+                <Feather name="camera" size={16} color="#2D6A4F" />
+              </Pressable>
+              <Pressable style={styles.sheetItem} onPress={() => void deleteCurrentCard()} disabled={isSaving}>
+                <Text style={styles.sheetItemDanger}>Delete current card</Text>
+                <Feather name="trash-2" size={16} color="#B85C38" />
+              </Pressable>
+            </BottomSheetView>
+          </BottomSheet>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -331,6 +333,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f6f2',
   },
   barcodeNumber: { marginTop: 6, color: '#1a1a1a', fontSize: 16, fontWeight: '700', letterSpacing: 2 },
+  barcodeUnavailable: { color: '#6b6b6b', fontSize: 13, textAlign: 'center', paddingHorizontal: 8 },
   actions: { marginTop: 16, gap: 10 },
   actionPrimary: {
     flexDirection: 'row',
@@ -365,56 +368,6 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { backgroundColor: '#9bb3cf' },
   saveBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
   errorText: { marginTop: 2, color: '#B85C38', fontSize: 13 },
-  scannerSafeArea: { flex: 1, backgroundColor: '#000000' },
-  scannerTopbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  scannerTitle: { color: '#ffffff', fontSize: 18, fontWeight: '700' },
-  scannerBody: {
-    flex: 1,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  cameraView: {
-    width: '100%',
-    maxWidth: 460,
-    height: '62%',
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  scannerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  scannerFrame: {
-    width: '86%',
-    maxWidth: 360,
-    aspectRatio: 1.9,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  scannerHint: { marginTop: 14, color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  closeScannerBtn: {
-    marginTop: 16,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.62)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  closeScannerBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
   sheetBackground: {
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
