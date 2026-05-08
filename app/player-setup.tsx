@@ -22,11 +22,13 @@ export default function PlayerSetupScreen() {
   const createRound = useRoundsStore((state) => state.createRound);
   const [playerCount, setPlayerCount] = useState(3);
   const userFirstName = useMemo(() => {
+    const isGuestUser = !userId || userId.startsWith('guest-');
+    if (isGuestUser) return 'Guest';
     if (userName?.trim()) return userName.trim();
     const localPart = userEmail?.split('@')[0]?.trim();
-    if (!localPart) return 'You';
+    if (!localPart) return 'Guest';
     return localPart.charAt(0).toUpperCase() + localPart.slice(1);
-  }, [userEmail, userName]);
+  }, [userEmail, userId, userName]);
   const [players, setPlayers] = useState([userFirstName, '', '', '']);
   const allPlayerNamesFilled = useMemo(
     () => players.slice(0, playerCount).every((name) => name.trim().length > 0),

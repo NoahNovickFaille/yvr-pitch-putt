@@ -1,16 +1,19 @@
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
 import { getCourseById } from '@/src/pitchputt/data';
-import { useRoundsStore } from '@/src/pitchputt/store';
+import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 export default function FinalScorecardScreen() {
   const { roundId } = useLocalSearchParams<{ roundId: string }>();
   const round = useRoundsStore((state) => state.rounds.find((item) => item.id === roundId));
   const completeRound = useRoundsStore((state) => state.completeRound);
+  const syncRoundScoresToRemote = useRoundsStore((state) => state.syncRoundScoresToRemote);
+  const userId = useSessionStore((state) => state.userId);
+  const [showGuestSignupModal, setShowGuestSignupModal] = useState(false);
 
   const course = useMemo(() => (round ? getCourseById(round.courseId) : undefined), [round]);
   const totalsByPlayer = useMemo(() => {
@@ -58,9 +61,15 @@ export default function FinalScorecardScreen() {
     round.players.length <= 2 ? 32 : round.players.length === 3 ? 24 : round.players.length === 4 ? 30 : 30;
   const playerColsOffset = round.players.length >= 4 ? 14 : 25;
   const playerColWidth = round.players.length <= 2 ? 62 : round.players.length === 3 ? 56 : 44;
-  const handleSaveScorecard = () => {
+  const handleSaveScorecard = async () => {
+    const isGuestUser = !userId || userId.startsWith('guest-');
+    await syncRoundScoresToRemote(round.id);
     if (!round.completedAt) {
       completeRound(round.id);
+    }
+    if (isGuestUser) {
+      setShowGuestSignupModal(true);
+      return;
     }
     router.replace('/(tabs)');
   };
@@ -191,11 +200,47 @@ export default function FinalScorecardScreen() {
 
         <Pressable
           style={styles.finishButton}
-          onPress={handleSaveScorecard}
+          onPress={() => void handleSaveScorecard()}
         >
           <Text style={styles.finishButtonText}>Save scorecard</Text>
         </Pressable>
       </ScrollView>
+
+      <Modal
+        visible={showGuestSignupModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGuestSignupModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Save this round to your account</Text>
+            <Text style={styles.modalBody}>
+              Create a free account to back up your rounds and keep your stats synced across devices.
+            </Text>
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={styles.modalSecondaryBtn}
+                onPress={() => {
+                  setShowGuestSignupModal(false);
+                  router.replace('/(tabs)');
+                }}
+              >
+                <Text style={styles.modalSecondaryBtnText}>Not now</Text>
+              </Pressable>
+              <Pressable
+                style={styles.modalPrimaryBtn}
+                onPress={() => {
+                  setShowGuestSignupModal(false);
+                  router.replace('/register');
+                }}
+              >
+                <Text style={styles.modalPrimaryBtnText}>Create account</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -341,5 +386,46 @@ const styles = StyleSheet.create({
   summaryOver: { color: '#B85C38' },
   finishButton: { backgroundColor: '#2D6A4F', borderRadius: 12, alignItems: 'center', paddingVertical: 14, marginTop: 6 },
   finishButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 10,
+  },
+  modalTitle: { color: '#1a1a1a', fontSize: 19, fontWeight: '800' },
+  modalBody: { color: '#6b6b6b', fontSize: 14, lineHeight: 20 },
+  modalButtons: { flexDirection: 'row', gap: 8, marginTop: 2 },
+  modalSecondaryBtn: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    backgroundColor: '#ffffff',
+  },
+  modalSecondaryBtnText: { color: '#1a1a1a', fontSize: 14, fontWeight: '700' },
+  modalPrimaryBtn: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    backgroundColor: '#2D6A4F',
+  },
+  modalPrimaryBtnText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
   errorText: { color: '#B85C38', padding: 20 },
 });

@@ -10,6 +10,10 @@ import Barcode from 'react-native-barcode-svg';
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/pitchputt/store';
 
+function normalizeMembershipNumber(value: string): string {
+  return value.replace(/[^0-9a-z]/gi, '').toUpperCase();
+}
+
 export default function MembershipCardScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['30%'], []);
@@ -55,20 +59,21 @@ export default function MembershipCardScreen() {
   }, [userId]);
 
   const saveMembershipNumber = async (value: string) => {
-    if (!userId || !value.trim()) return;
+    const normalized = normalizeMembershipNumber(value);
+    if (!userId || !normalized.trim()) return;
     setIsSaving(true);
     setError(null);
     try {
       const { error: dbError } = await supabase
         .from('profiles')
-        .update({ membership_number: value.trim() })
+        .update({ membership_number: normalized.trim() })
         .eq('id', userId);
       if (dbError) {
         console.warn('[membership-card] save membership_number', dbError.message);
         setError('Could not save your membership number. Try again.');
         return;
       }
-      setMembershipNumber(value.trim());
+      setMembershipNumber(normalized.trim());
       setDraftNumber('');
     } finally {
       setIsSaving(false);
@@ -192,10 +197,10 @@ export default function MembershipCardScreen() {
                     <TextInput
                       style={styles.input}
                       value={draftNumber}
-                      onChangeText={setDraftNumber}
+                      onChangeText={(text) => setDraftNumber(normalizeMembershipNumber(text))}
                       placeholder="Or type membership number"
-                      keyboardType="numeric"
-                      autoCapitalize="none"
+                      keyboardType="default"
+                      autoCapitalize="characters"
                       autoCorrect={false}
                     />
                     <Pressable

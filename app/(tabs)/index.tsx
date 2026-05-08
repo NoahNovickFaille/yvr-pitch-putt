@@ -126,16 +126,21 @@ export default function HomeScreen() {
   const rounds = useRoundsStore((state) => state.rounds);
   const activeRoundId = useRoundsStore((state) => state.activeRoundId);
   const deleteRound = useRoundsStore((state) => state.deleteRound);
+  const userId = useSessionStore((state) => state.userId);
   const userName = useSessionStore((state) => state.userName);
   const userEmail = useSessionStore((state) => state.userEmail);
   const firstName = useMemo(() => {
+    const isGuestUser = !userId || userId.startsWith('guest-');
+    if (isGuestUser) {
+      return 'Guest';
+    }
     if (userName?.trim()) {
       return userName.trim();
     }
     const localPart = userEmail?.split('@')[0]?.trim();
-    if (!localPart) return 'Marcus';
+    if (!localPart) return 'Guest';
     return localPart.charAt(0).toUpperCase() + localPart.slice(1);
-  }, [userEmail, userName]);
+  }, [userEmail, userId, userName]);
   const renderBackdrop = useCallback(
     (props: any) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.35} />,
     [],

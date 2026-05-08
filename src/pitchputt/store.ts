@@ -7,6 +7,7 @@ import {
   deleteRoundRemote,
   fetchRemoteRounds,
   getAuthedUserId,
+  insertRoundRemote,
   type RemoteRoundResult,
   upsertHoleScoreRemote,
 } from "./roundsRemote";
@@ -73,6 +74,15 @@ interface RoundsState {
     playerId: string,
     strokes: number,
   ) => void;
+  adjustScore: (
+    roundId: string,
+    holeNumber: number,
+    playerId: string,
+    delta: number,
+    fallback: number,
+  ) => void;
+  syncRoundScoresToRemote: (roundId: string) => Promise<void>;
+  syncGuestRoundsToUser: (userId: string) => Promise<void>;
   setActiveRound: (roundId: string | null) => void;
   completeRound: (roundId: string) => void;
   deleteRound: (roundId: string) => Promise<RemoteRoundResult>;
@@ -139,6 +149,7 @@ export const useRoundsStore = create<RoundsState>()(
           activeRoundId: round.id,
         })),
       updateScore: (roundId, holeNumber, playerId, strokes) => {
+        const boundedStrokes = Math.max(1, Math.min(15, Math.round(strokes)));
         set((state) => ({
           rounds: state.rounds.map((round) => {
             if (round.id !== roundId) {
@@ -151,22 +162,86 @@ export const useRoundsStore = create<RoundsState>()(
                 ...round.holeScores,
                 [holeNumber]: {
                   ...(round.holeScores[holeNumber] ?? {}),
-                  [playerId]: strokes,
+                  [playerId]: boundedStrokes,
                 },
               },
             };
           }),
         }));
-        const updated = get().rounds.find((r) => r.id === roundId);
-        if (updated) {
-          queueMicrotask(() => {
-            void upsertHoleScoreRemote(
-              updated,
-              holeNumber,
-              playerId,
-              strokes,
+      },
+      adjustScore: (roundId, holeNumber, playerId, delta, fallback) => {
+        const currentRound = get().rounds.find((r) => r.id === roundId);
+        const current =
+          currentRound?.holeScores?.[holeNumber]?.[playerId] ?? fallback;
+        const next = Math.max(1, Math.min(15, current + delta));
+        get().updateScore(roundId, holeNumber, playerId, next);
+      },
+      syncRoundScoresToRemote: async (roundId) => {
+        const round = get().rounds.find((r) => r.id === roundId);
+        if (!round) return;
+        for (const [holeNumberKey, byPlayer] of Object.entries(
+          round.holeScores,
+        )) {
+          const holeNumber = Number(holeNumberKey);
+          if (!Number.isFinite(holeNumber)) continue;
+          for (const [playerId, strokes] of Object.entries(byPlayer)) {
+            if (typeof strokes !== "number") continue;
+            await upsertHoleScoreRemote(round, holeNumber, playerId, strokes);
+          }
+        }
+      },
+      syncGuestRoundsToUser: async (userId) => {
+        const localGuestRounds = get().rounds.filter(
+          (round) =>
+            round.ownerId === "local-user" ||
+            round.ownerId.startsWith("guest-"),
+        );
+
+        if (localGuestRounds.length === 0) {
+          return;
+        }
+
+        const adoptedRounds = localGuestRounds.map((round) => ({
+          ...round,
+          ownerId: userId,
+        }));
+
+        set((state) => ({
+          rounds: state.rounds.map((round) => {
+            if (
+              round.ownerId === "local-user" ||
+              round.ownerId.startsWith("guest-")
+            ) {
+              return { ...round, ownerId: userId };
+            }
+            return round;
+          }),
+        }));
+
+        for (const round of adoptedRounds) {
+          const inserted = await insertRoundRemote(round);
+          if (!inserted.ok) {
+            console.warn(
+              "[roundsStore] syncGuestRoundsToUser insert:",
+              inserted.message,
             );
-          });
+            continue;
+          }
+
+          for (const [holeNumberKey, byPlayer] of Object.entries(
+            round.holeScores,
+          )) {
+            const holeNumber = Number(holeNumberKey);
+            if (!Number.isFinite(holeNumber)) continue;
+            for (const [playerId, strokes] of Object.entries(byPlayer)) {
+              if (typeof strokes !== "number") continue;
+              await upsertHoleScoreRemote(round, holeNumber, playerId, strokes);
+            }
+          }
+
+          if (round.completedAt) {
+            await completeRoundRemote(round, round.completedAt);
+          }
         }
       },
       setActiveRound: (roundId) => set({ activeRoundId: roundId }),

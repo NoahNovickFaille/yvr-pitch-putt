@@ -1,14 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { signUpWithEmail } from '@/src/pitchputt/authService';
+import { getAuthedUserId } from '@/src/pitchputt/roundsRemote';
 import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+async function waitForAuthedUserId(expectedUserId: string): Promise<boolean> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 2500) {
+    const authedUserId = await getAuthedUserId();
+    if (authedUserId === expectedUserId) return true;
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+  return false;
+}
+
 export default function RegisterScreen() {
+  const lastNameInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
   const params = useLocalSearchParams<{ email?: string; password?: string }>();
   const setSession = useSessionStore((state) => state.setSession);
   const [firstName, setFirstName] = useState('');
@@ -58,6 +72,12 @@ export default function RegisterScreen() {
         return;
       }
       setSession(sessionUser.id, email, firstName.trim());
+      const hasAuthedSession = await waitForAuthedUserId(sessionUser.id);
+      if (hasAuthedSession) {
+        await useRoundsStore.getState().syncGuestRoundsToUser(sessionUser.id);
+      } else {
+        console.warn('[register] Supabase session not ready; skipping immediate guest round sync.');
+      }
       void useRoundsStore.getState().hydrateRoundsFromDatabase();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sign up failed. Please try again.';
@@ -87,16 +107,24 @@ export default function RegisterScreen() {
           value={firstName}
           onChangeText={setFirstName}
           autoCapitalize="words"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => lastNameInputRef.current?.focus()}
         />
         <TextInput
+          ref={lastNameInputRef}
           style={styles.input}
           placeholder="Last name"
           placeholderTextColor="#aaaaaa"
           value={lastName}
           onChangeText={setLastName}
           autoCapitalize="words"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => emailInputRef.current?.focus()}
         />
         <TextInput
+          ref={emailInputRef}
           style={styles.input}
           placeholder="Email"
           placeholderTextColor="#aaaaaa"
@@ -104,14 +132,22 @@ export default function RegisterScreen() {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
         />
         <TextInput
+          ref={passwordInputRef}
           style={styles.input}
           placeholder="Password"
           placeholderTextColor="#aaaaaa"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          autoCorrect={false}
+          returnKeyType="go"
+          onSubmitEditing={() => void createAccount()}
         />
         <Text style={[styles.passwordHint, isPasswordValid ? styles.passwordHintValid : styles.passwordHintInvalid]}>
           {'\u2022'} Password must be at least 8 characters long
@@ -141,7 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     gap: 12,
   },
   logoImage: {

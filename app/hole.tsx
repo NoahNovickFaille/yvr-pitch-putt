@@ -29,6 +29,10 @@ export default function HoleScreen() {
     state.rounds.find((item) => item.id === roundId),
   );
   const updateScore = useRoundsStore((state) => state.updateScore);
+  const adjustScore = useRoundsStore((state) => state.adjustScore);
+  const syncRoundScoresToRemote = useRoundsStore(
+    (state) => state.syncRoundScoresToRemote,
+  );
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
   const snapPoints = useMemo(() => ["68%"], []);
@@ -103,13 +107,14 @@ export default function HoleScreen() {
     return hasScores ? strokesTotal : null;
   };
 
-  const saveAndContinue = () => {
+  const saveAndContinue = async () => {
     if (!round || !course) return;
 
     const latestRound =
       useRoundsStore.getState().rounds.find((r) => r.id === roundId) ?? round;
 
-    const proceed = () => {
+    const proceed = async () => {
+      await syncRoundScoresToRemote(round.id);
       bottomSheetRef.current?.close();
       if (isFinalHole) {
         router.replace({ pathname: "/final-scorecard", params: { roundId } });
@@ -126,15 +131,16 @@ export default function HoleScreen() {
       return;
     }
 
-    proceed();
+    await proceed();
   };
 
   const dismissIncompleteModal = () => {
     setIncompleteModalVisible(false);
   };
 
-  const confirmIncompleteSave = () => {
+  const confirmIncompleteSave = async () => {
     setIncompleteModalVisible(false);
+    await syncRoundScoresToRemote(round.id);
     bottomSheetRef.current?.close();
     router.replace({ pathname: "/final-scorecard", params: { roundId } });
   };
@@ -189,12 +195,14 @@ export default function HoleScreen() {
               const totalStrokes = getRunningRoundStrokes(player.id);
               return (
                 <View key={player.id} style={styles.playerCell}>
-                  <Text style={[styles.pScore, scoreTone(delta)]}>
-                    {formatScore(delta)}
-                  </Text>
-                  <Text style={styles.pStrokes}>
-                    {totalStrokes === null ? "(—)" : `(${totalStrokes})`}
-                  </Text>
+                  <View style={styles.pScoreRow}>
+                    <Text style={[styles.pScore, scoreTone(delta)]}>
+                      {formatScore(delta)}
+                    </Text>
+                    <Text style={styles.pStrokes}>
+                      {totalStrokes === null ? "(—)" : `(${totalStrokes})`}
+                    </Text>
+                  </View>
                   <Text style={styles.pName}>{player.name}</Text>
                   {index < round.players.length - 1 ? (
                     <View style={styles.sep} />
@@ -262,11 +270,12 @@ export default function HoleScreen() {
                     <Pressable
                       style={styles.stepperBtn}
                       onPress={() =>
-                        updateScore(
+                        adjustScore(
                           round.id,
                           holeNumber,
                           player.id,
-                          Math.max(1, displayValue - 1),
+                          -1,
+                          currentHole.par,
                         )
                       }
                     >
@@ -276,11 +285,12 @@ export default function HoleScreen() {
                     <Pressable
                       style={styles.stepperBtn}
                       onPress={() =>
-                        updateScore(
+                        adjustScore(
                           round.id,
                           holeNumber,
                           player.id,
-                          Math.min(15, displayValue + 1),
+                          1,
+                          currentHole.par,
                         )
                       }
                     >
@@ -291,7 +301,7 @@ export default function HoleScreen() {
               );
             })}
 
-            <Pressable style={styles.saveBtn} onPress={saveAndContinue}>
+            <Pressable style={styles.saveBtn} onPress={() => void saveAndContinue()}>
               <Text style={styles.saveBtnText}>Save</Text>
             </Pressable>
           </BottomSheetView>
@@ -328,7 +338,7 @@ export default function HoleScreen() {
                 </Pressable>
                 <Pressable
                   style={styles.incompleteModalBtnPrimary}
-                  onPress={confirmIncompleteSave}
+                  onPress={() => void confirmIncompleteSave()}
                 >
                   <Text style={styles.incompleteModalBtnPrimaryText}>
                     Save anyway
@@ -393,11 +403,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   playerCell: { flex: 1, alignItems: "center" },
-  pScore: { fontSize: 26, fontWeight: "800", lineHeight: 30 },
+  pScoreRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  pScore: { fontSize: 26, fontWeight: "800" },
   scoreUnder: { color: "#2D6A4F" },
   scoreEven: { color: "#6b6b6b" },
   scoreOver: { color: "#B85C38" },
-  pStrokes: { color: "#1a1a1a", marginTop: 1, fontSize: 14, fontWeight: "700" },
+  pStrokes: { color: "#1a1a1a", fontSize: 14, fontWeight: "700", lineHeight: 14 },
   pName: { color: "#6b6b6b", marginTop: 2, fontSize: 13, fontWeight: "600" },
   sep: {
     position: "absolute",

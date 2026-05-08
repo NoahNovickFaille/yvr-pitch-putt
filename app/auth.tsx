@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -21,6 +21,7 @@ import { useRoundsStore, useSessionStore } from "@/src/pitchputt/store";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AuthScreen() {
+  const passwordInputRef = useRef<TextInput>(null);
   const setSession = useSessionStore((state) => state.setSession);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -184,8 +185,13 @@ export default function AuthScreen() {
           }}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
         />
         <TextInput
+          ref={passwordInputRef}
           style={styles.input}
           placeholder="Password"
           placeholderTextColor="#aaaaaa"
@@ -197,6 +203,9 @@ export default function AuthScreen() {
             }
           }}
           secureTextEntry
+          autoCorrect={false}
+          returnKeyType="go"
+          onSubmitEditing={() => void continueWithProvider("email")}
         />
 
         {errorMessage ? (
@@ -252,7 +261,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.06)",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 12,
   },
   logoImage: {

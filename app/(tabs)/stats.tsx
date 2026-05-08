@@ -61,6 +61,7 @@ export default function StatsScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['36%'], []);
   const rounds = useRoundsStore((state) => state.rounds);
+  const userId = useSessionStore((state) => state.userId);
   const userName = useSessionStore((state) => state.userName);
   const userEmail = useSessionStore((state) => state.userEmail);
   const [range, setRange] = useState<RangeKey>('year');
@@ -73,13 +74,17 @@ export default function StatsScreen() {
   );
 
   const firstName = useMemo(() => {
+    const isGuestUser = !userId || userId.startsWith('guest-');
+    if (isGuestUser) {
+      return 'Guest';
+    }
     if (userName?.trim()) {
       return userName.trim();
     }
     const localPart = userEmail?.split('@')[0]?.trim();
-    if (!localPart) return 'M';
+    if (!localPart) return 'Guest';
     return localPart.charAt(0).toUpperCase() + localPart.slice(1);
-  }, [userEmail, userName]);
+  }, [userEmail, userId, userName]);
   const avatarLetter = firstName.charAt(0).toUpperCase();
 
   const navigateFromMenu = (path: '/(tabs)' | '/logout' | '/(tabs)/stats' | '/membership-card') => {
