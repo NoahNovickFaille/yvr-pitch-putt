@@ -6,6 +6,7 @@ import BottomSheet, {
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   StyleSheet,
@@ -35,6 +36,8 @@ export default function HoleScreen() {
   );
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
+  const [isSavingHoleSheet, setIsSavingHoleSheet] = useState(false);
+  const [isSavingIncomplete, setIsSavingIncomplete] = useState(false);
   const snapPoints = useMemo(() => ["68%"], []);
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -108,7 +111,7 @@ export default function HoleScreen() {
   };
 
   const saveAndContinue = async () => {
-    if (!round || !course) return;
+    if (!round || !course || isSavingHoleSheet || isSavingIncomplete) return;
 
     const latestRound =
       useRoundsStore.getState().rounds.find((r) => r.id === roundId) ?? round;
@@ -131,7 +134,12 @@ export default function HoleScreen() {
       return;
     }
 
-    await proceed();
+    setIsSavingHoleSheet(true);
+    try {
+      await proceed();
+    } finally {
+      setIsSavingHoleSheet(false);
+    }
   };
 
   const dismissIncompleteModal = () => {
@@ -139,10 +147,16 @@ export default function HoleScreen() {
   };
 
   const confirmIncompleteSave = async () => {
-    setIncompleteModalVisible(false);
-    await syncRoundScoresToRemote(round.id);
-    bottomSheetRef.current?.close();
-    router.replace({ pathname: "/final-scorecard", params: { roundId } });
+    if (isSavingIncomplete) return;
+    setIsSavingIncomplete(true);
+    try {
+      await syncRoundScoresToRemote(round.id);
+      setIncompleteModalVisible(false);
+      bottomSheetRef.current?.close();
+      router.replace({ pathname: "/final-scorecard", params: { roundId } });
+    } finally {
+      setIsSavingIncomplete(false);
+    }
   };
 
   return (
@@ -301,8 +315,19 @@ export default function HoleScreen() {
               );
             })}
 
-            <Pressable style={styles.saveBtn} onPress={() => void saveAndContinue()}>
-              <Text style={styles.saveBtnText}>Save</Text>
+            <Pressable
+              style={[styles.saveBtn, isSavingHoleSheet && styles.saveBtnDisabled]}
+              disabled={isSavingHoleSheet || isSavingIncomplete}
+              onPress={() => void saveAndContinue()}
+            >
+              {isSavingHoleSheet ? (
+                <View style={styles.saveBtnInner}>
+                  <ActivityIndicator color="#ffffff" size="small" />
+                  <Text style={styles.saveBtnText}>Saving…</Text>
+                </View>
+              ) : (
+                <Text style={styles.saveBtnText}>Save</Text>
+              )}
             </Pressable>
           </BottomSheetView>
         </BottomSheet>
@@ -330,6 +355,7 @@ export default function HoleScreen() {
               <View style={styles.incompleteModalActions}>
                 <Pressable
                   style={styles.incompleteModalBtnSecondary}
+                  disabled={isSavingIncomplete}
                   onPress={dismissIncompleteModal}
                 >
                   <Text style={styles.incompleteModalBtnSecondaryText}>
@@ -337,12 +363,25 @@ export default function HoleScreen() {
                   </Text>
                 </Pressable>
                 <Pressable
-                  style={styles.incompleteModalBtnPrimary}
+                  style={[
+                    styles.incompleteModalBtnPrimary,
+                    isSavingIncomplete && styles.incompleteModalBtnPrimaryDisabled,
+                  ]}
+                  disabled={isSavingIncomplete}
                   onPress={() => void confirmIncompleteSave()}
                 >
-                  <Text style={styles.incompleteModalBtnPrimaryText}>
-                    Save anyway
-                  </Text>
+                  {isSavingIncomplete ? (
+                    <View style={styles.saveBtnInner}>
+                      <ActivityIndicator color="#ffffff" size="small" />
+                      <Text style={styles.incompleteModalBtnPrimaryText}>
+                        Saving…
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.incompleteModalBtnPrimaryText}>
+                      Save anyway
+                    </Text>
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -494,8 +533,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
+    justifyContent: "center",
     marginTop: 4,
   },
+  saveBtnDisabled: { opacity: 0.85 },
+  saveBtnInner: { flexDirection: "row", alignItems: "center", gap: 10 },
   saveBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
   incompleteModalRoot: {
     flex: 1,
@@ -553,8 +595,11 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#2D6A4F",
+    minHeight: 46,
   },
+  incompleteModalBtnPrimaryDisabled: { opacity: 0.88 },
   incompleteModalBtnPrimaryText: {
     color: "#ffffff",
     fontWeight: "700",
