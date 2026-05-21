@@ -11,8 +11,16 @@ import {
   type RemoteRoundResult,
   upsertHoleScoreRemote,
 } from "./roundsRemote";
-import { isSupabaseAuthUserId } from "./sessionUtils";
+import {
+  enqueueHoleScoresSync as queueHoleScoresSync,
+  enqueueRoundScoresSync as queueRoundScoresSync,
+} from "./roundRemoteSyncQueue";
+import { isSupabaseAuthUserId, isUuid } from "./sessionUtils";
 import { Round } from "./types";
+
+function roundUsesRemoteSync(round: Round): boolean {
+  return isSupabaseAuthUserId(round.ownerId) && isUuid(round.id);
+}
 
 /** In-memory mirror when AsyncStorage native module is unavailable (same class of error as Supabase). */
 const persistMemoryByKey = new Map<string, string>();
@@ -81,7 +89,11 @@ interface RoundsState {
     delta: number,
     fallback: number,
   ) => void;
+  syncHoleScoresToRemote: (roundId: string, holeNumber: number) => Promise<void>;
   syncRoundScoresToRemote: (roundId: string) => Promise<void>;
+  /** Fire-and-forget: syncs one hole without blocking navigation. */
+  scheduleHoleScoresSync: (roundId: string, holeNumber: number) => void;
+  scheduleRoundScoresSync: (roundId: string) => void;
   syncGuestRoundsToUser: (userId: string) => Promise<void>;
   setActiveRound: (roundId: string | null) => void;
   completeRound: (roundId: string) => void;
@@ -176,9 +188,34 @@ export const useRoundsStore = create<RoundsState>()(
         const next = Math.max(1, Math.min(15, current + delta));
         get().updateScore(roundId, holeNumber, playerId, next);
       },
+      syncHoleScoresToRemote: async (roundId, holeNumber) => {
+        const round = get().rounds.find((r) => r.id === roundId);
+        if (!round || !roundUsesRemoteSync(round)) return;
+
+        const byPlayer = round.holeScores[holeNumber];
+        if (!byPlayer) return;
+
+        let failed = false;
+        for (const [playerId, strokes] of Object.entries(byPlayer)) {
+          if (typeof strokes !== "number") continue;
+          const ok = await upsertHoleScoreRemote(
+            round,
+            holeNumber,
+            playerId,
+            strokes,
+          );
+          if (!ok) failed = true;
+        }
+        if (failed) {
+          throw new Error(
+            `[roundsStore] syncHoleScoresToRemote failed round=${roundId} hole=${holeNumber}`,
+          );
+        }
+      },
       syncRoundScoresToRemote: async (roundId) => {
         const round = get().rounds.find((r) => r.id === roundId);
         if (!round) return;
+        let failed = false;
         for (const [holeNumberKey, byPlayer] of Object.entries(
           round.holeScores,
         )) {
@@ -186,9 +223,32 @@ export const useRoundsStore = create<RoundsState>()(
           if (!Number.isFinite(holeNumber)) continue;
           for (const [playerId, strokes] of Object.entries(byPlayer)) {
             if (typeof strokes !== "number") continue;
-            await upsertHoleScoreRemote(round, holeNumber, playerId, strokes);
+            const ok = await upsertHoleScoreRemote(
+              round,
+              holeNumber,
+              playerId,
+              strokes,
+            );
+            if (!ok) failed = true;
           }
         }
+        if (failed) {
+          throw new Error(
+            `[roundsStore] syncRoundScoresToRemote failed round=${roundId}`,
+          );
+        }
+      },
+      scheduleHoleScoresSync: (roundId, holeNumber) => {
+        const round = get().rounds.find((r) => r.id === roundId);
+        if (!round || !roundUsesRemoteSync(round)) return;
+        queueHoleScoresSync(roundId, holeNumber, (id, hole) =>
+          get().syncHoleScoresToRemote(id, hole),
+        );
+      },
+      scheduleRoundScoresSync: (roundId) => {
+        const round = get().rounds.find((r) => r.id === roundId);
+        if (!round || !roundUsesRemoteSync(round)) return;
+        queueRoundScoresSync(roundId, (id) => get().syncRoundScoresToRemote(id));
       },
       syncGuestRoundsToUser: async (userId) => {
         const localGuestRounds = get().rounds.filter(

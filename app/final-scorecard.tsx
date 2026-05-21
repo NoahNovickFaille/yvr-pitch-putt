@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -11,10 +11,9 @@ export default function FinalScorecardScreen() {
   const { roundId } = useLocalSearchParams<{ roundId: string }>();
   const round = useRoundsStore((state) => state.rounds.find((item) => item.id === roundId));
   const completeRound = useRoundsStore((state) => state.completeRound);
-  const syncRoundScoresToRemote = useRoundsStore((state) => state.syncRoundScoresToRemote);
+  const scheduleRoundScoresSync = useRoundsStore((state) => state.scheduleRoundScoresSync);
   const userId = useSessionStore((state) => state.userId);
   const [showGuestSignupModal, setShowGuestSignupModal] = useState(false);
-  const [isSavingScorecard, setIsSavingScorecard] = useState(false);
 
   const course = useMemo(() => (round ? getCourseById(round.courseId) : undefined), [round]);
   const totalsByPlayer = useMemo(() => {
@@ -62,23 +61,17 @@ export default function FinalScorecardScreen() {
     round.players.length <= 2 ? 32 : round.players.length === 3 ? 24 : round.players.length === 4 ? 30 : 30;
   const playerColsOffset = round.players.length >= 4 ? 14 : 25;
   const playerColWidth = round.players.length <= 2 ? 62 : round.players.length === 3 ? 56 : 44;
-  const handleSaveScorecard = async () => {
-    if (isSavingScorecard) return;
+  const handleSaveScorecard = () => {
     const isGuestUser = !userId || userId.startsWith('guest-');
-    setIsSavingScorecard(true);
-    try {
-      await syncRoundScoresToRemote(round.id);
-      if (!round.completedAt) {
-        completeRound(round.id);
-      }
-      if (isGuestUser) {
-        setShowGuestSignupModal(true);
-        return;
-      }
-      router.replace('/(tabs)');
-    } finally {
-      setIsSavingScorecard(false);
+    if (!round.completedAt) {
+      completeRound(round.id);
     }
+    scheduleRoundScoresSync(round.id);
+    if (isGuestUser) {
+      setShowGuestSignupModal(true);
+      return;
+    }
+    router.replace('/(tabs)');
   };
 
   return (
@@ -205,19 +198,8 @@ export default function FinalScorecardScreen() {
           })}
         </View>
 
-        <Pressable
-          style={[styles.finishButton, isSavingScorecard && styles.finishButtonDisabled]}
-          onPress={() => void handleSaveScorecard()}
-          disabled={isSavingScorecard}
-        >
-          {isSavingScorecard ? (
-            <View style={styles.finishButtonInner}>
-              <ActivityIndicator color="#ffffff" size="small" />
-              <Text style={styles.finishButtonText}>Saving…</Text>
-            </View>
-          ) : (
-            <Text style={styles.finishButtonText}>Save scorecard</Text>
-          )}
+        <Pressable style={styles.finishButton} onPress={handleSaveScorecard}>
+          <Text style={styles.finishButtonText}>Save scorecard</Text>
         </Pressable>
       </ScrollView>
 
@@ -400,8 +382,6 @@ const styles = StyleSheet.create({
   summaryEven: { color: '#6b6b6b' },
   summaryOver: { color: '#B85C38' },
   finishButton: { backgroundColor: '#2D6A4F', borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, marginTop: 6 },
-  finishButtonDisabled: { opacity: 0.85 },
-  finishButtonInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   finishButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
   modalBackdrop: {
     flex: 1,

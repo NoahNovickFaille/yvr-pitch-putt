@@ -5,14 +5,7 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getCourseById } from "@/src/pitchputt/data";
@@ -31,13 +24,14 @@ export default function HoleScreen() {
   );
   const updateScore = useRoundsStore((state) => state.updateScore);
   const adjustScore = useRoundsStore((state) => state.adjustScore);
-  const syncRoundScoresToRemote = useRoundsStore(
-    (state) => state.syncRoundScoresToRemote,
+  const scheduleHoleScoresSync = useRoundsStore(
+    (state) => state.scheduleHoleScoresSync,
+  );
+  const scheduleRoundScoresSync = useRoundsStore(
+    (state) => state.scheduleRoundScoresSync,
   );
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
-  const [isSavingHoleSheet, setIsSavingHoleSheet] = useState(false);
-  const [isSavingIncomplete, setIsSavingIncomplete] = useState(false);
   const snapPoints = useMemo(() => ["68%"], []);
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -110,53 +104,39 @@ export default function HoleScreen() {
     return hasScores ? strokesTotal : null;
   };
 
-  const saveAndContinue = async () => {
-    if (!round || !course || isSavingHoleSheet || isSavingIncomplete) return;
+  const saveAndContinue = () => {
+    if (!round || !course) return;
 
     const latestRound =
       useRoundsStore.getState().rounds.find((r) => r.id === roundId) ?? round;
-
-    const proceed = async () => {
-      await syncRoundScoresToRemote(round.id);
-      bottomSheetRef.current?.close();
-      if (isFinalHole) {
-        router.replace({ pathname: "/final-scorecard", params: { roundId } });
-        return;
-      }
-      router.replace({
-        pathname: "/hole",
-        params: { roundId, hole: String(holeNumber + 1) },
-      });
-    };
 
     if (isFinalHole && !isRoundFullyScored(latestRound, course)) {
       setIncompleteModalVisible(true);
       return;
     }
 
-    setIsSavingHoleSheet(true);
-    try {
-      await proceed();
-    } finally {
-      setIsSavingHoleSheet(false);
+    bottomSheetRef.current?.close();
+    scheduleHoleScoresSync(round.id, holeNumber);
+
+    if (isFinalHole) {
+      router.replace({ pathname: "/final-scorecard", params: { roundId } });
+      return;
     }
+    router.replace({
+      pathname: "/hole",
+      params: { roundId, hole: String(holeNumber + 1) },
+    });
   };
 
   const dismissIncompleteModal = () => {
     setIncompleteModalVisible(false);
   };
 
-  const confirmIncompleteSave = async () => {
-    if (isSavingIncomplete) return;
-    setIsSavingIncomplete(true);
-    try {
-      await syncRoundScoresToRemote(round.id);
-      setIncompleteModalVisible(false);
-      bottomSheetRef.current?.close();
-      router.replace({ pathname: "/final-scorecard", params: { roundId } });
-    } finally {
-      setIsSavingIncomplete(false);
-    }
+  const confirmIncompleteSave = () => {
+    setIncompleteModalVisible(false);
+    bottomSheetRef.current?.close();
+    scheduleRoundScoresSync(round.id);
+    router.replace({ pathname: "/final-scorecard", params: { roundId } });
   };
 
   return (
@@ -315,19 +295,8 @@ export default function HoleScreen() {
               );
             })}
 
-            <Pressable
-              style={[styles.saveBtn, isSavingHoleSheet && styles.saveBtnDisabled]}
-              disabled={isSavingHoleSheet || isSavingIncomplete}
-              onPress={() => void saveAndContinue()}
-            >
-              {isSavingHoleSheet ? (
-                <View style={styles.saveBtnInner}>
-                  <ActivityIndicator color="#ffffff" size="small" />
-                  <Text style={styles.saveBtnText}>Saving…</Text>
-                </View>
-              ) : (
-                <Text style={styles.saveBtnText}>Save</Text>
-              )}
+            <Pressable style={styles.saveBtn} onPress={saveAndContinue}>
+              <Text style={styles.saveBtnText}>Save</Text>
             </Pressable>
           </BottomSheetView>
         </BottomSheet>
@@ -355,7 +324,6 @@ export default function HoleScreen() {
               <View style={styles.incompleteModalActions}>
                 <Pressable
                   style={styles.incompleteModalBtnSecondary}
-                  disabled={isSavingIncomplete}
                   onPress={dismissIncompleteModal}
                 >
                   <Text style={styles.incompleteModalBtnSecondaryText}>
@@ -363,25 +331,12 @@ export default function HoleScreen() {
                   </Text>
                 </Pressable>
                 <Pressable
-                  style={[
-                    styles.incompleteModalBtnPrimary,
-                    isSavingIncomplete && styles.incompleteModalBtnPrimaryDisabled,
-                  ]}
-                  disabled={isSavingIncomplete}
-                  onPress={() => void confirmIncompleteSave()}
+                  style={styles.incompleteModalBtnPrimary}
+                  onPress={confirmIncompleteSave}
                 >
-                  {isSavingIncomplete ? (
-                    <View style={styles.saveBtnInner}>
-                      <ActivityIndicator color="#ffffff" size="small" />
-                      <Text style={styles.incompleteModalBtnPrimaryText}>
-                        Saving…
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.incompleteModalBtnPrimaryText}>
-                      Save anyway
-                    </Text>
-                  )}
+                  <Text style={styles.incompleteModalBtnPrimaryText}>
+                    Save anyway
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -536,8 +491,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 4,
   },
-  saveBtnDisabled: { opacity: 0.85 },
-  saveBtnInner: { flexDirection: "row", alignItems: "center", gap: 10 },
   saveBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
   incompleteModalRoot: {
     flex: 1,
@@ -599,7 +552,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#2D6A4F",
     minHeight: 46,
   },
-  incompleteModalBtnPrimaryDisabled: { opacity: 0.88 },
   incompleteModalBtnPrimaryText: {
     color: "#ffffff",
     fontWeight: "700",

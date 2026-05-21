@@ -113,19 +113,19 @@ export async function upsertHoleScoreRemote(
   holeNumber: number,
   playerId: string,
   strokes: number,
-): Promise<void> {
+): Promise<boolean> {
   if (!shouldSyncRound(round.ownerId, round.id) || !isUuid(playerId)) {
-    return;
+    return true;
   }
 
   const authId = await getAuthedUserId();
-  if (!authId || authId !== round.ownerId) return;
+  if (!authId || authId !== round.ownerId) return true;
 
   const resolved = await resolveCourseUuidByClientCourseId(round.courseId);
-  if (!resolved) return;
+  if (!resolved) return false;
 
   const holeUuid = await resolveHoleUuid(resolved.courseUuid, holeNumber);
-  if (!holeUuid) return;
+  if (!holeUuid) return false;
 
   const s = clampStrokes(strokes);
   const { error } = await supabase.from("hole_scores").upsert(
@@ -140,7 +140,9 @@ export async function upsertHoleScoreRemote(
 
   if (error) {
     console.warn("[roundsRemote] upsert hole_scores", error.message);
+    return false;
   }
+  return true;
 }
 
 export async function completeRoundRemote(
