@@ -28,9 +28,11 @@ module.exports = {
       bundleIdentifier: IS_DEV
         ? "ca.noahnovick.pitchputt.dev"
         : "ca.noahnovick.pitchputt",
-      buildNumber: "9",
+      buildNumber: "10",
       supportsTablet: false,
       infoPlist: {
+        NSCameraUsageDescription:
+          "Pitch Putt YVR uses your camera to scan membership barcodes.",
         NSPhotoLibraryUsageDescription:
           "Pitch Putt YVR does not access your photos.",
         ITSAppUsesNonExemptEncryption: false,
@@ -53,9 +55,9 @@ module.exports = {
         {
           cameraPermission:
             "Pitch Putt YVR uses your camera to scan membership barcodes.",
-          barcodeScannerEnabled: true,
         },
       ],
+      "./plugins/withExpoCameraBarcodeEnabled",
       "./plugins/withBundleIdentifier",
       [
         "expo-splash-screen",

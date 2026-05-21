@@ -1,37 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import {
-  BarcodeScanningResult,
-  type BarcodeType,
-  CameraType,
-  CameraView,
-  useCameraPermissions,
-} from 'expo-camera';
+import { BarcodeScanningResult, CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import Barcode from 'react-native-barcode-svg';
 
 import { supabase } from '@/src/lib/supabase';
 import { useSessionStore } from '@/src/pitchputt/store';
-
-/** Used for embedded `CameraView` and for `CameraView.launchScanner` when available. */
-const MEMBERSHIP_BARCODE_TYPES: BarcodeType[] = [
-  'code128',
-  'code39',
-  'code93',
-  'codabar',
-  'ean13',
-  'ean8',
-  'itf14',
-  'upc_a',
-  'upc_e',
-  'qr',
-  'pdf417',
-  'datamatrix',
-  'aztec',
-];
 
 function normalizeMembershipNumber(value: string): string {
   return value.replace(/[^0-9a-z]/gi, '').toUpperCase();
@@ -48,9 +25,11 @@ export default function MembershipCardScreen() {
   const [error, setError] = useState<string | null>(null);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [scannerTorch, setScannerTorch] = useState(false);
+  const [scannerReady, setScannerReady] = useState(false);
+  const [isOpeningScanner, setIsOpeningScanner] = useState(false);
   const [facing] = useState<CameraType>('back');
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [hasScannedInSession, setHasScannedInSession] = useState(false);
+  const scannedRef = useRef(false);
 
   useEffect(() => {
     if (!userId) {
@@ -104,6 +83,13 @@ export default function MembershipCardScreen() {
     }
   };
 
+  const closeScanner = useCallback(() => {
+    setScannerVisible(false);
+    setScannerReady(false);
+    setScannerTorch(false);
+    scannedRef.current = false;
+  }, []);
+
   const ensureCameraPermission = async () => {
     if (cameraPermission?.granted) {
       return true;
@@ -113,41 +99,30 @@ export default function MembershipCardScreen() {
   };
 
   const handleScanPress = async () => {
+    if (isOpeningScanner || isSaving) return;
     setError(null);
-    const ok = await ensureCameraPermission();
-    if (!ok) {
-      setError('Camera permission is required to scan your card.');
-      return;
-    }
-
-    // System scanner (iOS 16+ Data Scanner, Android ML Kit) matches TestFlight better than embedded preview.
-    if (Platform.OS !== 'web' && CameraView.isModernBarcodeScannerAvailable) {
-      const subscription = CameraView.onModernBarcodeScanned(async (payload) => {
-        subscription.remove();
-        const value = typeof payload.data === 'string' ? payload.data.trim() : '';
-        if (value) await saveMembershipNumber(value);
-      });
-      try {
-        await CameraView.launchScanner({ barcodeTypes: MEMBERSHIP_BARCODE_TYPES });
-      } catch {
-        setError('Could not open the barcode scanner. Try again or enter the number manually.');
-      } finally {
-        subscription.remove();
+    setIsOpeningScanner(true);
+    try {
+      const ok = await ensureCameraPermission();
+      if (!ok) {
+        setError('Camera permission is required to scan your card.');
+        return;
       }
-      return;
+      scannedRef.current = false;
+      setScannerTorch(false);
+      setScannerReady(false);
+      setScannerVisible(true);
+    } finally {
+      setIsOpeningScanner(false);
     }
-
-    setHasScannedInSession(false);
-    setScannerTorch(false);
-    setScannerVisible(true);
   };
 
   const handleBarcodeScanned = async (result: BarcodeScanningResult) => {
-    if (hasScannedInSession) return;
-    setHasScannedInSession(true);
-    setScannerVisible(false);
+    if (scannedRef.current || isSaving) return;
     const value = typeof result.data === 'string' ? result.data.trim() : '';
     if (!value) return;
+    scannedRef.current = true;
+    closeScanner();
     await saveMembershipNumber(value);
   };
 
@@ -177,6 +152,8 @@ export default function MembershipCardScreen() {
       setIsSaving(false);
     }
   };
+
+  const scanBusy = isOpeningScanner || isSaving;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -233,9 +210,19 @@ export default function MembershipCardScreen() {
             <View style={styles.actions}>
               {!membershipNumber ? (
                 <>
-                  <Pressable style={styles.actionPrimary} onPress={handleScanPress}>
-                    <Feather name="camera" size={16} color="#ffffff" />
-                    <Text style={styles.actionPrimaryText}>Scan physical card</Text>
+                  <Pressable
+                    style={[styles.actionPrimary, scanBusy && styles.actionPrimaryDisabled]}
+                    onPress={() => void handleScanPress()}
+                    disabled={scanBusy}
+                  >
+                    {isOpeningScanner ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <Feather name="camera" size={16} color="#ffffff" />
+                    )}
+                    <Text style={styles.actionPrimaryText}>
+                      {isOpeningScanner ? 'Opening camera…' : isSaving ? 'Saving…' : 'Scan physical card'}
+                    </Text>
                   </Pressable>
                   <View style={styles.manualRow}>
                     <TextInput
@@ -246,13 +233,14 @@ export default function MembershipCardScreen() {
                       keyboardType="default"
                       autoCapitalize="characters"
                       autoCorrect={false}
+                      editable={!scanBusy}
                     />
                     <Pressable
-                      style={[styles.saveBtn, (!draftNumber.trim() || isSaving) && styles.saveBtnDisabled]}
-                      disabled={!draftNumber.trim() || isSaving}
+                      style={[styles.saveBtn, (!draftNumber.trim() || scanBusy) && styles.saveBtnDisabled]}
+                      disabled={!draftNumber.trim() || scanBusy}
                       onPress={() => void saveMembershipNumber(draftNumber)}
                     >
-                      {isSaving ? (
+                      {isSaving && !scannerVisible ? (
                         <ActivityIndicator size="small" color="#ffffff" />
                       ) : (
                         <Text style={styles.saveBtnText}>Save</Text>
@@ -269,36 +257,46 @@ export default function MembershipCardScreen() {
         <Modal visible={scannerVisible} animationType="slide" presentationStyle="fullScreen">
           <SafeAreaView style={styles.scannerSafeArea}>
             <View style={styles.scannerTopbar}>
-              <Pressable style={styles.backBtn} onPress={() => setScannerVisible(false)}>
-                <Feather name="x" size={20} color="#1a1a1a" />
+              <Pressable style={styles.backBtn} onPress={closeScanner} disabled={isSaving}>
+                <Feather name="x" size={20} color="#ffffff" />
               </Pressable>
               <Text style={styles.scannerTitle}>Scan membership card</Text>
               <Pressable
                 style={styles.backBtn}
                 onPress={() => setScannerTorch((t) => !t)}
+                disabled={!scannerReady}
                 accessibilityLabel={scannerTorch ? 'Turn off flashlight' : 'Turn on flashlight'}
               >
-                <Feather name={scannerTorch ? 'zap-off' : 'zap'} size={20} color="#1a1a1a" />
+                <Feather name={scannerTorch ? 'zap-off' : 'zap'} size={20} color="#ffffff" />
               </Pressable>
             </View>
             <View style={styles.scannerBody}>
               <CameraView
-                style={styles.cameraView}
+                style={StyleSheet.absoluteFill}
                 facing={facing}
                 enableTorch={scannerTorch}
                 barcodeScannerSettings={{
-                  barcodeTypes: MEMBERSHIP_BARCODE_TYPES,
+                  barcodeTypes: ['code128', 'code39', 'ean13', 'ean8', 'qr', 'pdf417', 'datamatrix'],
                 }}
+                onCameraReady={() => setScannerReady(true)}
                 onMountError={(e) => {
-                  setError(e.message ?? 'Camera could not start. Try closing and opening the scanner again.');
+                  setError(e.message ?? 'Camera could not start. Try again or enter the number manually.');
+                  closeScanner();
                 }}
-                onBarcodeScanned={scannerVisible ? handleBarcodeScanned : undefined}
+                onBarcodeScanned={scannerVisible && scannerReady && !isSaving ? handleBarcodeScanned : undefined}
               />
-              <View style={styles.scannerOverlay}>
+              <View style={styles.scannerOverlay} pointerEvents="box-none">
                 <View style={styles.scannerFrame} />
-                <Text style={styles.scannerHint}>Align the card barcode inside the frame.</Text>
-                <Pressable style={styles.closeScannerBtn} onPress={() => setScannerVisible(false)}>
-                  <Text style={styles.closeScannerBtnText}>Cancel scan</Text>
+                {!scannerReady ? (
+                  <View style={styles.scannerLoading}>
+                    <ActivityIndicator color="#ffffff" size="large" />
+                    <Text style={styles.scannerHint}>Starting camera…</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.scannerHint}>Align the barcode inside the frame.</Text>
+                )}
+                <Pressable style={styles.closeScannerBtn} onPress={closeScanner} disabled={isSaving}>
+                  <Text style={styles.closeScannerBtnText}>Cancel</Text>
                 </Pressable>
               </View>
             </View>
@@ -316,7 +314,14 @@ export default function MembershipCardScreen() {
         >
           <BottomSheetView style={styles.sheetContent}>
             <Text style={styles.sheetTitle}>Manage card</Text>
-            <Pressable style={styles.sheetItem} onPress={() => { bottomSheetRef.current?.close(); void handleScanPress(); }}>
+            <Pressable
+              style={styles.sheetItem}
+              disabled={scanBusy}
+              onPress={() => {
+                bottomSheetRef.current?.close();
+                void handleScanPress();
+              }}
+            >
               <Text style={styles.sheetItemText}>Scan new card</Text>
               <Feather name="camera" size={16} color="#2D6A4F" />
             </Pressable>
@@ -398,6 +403,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#2D6A4F',
   },
+  actionPrimaryDisabled: { opacity: 0.75 },
   actionPrimaryText: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
   manualRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
@@ -418,6 +424,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2D5A8E',
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 64,
   },
   saveBtnDisabled: { backgroundColor: '#9bb3cf' },
   saveBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
@@ -435,43 +442,38 @@ const styles = StyleSheet.create({
   scannerBody: {
     flex: 1,
     position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  cameraView: {
-    width: '100%',
-    maxWidth: 460,
-    height: '62%',
-    borderRadius: 18,
-    overflow: 'hidden',
   },
   scannerOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  scannerLoading: {
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 14,
   },
   scannerFrame: {
-    width: '86%',
+    width: '88%',
     maxWidth: 360,
     aspectRatio: 1.9,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#ffffff',
   },
-  scannerHint: { marginTop: 14, color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  scannerHint: { marginTop: 14, color: '#ffffff', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   closeScannerBtn: {
-    marginTop: 16,
+    marginTop: 20,
     borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.62)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
   },
-  closeScannerBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
+  closeScannerBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
   sheetBackground: {
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
