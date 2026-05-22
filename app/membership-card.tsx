@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { BarcodeScanningResult, CameraType, CameraView, useCameraPermissions } from 'expo-camera';
+import * as Device from 'expo-device';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import Barcode from 'react-native-barcode-svg';
 
@@ -12,6 +13,11 @@ import { useSessionStore } from '@/src/pitchputt/store';
 
 function normalizeMembershipNumber(value: string): string {
   return value.replace(/[^0-9a-z]/gi, '').toUpperCase();
+}
+
+/** Simulator maps the Mac webcam to the front camera; back is often blank. */
+function defaultScannerFacing(): CameraType {
+  return Device.isDevice ? 'back' : 'front';
 }
 
 export default function MembershipCardScreen() {
@@ -27,7 +33,8 @@ export default function MembershipCardScreen() {
   const [scannerTorch, setScannerTorch] = useState(false);
   const [scannerReady, setScannerReady] = useState(false);
   const [isOpeningScanner, setIsOpeningScanner] = useState(false);
-  const [facing] = useState<CameraType>('back');
+  const [facing, setFacing] = useState<CameraType>(defaultScannerFacing);
+  const isSimulator = !Device.isDevice;
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const scannedRef = useRef(false);
 
@@ -111,6 +118,7 @@ export default function MembershipCardScreen() {
       scannedRef.current = false;
       setScannerTorch(false);
       setScannerReady(false);
+      setFacing(defaultScannerFacing());
       setScannerVisible(true);
     } finally {
       setIsOpeningScanner(false);
@@ -261,14 +269,26 @@ export default function MembershipCardScreen() {
                 <Feather name="x" size={20} color="#ffffff" />
               </Pressable>
               <Text style={styles.scannerTitle}>Scan membership card</Text>
-              <Pressable
-                style={styles.backBtn}
-                onPress={() => setScannerTorch((t) => !t)}
-                disabled={!scannerReady}
-                accessibilityLabel={scannerTorch ? 'Turn off flashlight' : 'Turn on flashlight'}
-              >
-                <Feather name={scannerTorch ? 'zap-off' : 'zap'} size={20} color="#ffffff" />
-              </Pressable>
+              <View style={styles.scannerTopbarActions}>
+                <Pressable
+                  style={styles.backBtn}
+                  onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+                  disabled={!scannerReady}
+                  accessibilityLabel="Flip camera"
+                >
+                  <Feather name="refresh-cw" size={20} color="#ffffff" />
+                </Pressable>
+                {!isSimulator ? (
+                  <Pressable
+                    style={styles.backBtn}
+                    onPress={() => setScannerTorch((t) => !t)}
+                    disabled={!scannerReady}
+                    accessibilityLabel={scannerTorch ? 'Turn off flashlight' : 'Turn on flashlight'}
+                  >
+                    <Feather name={scannerTorch ? 'zap-off' : 'zap'} size={20} color="#ffffff" />
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
             <View style={styles.scannerBody}>
               <CameraView
@@ -293,7 +313,11 @@ export default function MembershipCardScreen() {
                     <Text style={styles.scannerHint}>Starting camera…</Text>
                   </View>
                 ) : (
-                  <Text style={styles.scannerHint}>Align the barcode inside the frame.</Text>
+                  <Text style={styles.scannerHint}>
+                    {isSimulator
+                      ? 'Using your Mac camera. In Simulator: I/O → Camera → choose your webcam.'
+                      : 'Align the barcode inside the frame.'}
+                  </Text>
                 )}
                 <Pressable style={styles.closeScannerBtn} onPress={closeScanner} disabled={isSaving}>
                   <Text style={styles.closeScannerBtnText}>Cancel</Text>
@@ -438,6 +462,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
+  scannerTopbarActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   scannerTitle: { color: '#ffffff', fontSize: 18, fontWeight: '700' },
   scannerBody: {
     flex: 1,

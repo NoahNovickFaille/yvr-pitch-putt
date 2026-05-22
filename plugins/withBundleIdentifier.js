@@ -1,9 +1,14 @@
 const { withXcodeProject } = require("@expo/config-plugins");
 
-// Sets different bundle IDs for Debug vs Release configurations
-// Debug: ca.noahnovick.pitchputt.dev (local development)
-// Release: ca.noahnovick.pitchputt (TestFlight/production)
+const BUNDLE_PROD = "ca.noahnovick.pitchputt";
+const BUNDLE_DEV = "ca.noahnovick.pitchputt.dev";
+
+// EAS development profile sets APP_VARIANT=development → .dev bundle (side-by-side with prod).
+// Local `expo run:ios` uses the prod bundle so Xcode can reuse your existing dev profile.
 function withBundleIdentifier(config) {
+  const useDevBundle = process.env.APP_VARIANT === "development";
+  const debugBundleId = useDevBundle ? BUNDLE_DEV : BUNDLE_PROD;
+
   return withXcodeProject(config, async (config) => {
     const xcodeProject = config.modResults;
     const configurations = xcodeProject.pbxXCBuildConfigurationSection();
@@ -13,12 +18,14 @@ function withBundleIdentifier(config) {
       if (typeof buildConfig !== "object" || !buildConfig.buildSettings)
         continue;
 
+      // Leave DEVELOPMENT_TEAM unset so `expo run:ios --device` can register
+      // profiles with -allowProvisioningUpdates on a new Mac.
+      buildConfig.buildSettings.CODE_SIGN_STYLE = "Automatic";
+
       if (buildConfig.name === "Debug") {
-        buildConfig.buildSettings.PRODUCT_BUNDLE_IDENTIFIER =
-          "ca.noahnovick.pitchputt.dev";
+        buildConfig.buildSettings.PRODUCT_BUNDLE_IDENTIFIER = debugBundleId;
       } else if (buildConfig.name === "Release") {
-        buildConfig.buildSettings.PRODUCT_BUNDLE_IDENTIFIER =
-          "ca.noahnovick.pitchputt";
+        buildConfig.buildSettings.PRODUCT_BUNDLE_IDENTIFIER = BUNDLE_PROD;
       }
     }
 

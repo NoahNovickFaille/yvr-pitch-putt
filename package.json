@@ -7,6 +7,7 @@
     "start": "expo start",
     "android": "expo run:android --device",
     "ios": "expo run:ios --device",
+    "ios:xcode": "open ios/PitchPuttYVR.xcworkspace",
     "dev": "expo start --clear",
     "expo:lint": "expo lint",
     "lfg:ios": "bun run prebuild --clean && bun run ios",
@@ -24,7 +25,7 @@
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
-    "@supabase/supabase-js": "^2.105.1",
+    "@supabase/supabase-js": "2.105.1",
     "date-fns": "^4.1.0",
     "expo": "~54.0.31",
     "expo-apple-authentication": "^55.0.13",
@@ -33,6 +34,7 @@
     "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
     "expo-crypto": "~15.0.8",
+    "expo-device": "~8.0.10",
     "expo-file-system": "~19.0.21",
     "expo-font": "~14.0.10",
     "expo-haptics": "~15.0.8",
@@ -67,10 +69,20 @@
     "typescript": "~5.9.2"
   },
   "private": true,
+  "overrides": {
+    "@supabase/supabase-js": "2.105.1",
+    "@supabase/auth-js": "2.105.1",
+    "@supabase/functions-js": "2.105.1",
+    "@supabase/postgrest-js": "2.105.1",
+    "@supabase/realtime-js": "2.105.1",
+    "@supabase/storage-js": "2.105.1"
+  },
   "expo": {
     "autolinking": {
       "ios": {
-        "buildFromSource": ["expo-camera"]
+        "buildFromSource": [
+          "expo-camera"
+        ]
       }
     }
   }

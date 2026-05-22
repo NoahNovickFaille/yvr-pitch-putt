@@ -27,9 +27,6 @@ export default function HoleScreen() {
   const scheduleHoleScoresSync = useRoundsStore(
     (state) => state.scheduleHoleScoresSync,
   );
-  const scheduleRoundScoresSync = useRoundsStore(
-    (state) => state.scheduleRoundScoresSync,
-  );
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
   const snapPoints = useMemo(() => ["68%"], []);
@@ -135,7 +132,7 @@ export default function HoleScreen() {
   const confirmIncompleteSave = () => {
     setIncompleteModalVisible(false);
     bottomSheetRef.current?.close();
-    scheduleRoundScoresSync(round.id);
+    scheduleHoleScoresSync(round.id, holeNumber);
     router.replace({ pathname: "/final-scorecard", params: { roundId } });
   };
 

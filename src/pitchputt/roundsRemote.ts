@@ -35,21 +35,34 @@ async function resolveCourseUuidByClientCourseId(
   return { courseUuid: data.id, slug: course.slug };
 }
 
-async function resolveHoleUuid(
-  courseUuid: string,
-  holeNumber: number,
-): Promise<string | null> {
+/** Cached Supabase hole_number → hole id per client course (static course metadata). */
+const holeIdByNumberCache = new Map<string, Map<number, string>>();
+
+async function getHoleIdByNumber(
+  clientCourseId: string,
+): Promise<Map<number, string> | null> {
+  const cached = holeIdByNumberCache.get(clientCourseId);
+  if (cached) return cached;
+
+  const resolved = await resolveCourseUuidByClientCourseId(clientCourseId);
+  if (!resolved) return null;
+
   const { data, error } = await supabase
     .from("holes")
-    .select("id")
-    .eq("course_id", courseUuid)
-    .eq("hole_number", holeNumber)
-    .maybeSingle();
-  if (error || !data?.id) {
-    console.warn("[roundsRemote] resolve hole failed", error?.message);
+    .select("id, hole_number")
+    .eq("course_id", resolved.courseUuid);
+
+  if (error || !data?.length) {
+    console.warn("[roundsRemote] fetch holes for course", error?.message);
     return null;
   }
-  return data.id;
+
+  const map = new Map<number, string>();
+  for (const row of data) {
+    map.set(row.hole_number, row.id);
+  }
+  holeIdByNumberCache.set(clientCourseId, map);
+  return map;
 }
 
 export type RemoteRoundResult = { ok: true } | { ok: false; message: string };
@@ -63,11 +76,6 @@ export async function insertRoundRemote(round: Round): Promise<RemoteRoundResult
     return { ok: true };
   }
 
-  const authId = await getAuthedUserId();
-  if (!authId || authId !== round.ownerId) {
-    return { ok: false, message: "Not signed in or owner mismatch." };
-  }
-
   const resolved = await resolveCourseUuidByClientCourseId(round.courseId);
   if (!resolved) {
     return { ok: false, message: "Course not found in Supabase." };
@@ -77,7 +85,7 @@ export async function insertRoundRemote(round: Round): Promise<RemoteRoundResult
 
   const { error: roundError } = await supabase.from("rounds").insert({
     id: round.id,
-    owner_id: authId,
+    owner_id: round.ownerId,
     course_id: courseUuid,
     status: "active",
     started_at: round.createdAt,
@@ -108,38 +116,57 @@ export async function insertRoundRemote(round: Round): Promise<RemoteRoundResult
   return { ok: true };
 }
 
-export async function upsertHoleScoreRemote(
+/**
+ * Upserts all player scores for one hole in a single request.
+ * Uses round.ownerId (JWT + RLS enforce access); no per-call getSession.
+ */
+export async function upsertHoleScoresForHoleRemote(
   round: Round,
   holeNumber: number,
-  playerId: string,
-  strokes: number,
 ): Promise<boolean> {
-  if (!shouldSyncRound(round.ownerId, round.id) || !isUuid(playerId)) {
+  if (!shouldSyncRound(round.ownerId, round.id)) {
     return true;
   }
 
-  const authId = await getAuthedUserId();
-  if (!authId || authId !== round.ownerId) return true;
+  const byPlayer = round.holeScores[holeNumber];
+  if (!byPlayer) return true;
 
-  const resolved = await resolveCourseUuidByClientCourseId(round.courseId);
-  if (!resolved) return false;
+  const holeIds = await getHoleIdByNumber(round.courseId);
+  if (!holeIds) return false;
 
-  const holeUuid = await resolveHoleUuid(resolved.courseUuid, holeNumber);
-  if (!holeUuid) return false;
+  const holeUuid = holeIds.get(holeNumber);
+  if (!holeUuid) {
+    console.warn(
+      `[roundsRemote] no hole id for course=${round.courseId} hole=${holeNumber}`,
+    );
+    return false;
+  }
 
-  const s = clampStrokes(strokes);
-  const { error } = await supabase.from("hole_scores").upsert(
-    {
+  const rows: {
+    round_id: string;
+    player_id: string;
+    hole_id: string;
+    strokes: number;
+  }[] = [];
+
+  for (const [playerId, strokes] of Object.entries(byPlayer)) {
+    if (!isUuid(playerId) || typeof strokes !== "number") continue;
+    rows.push({
       round_id: round.id,
       player_id: playerId,
       hole_id: holeUuid,
-      strokes: s,
-    },
-    { onConflict: "player_id,hole_id" },
-  );
+      strokes: clampStrokes(strokes),
+    });
+  }
+
+  if (rows.length === 0) return true;
+
+  const { error } = await supabase.from("hole_scores").upsert(rows, {
+    onConflict: "player_id,hole_id",
+  });
 
   if (error) {
-    console.warn("[roundsRemote] upsert hole_scores", error.message);
+    console.warn("[roundsRemote] upsert hole_scores batch", error.message);
     return false;
   }
   return true;
@@ -151,9 +178,6 @@ export async function completeRoundRemote(
 ): Promise<void> {
   if (!shouldSyncRound(round.ownerId, round.id)) return;
 
-  const authId = await getAuthedUserId();
-  if (!authId || authId !== round.ownerId) return;
-
   const { error } = await supabase
     .from("rounds")
     .update({
@@ -161,7 +185,7 @@ export async function completeRoundRemote(
       completed_at: completedAtIso,
     })
     .eq("id", round.id)
-    .eq("owner_id", authId);
+    .eq("owner_id", round.ownerId);
 
   if (error) {
     console.warn("[roundsRemote] complete round", error.message);
@@ -179,16 +203,11 @@ export async function deleteRoundRemote(
     return { ok: true };
   }
 
-  const authId = await getAuthedUserId();
-  if (!authId || authId !== round.ownerId) {
-    return { ok: false, message: "Not signed in or owner mismatch." };
-  }
-
   const { error } = await supabase
     .from("rounds")
     .delete()
     .eq("id", round.id)
-    .eq("owner_id", authId);
+    .eq("owner_id", round.ownerId);
 
   if (error) {
     console.warn("[roundsRemote] delete round", error.message);

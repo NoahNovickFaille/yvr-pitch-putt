@@ -43,10 +43,3 @@ export function enqueueHoleScoresSync(
 ): void {
   enqueue(roundId, () => syncHole(roundId, holeNumber));
 }
-
-export function enqueueRoundScoresSync(
-  roundId: string,
-  syncRound: (roundId: string) => Promise<void>,
-): void {
-  enqueue(roundId, () => syncRound(roundId));
-}

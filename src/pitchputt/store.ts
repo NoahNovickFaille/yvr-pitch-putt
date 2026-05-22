@@ -9,12 +9,9 @@ import {
   getAuthedUserId,
   insertRoundRemote,
   type RemoteRoundResult,
-  upsertHoleScoreRemote,
+  upsertHoleScoresForHoleRemote,
 } from "./roundsRemote";
-import {
-  enqueueHoleScoresSync as queueHoleScoresSync,
-  enqueueRoundScoresSync as queueRoundScoresSync,
-} from "./roundRemoteSyncQueue";
+import { enqueueHoleScoresSync as queueHoleScoresSync } from "./roundRemoteSyncQueue";
 import { isSupabaseAuthUserId, isUuid } from "./sessionUtils";
 import { Round } from "./types";
 
@@ -90,10 +87,8 @@ interface RoundsState {
     fallback: number,
   ) => void;
   syncHoleScoresToRemote: (roundId: string, holeNumber: number) => Promise<void>;
-  syncRoundScoresToRemote: (roundId: string) => Promise<void>;
   /** Fire-and-forget: syncs one hole without blocking navigation. */
   scheduleHoleScoresSync: (roundId: string, holeNumber: number) => void;
-  scheduleRoundScoresSync: (roundId: string) => void;
   syncGuestRoundsToUser: (userId: string) => Promise<void>;
   setActiveRound: (roundId: string | null) => void;
   completeRound: (roundId: string) => void;
@@ -192,49 +187,10 @@ export const useRoundsStore = create<RoundsState>()(
         const round = get().rounds.find((r) => r.id === roundId);
         if (!round || !roundUsesRemoteSync(round)) return;
 
-        const byPlayer = round.holeScores[holeNumber];
-        if (!byPlayer) return;
-
-        let failed = false;
-        for (const [playerId, strokes] of Object.entries(byPlayer)) {
-          if (typeof strokes !== "number") continue;
-          const ok = await upsertHoleScoreRemote(
-            round,
-            holeNumber,
-            playerId,
-            strokes,
-          );
-          if (!ok) failed = true;
-        }
-        if (failed) {
+        const ok = await upsertHoleScoresForHoleRemote(round, holeNumber);
+        if (!ok) {
           throw new Error(
             `[roundsStore] syncHoleScoresToRemote failed round=${roundId} hole=${holeNumber}`,
-          );
-        }
-      },
-      syncRoundScoresToRemote: async (roundId) => {
-        const round = get().rounds.find((r) => r.id === roundId);
-        if (!round) return;
-        let failed = false;
-        for (const [holeNumberKey, byPlayer] of Object.entries(
-          round.holeScores,
-        )) {
-          const holeNumber = Number(holeNumberKey);
-          if (!Number.isFinite(holeNumber)) continue;
-          for (const [playerId, strokes] of Object.entries(byPlayer)) {
-            if (typeof strokes !== "number") continue;
-            const ok = await upsertHoleScoreRemote(
-              round,
-              holeNumber,
-              playerId,
-              strokes,
-            );
-            if (!ok) failed = true;
-          }
-        }
-        if (failed) {
-          throw new Error(
-            `[roundsStore] syncRoundScoresToRemote failed round=${roundId}`,
           );
         }
       },
@@ -244,11 +200,6 @@ export const useRoundsStore = create<RoundsState>()(
         queueHoleScoresSync(roundId, holeNumber, (id, hole) =>
           get().syncHoleScoresToRemote(id, hole),
         );
-      },
-      scheduleRoundScoresSync: (roundId) => {
-        const round = get().rounds.find((r) => r.id === roundId);
-        if (!round || !roundUsesRemoteSync(round)) return;
-        queueRoundScoresSync(roundId, (id) => get().syncRoundScoresToRemote(id));
       },
       syncGuestRoundsToUser: async (userId) => {
         const localGuestRounds = get().rounds.filter(
@@ -288,15 +239,10 @@ export const useRoundsStore = create<RoundsState>()(
             continue;
           }
 
-          for (const [holeNumberKey, byPlayer] of Object.entries(
-            round.holeScores,
-          )) {
+          for (const holeNumberKey of Object.keys(round.holeScores)) {
             const holeNumber = Number(holeNumberKey);
             if (!Number.isFinite(holeNumber)) continue;
-            for (const [playerId, strokes] of Object.entries(byPlayer)) {
-              if (typeof strokes !== "number") continue;
-              await upsertHoleScoreRemote(round, holeNumber, playerId, strokes);
-            }
+            await upsertHoleScoresForHoleRemote(round, holeNumber);
           }
 
           if (round.completedAt) {

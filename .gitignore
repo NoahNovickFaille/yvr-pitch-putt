@@ -21,8 +21,7 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
-# lockfiles (using bun)
-package-lock.json
+# lockfiles — package-lock.json is committed for reproducible EAS installs
 yarn.lock
 
 # debug

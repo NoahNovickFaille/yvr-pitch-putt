@@ -11,7 +11,6 @@ export default function FinalScorecardScreen() {
   const { roundId } = useLocalSearchParams<{ roundId: string }>();
   const round = useRoundsStore((state) => state.rounds.find((item) => item.id === roundId));
   const completeRound = useRoundsStore((state) => state.completeRound);
-  const scheduleRoundScoresSync = useRoundsStore((state) => state.scheduleRoundScoresSync);
   const userId = useSessionStore((state) => state.userId);
   const [showGuestSignupModal, setShowGuestSignupModal] = useState(false);
 
@@ -66,7 +65,6 @@ export default function FinalScorecardScreen() {
     if (!round.completedAt) {
       completeRound(round.id);
     }
-    scheduleRoundScoresSync(round.id);
     if (isGuestUser) {
       setShowGuestSignupModal(true);
       return;

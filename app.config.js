@@ -28,7 +28,7 @@ module.exports = {
       bundleIdentifier: IS_DEV
         ? "ca.noahnovick.pitchputt.dev"
         : "ca.noahnovick.pitchputt",
-      buildNumber: "10",
+      buildNumber: "11",
       supportsTablet: false,
       infoPlist: {
         NSCameraUsageDescription:
@@ -58,6 +58,7 @@ module.exports = {
         },
       ],
       "./plugins/withExpoCameraBarcodeEnabled",
+      "./plugins/withIosCameraUsageDescription",
       "./plugins/withBundleIdentifier",
       [
         "expo-splash-screen",
