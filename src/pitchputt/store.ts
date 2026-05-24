@@ -19,6 +19,20 @@ function roundUsesRemoteSync(round: Round): boolean {
   return isSupabaseAuthUserId(round.ownerId) && isUuid(round.id);
 }
 
+/** Prefer local scores when merging an in-progress round with stale remote rows. */
+function mergeRoundScoresLocalOverRemote(remote: Round, local: Round): Round {
+  const holeScores: Round["holeScores"] = { ...remote.holeScores };
+  for (const [holeKey, byPlayer] of Object.entries(local.holeScores)) {
+    const holeNumber = Number(holeKey);
+    if (!Number.isFinite(holeNumber)) continue;
+    holeScores[holeNumber] = {
+      ...(holeScores[holeNumber] ?? {}),
+      ...byPlayer,
+    };
+  }
+  return { ...remote, holeScores };
+}
+
 /** In-memory mirror when AsyncStorage native module is unavailable (same class of error as Supabase). */
 const persistMemoryByKey = new Map<string, string>();
 
@@ -87,8 +101,8 @@ interface RoundsState {
     fallback: number,
   ) => void;
   syncHoleScoresToRemote: (roundId: string, holeNumber: number) => Promise<void>;
-  /** Fire-and-forget: syncs one hole without blocking navigation. */
-  scheduleHoleScoresSync: (roundId: string, holeNumber: number) => void;
+  /** Queues cloud sync for one hole; resolves when that hole upload finishes. */
+  awaitHoleScoresSync: (roundId: string, holeNumber: number) => Promise<void>;
   syncGuestRoundsToUser: (userId: string) => Promise<void>;
   setActiveRound: (roundId: string | null) => void;
   completeRound: (roundId: string) => void;
@@ -125,9 +139,20 @@ export const useRoundsStore = create<RoundsState>()(
           return !remoteIds.has(r.id);
         });
 
+        const localById = new Map(local.map((r) => [r.id, r] as const));
+        const activeRoundId = get().activeRoundId;
+
         const byId = new Map<string, Round>();
         for (const r of remote) {
-          byId.set(r.id, r);
+          const localMatch = localById.get(r.id);
+          if (
+            localMatch &&
+            (activeRoundId === r.id || !r.completedAt)
+          ) {
+            byId.set(r.id, mergeRoundScoresLocalOverRemote(r, localMatch));
+          } else {
+            byId.set(r.id, r);
+          }
         }
         for (const r of localsToKeep) {
           if (!byId.has(r.id)) {
@@ -184,20 +209,22 @@ export const useRoundsStore = create<RoundsState>()(
         get().updateScore(roundId, holeNumber, playerId, next);
       },
       syncHoleScoresToRemote: async (roundId, holeNumber) => {
-        const round = get().rounds.find((r) => r.id === roundId);
+        const resolveRound = () =>
+          get().rounds.find((r) => r.id === roundId);
+        const round = resolveRound();
         if (!round || !roundUsesRemoteSync(round)) return;
 
-        const ok = await upsertHoleScoresForHoleRemote(round, holeNumber);
+        const ok = await upsertHoleScoresForHoleRemote(resolveRound, holeNumber);
         if (!ok) {
           throw new Error(
             `[roundsStore] syncHoleScoresToRemote failed round=${roundId} hole=${holeNumber}`,
           );
         }
       },
-      scheduleHoleScoresSync: (roundId, holeNumber) => {
+      awaitHoleScoresSync: async (roundId, holeNumber) => {
         const round = get().rounds.find((r) => r.id === roundId);
         if (!round || !roundUsesRemoteSync(round)) return;
-        queueHoleScoresSync(roundId, holeNumber, (id, hole) =>
+        await queueHoleScoresSync(roundId, holeNumber, (id, hole) =>
           get().syncHoleScoresToRemote(id, hole),
         );
       },
@@ -239,10 +266,12 @@ export const useRoundsStore = create<RoundsState>()(
             continue;
           }
 
+          const resolveRound = () =>
+            get().rounds.find((r) => r.id === round.id) ?? round;
           for (const holeNumberKey of Object.keys(round.holeScores)) {
             const holeNumber = Number(holeNumberKey);
             if (!Number.isFinite(holeNumber)) continue;
-            await upsertHoleScoresForHoleRemote(round, holeNumber);
+            await upsertHoleScoresForHoleRemote(resolveRound, holeNumber);
           }
 
           if (round.completedAt) {

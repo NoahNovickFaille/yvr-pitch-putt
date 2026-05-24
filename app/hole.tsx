@@ -5,7 +5,15 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getCourseById } from "@/src/pitchputt/data";
@@ -24,11 +32,12 @@ export default function HoleScreen() {
   );
   const updateScore = useRoundsStore((state) => state.updateScore);
   const adjustScore = useRoundsStore((state) => state.adjustScore);
-  const scheduleHoleScoresSync = useRoundsStore(
-    (state) => state.scheduleHoleScoresSync,
+  const awaitHoleScoresSync = useRoundsStore(
+    (state) => state.awaitHoleScoresSync,
   );
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const snapPoints = useMemo(() => ["68%"], []);
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -101,8 +110,8 @@ export default function HoleScreen() {
     return hasScores ? strokesTotal : null;
   };
 
-  const saveAndContinue = () => {
-    if (!round || !course) return;
+  const saveAndContinue = async () => {
+    if (!round || !course || isSaving) return;
 
     const latestRound =
       useRoundsStore.getState().rounds.find((r) => r.id === roundId) ?? round;
@@ -112,8 +121,20 @@ export default function HoleScreen() {
       return;
     }
 
+    setIsSaving(true);
+    try {
+      await awaitHoleScoresSync(round.id, holeNumber);
+    } catch {
+      Alert.alert(
+        "Could not save",
+        "Your scores are saved on this device. Check your connection and try again.",
+      );
+      return;
+    } finally {
+      setIsSaving(false);
+    }
+
     bottomSheetRef.current?.close();
-    scheduleHoleScoresSync(round.id, holeNumber);
 
     if (isFinalHole) {
       router.replace({ pathname: "/final-scorecard", params: { roundId } });
@@ -129,10 +150,22 @@ export default function HoleScreen() {
     setIncompleteModalVisible(false);
   };
 
-  const confirmIncompleteSave = () => {
+  const confirmIncompleteSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await awaitHoleScoresSync(round.id, holeNumber);
+    } catch {
+      Alert.alert(
+        "Could not save",
+        "Your scores are saved on this device. Check your connection and try again.",
+      );
+      return;
+    } finally {
+      setIsSaving(false);
+    }
     setIncompleteModalVisible(false);
     bottomSheetRef.current?.close();
-    scheduleHoleScoresSync(round.id, holeNumber);
     router.replace({ pathname: "/final-scorecard", params: { roundId } });
   };
 
@@ -292,8 +325,19 @@ export default function HoleScreen() {
               );
             })}
 
-            <Pressable style={styles.saveBtn} onPress={saveAndContinue}>
-              <Text style={styles.saveBtnText}>Save</Text>
+            <Pressable
+              style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}
+              onPress={() => void saveAndContinue()}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <View style={styles.saveBtnContent}>
+                  <ActivityIndicator color="#ffffff" size="small" />
+                  <Text style={styles.saveBtnText}>Saving…</Text>
+                </View>
+              ) : (
+                <Text style={styles.saveBtnText}>Save</Text>
+              )}
             </Pressable>
           </BottomSheetView>
         </BottomSheet>
@@ -328,12 +372,20 @@ export default function HoleScreen() {
                   </Text>
                 </Pressable>
                 <Pressable
-                  style={styles.incompleteModalBtnPrimary}
-                  onPress={confirmIncompleteSave}
+                  style={[
+                    styles.incompleteModalBtnPrimary,
+                    isSaving && styles.incompleteModalBtnPrimaryDisabled,
+                  ]}
+                  onPress={() => void confirmIncompleteSave()}
+                  disabled={isSaving}
                 >
-                  <Text style={styles.incompleteModalBtnPrimaryText}>
-                    Save anyway
-                  </Text>
+                  {isSaving ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <Text style={styles.incompleteModalBtnPrimaryText}>
+                      Save anyway
+                    </Text>
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -487,8 +539,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
+    minHeight: 46,
+  },
+  saveBtnDisabled: { backgroundColor: "#6b9e88" },
+  saveBtnContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   saveBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
+  incompleteModalBtnPrimaryDisabled: { backgroundColor: "#6b9e88" },
   incompleteModalRoot: {
     flex: 1,
     justifyContent: "center",

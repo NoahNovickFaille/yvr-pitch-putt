@@ -119,28 +119,35 @@ export async function insertRoundRemote(round: Round): Promise<RemoteRoundResult
 /**
  * Upserts all player scores for one hole in a single request.
  * Uses round.ownerId (JWT + RLS enforce access); no per-call getSession.
+ * `resolveRound` is called after any awaits so fast consecutive saves use latest scores.
  */
 export async function upsertHoleScoresForHoleRemote(
-  round: Round,
+  resolveRound: () => Round | undefined,
   holeNumber: number,
 ): Promise<boolean> {
-  if (!shouldSyncRound(round.ownerId, round.id)) {
+  const roundBefore = resolveRound();
+  if (!roundBefore || !shouldSyncRound(roundBefore.ownerId, roundBefore.id)) {
     return true;
   }
 
-  const byPlayer = round.holeScores[holeNumber];
-  if (!byPlayer) return true;
-
-  const holeIds = await getHoleIdByNumber(round.courseId);
+  const holeIds = await getHoleIdByNumber(roundBefore.courseId);
   if (!holeIds) return false;
 
   const holeUuid = holeIds.get(holeNumber);
   if (!holeUuid) {
     console.warn(
-      `[roundsRemote] no hole id for course=${round.courseId} hole=${holeNumber}`,
+      `[roundsRemote] no hole id for course=${roundBefore.courseId} hole=${holeNumber}`,
     );
     return false;
   }
+
+  const round = resolveRound();
+  if (!round || !shouldSyncRound(round.ownerId, round.id)) {
+    return true;
+  }
+
+  const byPlayer = round.holeScores[holeNumber];
+  if (!byPlayer) return true;
 
   const rows: {
     round_id: string;
