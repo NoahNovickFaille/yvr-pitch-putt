@@ -19,8 +19,8 @@ function roundUsesRemoteSync(round: Round): boolean {
   return isSupabaseAuthUserId(round.ownerId) && isUuid(round.id);
 }
 
-/** Prefer local scores when merging an in-progress round with stale remote rows. */
-function mergeRoundScoresLocalOverRemote(remote: Round, local: Round): Round {
+/** Prefer local completion + scores when hydrating from Supabase (remote may be stale). */
+function mergeLocalRoundOverRemote(remote: Round, local: Round): Round {
   const holeScores: Round["holeScores"] = { ...remote.holeScores };
   for (const [holeKey, byPlayer] of Object.entries(local.holeScores)) {
     const holeNumber = Number(holeKey);
@@ -30,7 +30,11 @@ function mergeRoundScoresLocalOverRemote(remote: Round, local: Round): Round {
       ...byPlayer,
     };
   }
-  return { ...remote, holeScores };
+  return {
+    ...remote,
+    completedAt: local.completedAt ?? remote.completedAt,
+    holeScores,
+  };
 }
 
 /** In-memory mirror when AsyncStorage native module is unavailable (same class of error as Supabase). */
@@ -129,8 +133,19 @@ export const useRoundsStore = create<RoundsState>()(
         if (!authId || !isSupabaseAuthUserId(authId)) return;
 
         const remote = await fetchRemoteRounds();
-        const remoteIds = new Set(remote.map((r) => r.id));
         const local = get().rounds;
+
+        const hasLocalOwnedCompleted = local.some(
+          (r) =>
+            r.ownerId === authId &&
+            r.completedAt != null &&
+            isUuid(r.id),
+        );
+        if (remote.length === 0 && hasLocalOwnedCompleted) {
+          return;
+        }
+
+        const remoteIds = new Set(remote.map((r) => r.id));
 
         const localsToKeep = local.filter((r) => {
           if (isPersistedSampleRound(r)) return false;
@@ -140,16 +155,12 @@ export const useRoundsStore = create<RoundsState>()(
         });
 
         const localById = new Map(local.map((r) => [r.id, r] as const));
-        const activeRoundId = get().activeRoundId;
 
         const byId = new Map<string, Round>();
         for (const r of remote) {
           const localMatch = localById.get(r.id);
-          if (
-            localMatch &&
-            (activeRoundId === r.id || !r.completedAt)
-          ) {
-            byId.set(r.id, mergeRoundScoresLocalOverRemote(r, localMatch));
+          if (localMatch) {
+            byId.set(r.id, mergeLocalRoundOverRemote(r, localMatch));
           } else {
             byId.set(r.id, r);
           }

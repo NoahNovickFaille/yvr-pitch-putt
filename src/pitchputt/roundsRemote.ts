@@ -101,7 +101,8 @@ export async function insertRoundRemote(round: Round): Promise<RemoteRoundResult
     round_id: round.id,
     display_name: player.name,
     sort_order: index,
-    is_owner: index === 0,
+    is_owner: player.isOwner ?? index === 0,
+    user_id: player.isOwner ?? index === 0 ? round.ownerId : null,
   }));
 
   const { error: playersError } = await supabase
@@ -237,6 +238,8 @@ type DbPlayerRow = {
   round_id: string;
   display_name: string;
   sort_order: number;
+  is_owner: boolean;
+  user_id: string | null;
 };
 
 type DbHoleScoreRow = {
@@ -246,28 +249,8 @@ type DbHoleScoreRow = {
   hole_id: string;
 };
 
-/**
- * Loads the signed-in user's rounds from Supabase (GET) and maps them into local `Round` shapes.
- * Merge into `useRoundsStore` via `hydrateRoundsFromDatabase`.
- */
-export async function fetchRemoteRounds(): Promise<Round[]> {
-  const authId = await getAuthedUserId();
-  if (!authId) return [];
-
-  const { data: roundRows, error: roundsError } = await supabase
-    .from("rounds")
-    .select("id, owner_id, course_id, status, started_at, completed_at")
-    .eq("owner_id", authId)
-    .order("started_at", { ascending: false });
-
-  if (roundsError || !roundRows?.length) {
-    if (roundsError) {
-      console.warn("[roundsRemote] fetch rounds", roundsError.message);
-    }
-    return [];
-  }
-
-  const rounds = roundRows as DbRoundRow[];
+async function assembleRoundsFromRows(rounds: DbRoundRow[]): Promise<Round[]> {
+  if (!rounds.length) return [];
   const courseUuids = [...new Set(rounds.map((r) => r.course_id))];
 
   const { data: courseRows, error: coursesError } = await supabase
@@ -297,7 +280,7 @@ export async function fetchRemoteRounds(): Promise<Round[]> {
 
   const { data: playerRows, error: playersError } = await supabase
     .from("round_players")
-    .select("id, round_id, display_name, sort_order")
+    .select("id, round_id, display_name, sort_order, is_owner, user_id")
     .in("round_id", roundIds)
     .order("sort_order", { ascending: true });
 
@@ -360,6 +343,8 @@ export async function fetchRemoteRounds(): Promise<Round[]> {
     const players = dbPlayers.map((p) => ({
       id: p.id,
       name: p.display_name,
+      isOwner: p.is_owner,
+      linkedUserId: p.user_id ?? undefined,
     }));
 
     const holeScores: Round["holeScores"] = {};
@@ -382,4 +367,58 @@ export async function fetchRemoteRounds(): Promise<Round[]> {
   }
 
   return result;
+}
+
+/**
+ * Loads rounds the user owns or has claimed via a share link.
+ * Merge into `useRoundsStore` via `hydrateRoundsFromDatabase`.
+ */
+export async function fetchRemoteRounds(): Promise<Round[]> {
+  const authId = await getAuthedUserId();
+  if (!authId) return [];
+
+  const roundIds = new Set<string>();
+
+  const { data: ownedRows, error: ownedError } = await supabase
+    .from("rounds")
+    .select("id")
+    .eq("owner_id", authId);
+
+  if (ownedError) {
+    console.warn("[roundsRemote] fetch owned round ids", ownedError.message);
+  } else {
+    for (const row of ownedRows ?? []) {
+      roundIds.add(row.id);
+    }
+  }
+
+  const { data: memberRows, error: memberError } = await supabase
+    .from("round_players")
+    .select("round_id")
+    .eq("user_id", authId);
+
+  if (memberError) {
+    console.warn("[roundsRemote] fetch member round ids", memberError.message);
+  } else {
+    for (const row of memberRows ?? []) {
+      roundIds.add(row.round_id);
+    }
+  }
+
+  if (roundIds.size === 0) return [];
+
+  const { data: roundRows, error: roundsError } = await supabase
+    .from("rounds")
+    .select("id, owner_id, course_id, status, started_at, completed_at")
+    .in("id", [...roundIds])
+    .order("started_at", { ascending: false });
+
+  if (roundsError || !roundRows?.length) {
+    if (roundsError) {
+      console.warn("[roundsRemote] fetch rounds", roundsError.message);
+    }
+    return [];
+  }
+
+  return assembleRoundsFromRows(roundRows as DbRoundRow[]);
 }

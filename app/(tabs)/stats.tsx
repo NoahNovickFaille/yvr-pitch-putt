@@ -110,10 +110,10 @@ export default function StatsScreen() {
   const filteredRounds = useMemo(
     () =>
       rounds.filter((round) => {
+        if (!round.completedAt) return false;
         if (courseId !== 'all' && round.courseId !== courseId) return false;
         if (!rangeStart) return true;
-        const roundDate = round.completedAt ?? round.createdAt;
-        return new Date(roundDate) >= rangeStart;
+        return new Date(round.completedAt) >= rangeStart;
       }),
     [rounds, courseId, rangeStart],
   );

@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
@@ -21,6 +21,7 @@ import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 /** Width of the revealed delete action (Spotify-style swipe). */
 const DELETE_WIDTH = 56;
 const SPRING = { damping: 34, stiffness: 400 };
+const HISTORY_PAGE_SIZE = 10;
 
 type HistoryRoundListRowProps = {
   round: Round;
@@ -169,6 +170,26 @@ export default function HistoryScreen() {
         .sort((a, b) => new Date(b.completedAt ?? 0).getTime() - new Date(a.completedAt ?? 0).getTime()),
     [rounds],
   );
+  const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
+
+  useEffect(() => {
+    setVisibleCount((current) =>
+      Math.min(current, Math.max(HISTORY_PAGE_SIZE, completedRounds.length)),
+    );
+  }, [completedRounds.length]);
+
+  const visibleRounds = useMemo(
+    () => completedRounds.slice(0, visibleCount),
+    [completedRounds, visibleCount],
+  );
+  const hasMore = visibleCount < completedRounds.length;
+
+  const loadMoreRounds = useCallback(() => {
+    if (visibleCount >= completedRounds.length) return;
+    setVisibleCount((current) =>
+      Math.min(current + HISTORY_PAGE_SIZE, completedRounds.length),
+    );
+  }, [completedRounds.length, visibleCount]);
 
   const formatVsPar = (value: number) => {
     if (value === 0) return 'E';
@@ -197,32 +218,65 @@ export default function HistoryScreen() {
     router.push(path);
   };
 
-  const confirmDeleteRound = (round: Round) => {
-    Alert.alert(
-      'Delete this round?',
-      'This removes the round from your history. If you are signed in, the copy on your account is removed too. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const result = await deleteRound(round.id);
-            if (!result.ok) {
-              Alert.alert(
-                'Could not delete round',
-                result.message ?? 'Check your connection and try again.',
-              );
-            }
+  const confirmDeleteRound = useCallback(
+    (round: Round) => {
+      Alert.alert(
+        'Delete this round?',
+        'This removes the round from your history. If you are signed in, the copy on your account is removed too. This cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              const result = await deleteRound(round.id);
+              if (!result.ok) {
+                Alert.alert(
+                  'Could not delete round',
+                  result.message ?? 'Check your connection and try again.',
+                );
+              }
+            },
           },
-        },
-      ],
-    );
-  };
+        ],
+      );
+    },
+    [deleteRound],
+  );
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+  const buildPlayerScores = useCallback((round: Round) => {
+    const course = getCourseById(round.courseId);
+    const parTotal = (course?.holes ?? []).reduce((sum, hole) => sum + hole.par, 0);
+    return round.players.map((player) => {
+      const total = (course?.holes ?? []).reduce((sum, hole) => {
+        const score = round.holeScores[hole.number]?.[player.id];
+        return sum + (typeof score === 'number' ? score : hole.par);
+      }, 0);
+      return { player, vsPar: total - parTotal };
+    });
+  }, []);
+
+  const renderRoundRow = useCallback(
+    ({ item: round }: { item: Round }) => {
+      const course = getCourseById(round.courseId);
+      return (
+        <HistoryRoundListRow
+          round={round}
+          course={course}
+          playerScores={buildPlayerScores(round)}
+          formatVsPar={formatVsPar}
+          onConfirmDelete={confirmDeleteRound}
+          onSwipeOpened={onSwipeOpened}
+          onSwipeClosed={onSwipeClosed}
+        />
+      );
+    },
+    [buildPlayerScores, confirmDeleteRound, onSwipeClosed, onSwipeOpened],
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.listHeader}>
         <View style={styles.topbar}>
           <Pressable style={styles.iconBtn} onPress={() => router.back()}>
             <Feather name="arrow-left" size={20} color="#1a1a1a" />
@@ -234,32 +288,49 @@ export default function HistoryScreen() {
             <Text style={styles.avatarText}>{avatarLetter}</Text>
           </Pressable>
         </View>
-        {completedRounds.length === 0 ? <Text style={styles.empty}>No completed rounds yet.</Text> : null}
-        {completedRounds.map((round) => {
-          const course = getCourseById(round.courseId);
-          const parTotal = (course?.holes ?? []).reduce((sum, hole) => sum + hole.par, 0);
-          const playerScores = round.players.map((player) => {
-            const total = (course?.holes ?? []).reduce((sum, hole) => {
-              const score = round.holeScores[hole.number]?.[player.id];
-              return sum + (typeof score === 'number' ? score : hole.par);
-            }, 0);
-            return { player, vsPar: total - parTotal };
-          });
+        {completedRounds.length === 0 ? (
+          <Text style={styles.empty}>No completed rounds yet.</Text>
+        ) : null}
+      </View>
+    ),
+    [avatarLetter, completedRounds.length],
+  );
 
-          return (
-            <HistoryRoundListRow
-              key={round.id}
-              round={round}
-              course={course}
-              playerScores={playerScores}
-              formatVsPar={formatVsPar}
-              onConfirmDelete={confirmDeleteRound}
-              onSwipeOpened={onSwipeOpened}
-              onSwipeClosed={onSwipeClosed}
-            />
-          );
-        })}
-      </ScrollView>
+  const listFooter = useMemo(() => {
+    if (completedRounds.length === 0) return null;
+    if (hasMore) {
+      return (
+        <Text style={styles.listFooterText}>
+          Showing {visibleRounds.length} of {completedRounds.length} — scroll for more
+        </Text>
+      );
+    }
+    if (completedRounds.length > HISTORY_PAGE_SIZE) {
+      return (
+        <Text style={styles.listFooterDone}>
+          Showing all {completedRounds.length} rounds
+        </Text>
+      );
+    }
+    return null;
+  }, [completedRounds.length, hasMore, visibleRounds.length]);
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <FlatList
+        data={visibleRounds}
+        keyExtractor={(round) => round.id}
+        renderItem={renderRoundRow}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        contentContainerStyle={styles.container}
+        ItemSeparatorComponent={() => <View style={styles.rowSeparator} />}
+        onEndReached={loadMoreRounds}
+        onEndReachedThreshold={0.35}
+        initialNumToRender={HISTORY_PAGE_SIZE}
+        maxToRenderPerBatch={HISTORY_PAGE_SIZE}
+        windowSize={7}
+      />
 
       <BottomSheet
         ref={bottomSheetRef}
@@ -296,7 +367,25 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f7f6f2' },
-  container: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 20, gap: 12 },
+  container: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 28 },
+  listHeader: { gap: 12, marginBottom: 12 },
+  rowSeparator: { height: 12 },
+  listFooterText: {
+    color: '#6b6b6b',
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  listFooterDone: {
+    color: '#6b6b6b',
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
   topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   topbarTitleWrap: { flex: 1, paddingHorizontal: 8 },
   iconBtn: {

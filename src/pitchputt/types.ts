@@ -3,6 +3,10 @@ export type AuthProvider = 'apple' | 'google' | 'email';
 export interface PlayerInput {
   id: string;
   name: string;
+  /** First slot is the device owner / scorer. */
+  isOwner?: boolean;
+  /** Set when another user has claimed this player slot via share link. */
+  linkedUserId?: string;
 }
 
 export interface Course {

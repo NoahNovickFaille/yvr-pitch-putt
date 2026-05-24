@@ -52,7 +52,11 @@ export default function PlayerSetupScreen() {
       ownerId,
       courseId: course.id,
       createdAt: new Date().toISOString(),
-      players: activePlayers.map((name) => ({ id: randomUUID(), name })),
+      players: activePlayers.map((name, index) => ({
+        id: randomUUID(),
+        name,
+        isOwner: index === 0,
+      })),
       holeScores: {},
     };
     createRound(round);

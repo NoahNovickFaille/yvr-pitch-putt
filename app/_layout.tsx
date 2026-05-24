@@ -25,6 +25,7 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="final-scorecard" options={{ presentation: 'card' }} />
+        <Stack.Screen name="claim" options={{ presentation: 'card' }} />
         <Stack.Screen name="history/[id]" options={{ presentation: 'card' }} />
       </Stack>
       <StatusBar style="light" />
