@@ -19,6 +19,12 @@ export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
+export async function resetPassword(email: string) {
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: authRedirectUrl,
+  });
+}
+
 export async function signUpWithEmail(
   email: string,
   password: string,

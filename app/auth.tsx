@@ -3,16 +3,22 @@ import { useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { finishAuthAndNavigate } from "@/src/pitchputt/authNavigation";
 import {
+  resetPassword,
   signInWithApple,
   signInWithEmail,
   signInWithGoogle,
@@ -141,13 +147,22 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Image
-          source={require("@/assets/images/icon.png")}
-          style={styles.logoImage}
-          resizeMode="cover"
-          accessibilityLabel="Pitch and Putt YVR"
-        />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            contentContainerStyle={styles.container}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+          >
+            <Image
+              source={require("@/assets/images/icon.png")}
+              style={styles.logoImage}
+              resizeMode="cover"
+              accessibilityLabel="Pitch and Putt YVR"
+            />
         <Text style={styles.appName}>Pitch & Putt YVR</Text>
         <Text style={styles.appTagline}>Vancouver&apos;s courses, tracked</Text>
 
@@ -231,6 +246,29 @@ export default function AuthScreen() {
         </Pressable>
 
         <Pressable
+          onPress={async () => {
+            if (!EMAIL_REGEX.test(email.trim())) {
+              Alert.alert(
+                "Enter your email",
+                "Type your email above, then tap here again to receive a reset link.",
+              );
+              return;
+            }
+            const { error } = await resetPassword(email.trim());
+            if (error) {
+              Alert.alert("Could not send reset email", error.message);
+            } else {
+              Alert.alert(
+                "Check your email",
+                "If an account exists, we sent a password reset link.",
+              );
+            }
+          }}
+        >
+          <Text style={styles.forgotLink}>Forgot password?</Text>
+        </Pressable>
+
+        <Pressable
           onPress={() =>
             router.push({ pathname: "/register", params: { email, password } })
           }
@@ -249,15 +287,18 @@ export default function AuthScreen() {
             Scores stay on this device until you create an account or sign in.
           </Text>
         </Pressable>
-      </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#f7f6f2" },
+  flex: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
     margin: 16,
     paddingTop: 28,
     paddingHorizontal: 16,
@@ -349,6 +390,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 13,
     fontWeight: "500",
+  },
+  forgotLink: {
+    color: "#6b6b6b",
+    textAlign: "center",
+    fontWeight: "500",
+    fontSize: 13,
   },
   signupLink: {
     color: "#2D5A8E",
