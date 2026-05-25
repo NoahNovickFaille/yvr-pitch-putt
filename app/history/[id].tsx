@@ -1,19 +1,30 @@
-import { useMemo } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
 import { getCourseById } from '@/src/pitchputt/data';
-import { useRoundsStore } from '@/src/pitchputt/store';
+import { createRoundShareToken } from '@/src/pitchputt/roundShareRemote';
+import { isSupabaseAuthUserId, isUuid } from '@/src/pitchputt/sessionUtils';
+import { buildRoundClaimUrl, buildRoundShareMessage } from '@/src/pitchputt/shareLinks';
+import type { PlayerInput } from '@/src/pitchputt/types';
+import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
+
+function isPlayerOwner(player: PlayerInput, index: number) {
+  return player.isOwner ?? index === 0;
+}
 
 export default function RoundHistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const round = useRoundsStore((state) => state.rounds.find((item) => item.id === id));
   const deleteRound = useRoundsStore((state) => state.deleteRound);
   const completeRound = useRoundsStore((state) => state.completeRound);
+  const userId = useSessionStore((state) => state.userId);
   const course = round ? getCourseById(round.courseId) : undefined;
   const isRoundComplete = Boolean(round?.completedAt);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [sharingPlayerId, setSharingPlayerId] = useState<string | null>(null);
   const screenTitle = isRoundComplete ? 'Round complete' : 'Scorecard';
   const totalsByPlayer = useMemo(() => {
     if (!round || !course) return [];
@@ -99,6 +110,41 @@ export default function RoundHistoryDetailScreen() {
         },
       ],
     );
+  };
+
+  const shareablePlayers = useMemo(
+    () =>
+      (round?.players ?? []).filter(
+        (player, index) => !isPlayerOwner(player, index) && !player.linkedUserId,
+      ),
+    [round?.players],
+  );
+  const canShare =
+    isRoundComplete &&
+    isSupabaseAuthUserId(userId) &&
+    isUuid(round?.id ?? '') &&
+    round?.ownerId === userId &&
+    shareablePlayers.length > 0;
+
+  const shareWithPlayer = async (player: PlayerInput) => {
+    if (!round || !course) return;
+    setSharingPlayerId(player.id);
+    const created = await createRoundShareToken(round.id, player.id);
+    setSharingPlayerId(null);
+    if (!created.ok) {
+      Alert.alert('Could not share', created.message);
+      return;
+    }
+    const url = buildRoundClaimUrl(created.token);
+    const courseLabel = course.name.replace(' Pitch & Putt', '');
+    try {
+      await Share.share({
+        message: buildRoundShareMessage(player.name, courseLabel, url),
+      });
+      setShareModalVisible(false);
+    } catch {
+      /* user dismissed share sheet */
+    }
   };
 
   const playerColGap =
@@ -246,7 +292,59 @@ export default function RoundHistoryDetailScreen() {
             );
           })}
         </View>
+
+        {canShare ? (
+          <Pressable
+            style={styles.shareButton}
+            onPress={() => setShareModalVisible(true)}
+          >
+            <Text style={styles.shareButtonText}>Share with a player</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
+
+      <Modal
+        visible={shareModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Share scorecard</Text>
+            <Text style={styles.modalBody}>
+              Choose a player. They get a one-time link to claim this round in the app.
+            </Text>
+            <View style={styles.sharePlayerList}>
+              {shareablePlayers.map((player) => {
+                const busy = sharingPlayerId === player.id;
+                return (
+                  <Pressable
+                    key={player.id}
+                    style={[styles.sharePlayerRow, busy && styles.sharePlayerRowBusy]}
+                    onPress={() => void shareWithPlayer(player)}
+                    disabled={sharingPlayerId != null}
+                  >
+                    <Text style={styles.sharePlayerName}>{player.name}</Text>
+                    {busy ? (
+                      <ActivityIndicator color="#2D6A4F" size="small" />
+                    ) : (
+                      <Text style={styles.sharePlayerAction}>Create link</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              style={styles.modalCloseBtn}
+              onPress={() => setShareModalVisible(false)}
+              disabled={sharingPlayerId != null}
+            >
+              <Text style={styles.modalCloseBtnText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -415,5 +513,61 @@ const styles = StyleSheet.create({
   summaryUnder: { color: '#2D6A4F' },
   summaryEven: { color: '#6b6b6b' },
   summaryOver: { color: '#B85C38' },
+  shareButton: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.12)',
+  },
+  shareButtonText: { color: '#2D6A4F', fontWeight: '700', fontSize: 15 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 10,
+  },
+  modalTitle: { color: '#1a1a1a', fontSize: 19, fontWeight: '800' },
+  modalBody: { color: '#6b6b6b', fontSize: 14, lineHeight: 20 },
+  sharePlayerList: { gap: 8 },
+  sharePlayerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#f7f6f2',
+  },
+  sharePlayerRowBusy: { opacity: 0.7 },
+  sharePlayerName: { color: '#1a1a1a', fontSize: 16, fontWeight: '600' },
+  sharePlayerAction: { color: '#2D6A4F', fontSize: 14, fontWeight: '700' },
+  modalCloseBtn: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    backgroundColor: '#ffffff',
+  },
+  modalCloseBtnText: { color: '#1a1a1a', fontSize: 14, fontWeight: '700' },
   errorText: { color: '#B85C38', padding: 20 },
 });

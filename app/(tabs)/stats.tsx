@@ -137,46 +137,50 @@ export default function StatsScreen() {
       if (!course) return;
       const isFullyScored = isRoundFullyScored(round, course);
 
-      round.players.forEach((player) => {
-        let strokeSum = 0;
-        let parSum = 0;
+      const myPlayer =
+        round.players.find((p) => p.linkedUserId === userId) ??
+        round.players.find((p) => p.isOwner) ??
+        (round.ownerId === userId ? round.players[0] : undefined);
+      if (!myPlayer) return;
 
-        course.holes.forEach((hole) => {
-          const strokes = round.holeScores[hole.number]?.[player.id];
-          if (typeof strokes !== 'number') return;
+      let strokeSum = 0;
+      let parSum = 0;
 
-          const delta = strokes - hole.par;
+      course.holes.forEach((hole) => {
+        const strokes = round.holeScores[hole.number]?.[myPlayer.id];
+        if (typeof strokes !== 'number') return;
 
-          if (strokes === 1) hioCount += 1;
-          if (delta < 0) underCount += 1;
-          else if (delta === 0) parCount += 1;
-          else if (delta === 1) bogeyCount += 1;
-          else doubleCount += 1;
+        const delta = strokes - hole.par;
 
-          const holeKey = `${course.id}-${hole.number}`;
-          const current = holeAverages.get(holeKey) ?? {
-            sum: 0,
-            count: 0,
-            courseName: course.name.replace(' Pitch & Putt', ''),
-            holeNumber: hole.number,
-          };
-          current.sum += strokes;
-          current.count += 1;
-          holeAverages.set(holeKey, current);
+        if (strokes === 1) hioCount += 1;
+        if (delta < 0) underCount += 1;
+        else if (delta === 0) parCount += 1;
+        else if (delta === 1) bogeyCount += 1;
+        else doubleCount += 1;
 
-          strokeSum += strokes;
-          parSum += hole.par;
-        });
+        const holeKey = `${course.id}-${hole.number}`;
+        const current = holeAverages.get(holeKey) ?? {
+          sum: 0,
+          count: 0,
+          courseName: course.name.replace(' Pitch & Putt', ''),
+          holeNumber: hole.number,
+        };
+        current.sum += strokes;
+        current.count += 1;
+        holeAverages.set(holeKey, current);
 
-        if (parSum === 0) return;
-
-        const vsPar = strokeSum - parSum;
-        if (vsPar < bestRound) bestRound = vsPar;
-        if (isFullyScored) {
-          totalScore += strokeSum;
-          totalEntries += 1;
-        }
+        strokeSum += strokes;
+        parSum += hole.par;
       });
+
+      if (parSum === 0) return;
+
+      const vsPar = strokeSum - parSum;
+      if (vsPar < bestRound) bestRound = vsPar;
+      if (isFullyScored) {
+        totalScore += strokeSum;
+        totalEntries += 1;
+      }
     });
 
     let bestHole: { label: string; avg: string } | null = null;
@@ -204,7 +208,7 @@ export default function StatsScreen() {
         { label: 'Double+', count: doubleCount, color: '#d4755a' },
       ],
     };
-  }, [filteredRounds]);
+  }, [filteredRounds, userId]);
 
   const selectedCourse = courseId === 'all' ? null : getCourseById(courseId);
   const courseLabel = selectedCourse?.name.replace(' Pitch & Putt', '') ?? 'All courses';
@@ -215,18 +219,21 @@ export default function StatsScreen() {
       let count = 0;
       filteredRounds.forEach((round) => {
         if (round.courseId !== selectedCourse.id) return;
-        round.players.forEach((player) => {
-          const strokes = round.holeScores[hole.number]?.[player.id];
-          if (typeof strokes === 'number') {
-            sum += strokes;
-            count += 1;
-          }
-        });
+        const myPlayer =
+          round.players.find((p) => p.linkedUserId === userId) ??
+          round.players.find((p) => p.isOwner) ??
+          (round.ownerId === userId ? round.players[0] : undefined);
+        if (!myPlayer) return;
+        const strokes = round.holeScores[hole.number]?.[myPlayer.id];
+        if (typeof strokes === 'number') {
+          sum += strokes;
+          count += 1;
+        }
       });
       const avg = count > 0 ? Number((sum / count).toFixed(1)) : null;
       return { holeNumber: hole.number, par: hole.par, avg };
     });
-  }, [selectedCourse, filteredRounds]);
+  }, [selectedCourse, filteredRounds, userId]);
   const selectedHoleDist = useMemo(() => {
     if (!selectedCourse || selectedHole === null) return null;
 
@@ -239,16 +246,19 @@ export default function StatsScreen() {
 
     filteredRounds.forEach((round) => {
       if (round.courseId !== selectedCourse.id) return;
-      round.players.forEach((player) => {
-        const strokes = round.holeScores[selectedHole]?.[player.id];
-        if (typeof strokes !== 'number') return;
-        const delta = strokes - holePar;
-        if (strokes === 1) hioCount += 1;
-        if (delta < 0) birdieCount += 1;
-        else if (delta === 0) parCount += 1;
-        else if (delta === 1) bogeyCount += 1;
-        else doubleCount += 1;
-      });
+      const myPlayer =
+        round.players.find((p) => p.linkedUserId === userId) ??
+        round.players.find((p) => p.isOwner) ??
+        (round.ownerId === userId ? round.players[0] : undefined);
+      if (!myPlayer) return;
+      const strokes = round.holeScores[selectedHole]?.[myPlayer.id];
+      if (typeof strokes !== 'number') return;
+      const delta = strokes - holePar;
+      if (strokes === 1) hioCount += 1;
+      if (delta < 0) birdieCount += 1;
+      else if (delta === 0) parCount += 1;
+      else if (delta === 1) bogeyCount += 1;
+      else doubleCount += 1;
     });
 
     return [
@@ -258,7 +268,7 @@ export default function StatsScreen() {
       { label: 'Bogey', count: bogeyCount, color: '#e8a87c' },
       { label: 'Double+', count: doubleCount, color: '#d4755a' },
     ];
-  }, [filteredRounds, selectedCourse, selectedHole]);
+  }, [filteredRounds, selectedCourse, selectedHole, userId]);
   const displayedDist = selectedHoleDist ?? metrics.dist;
   const maxDist = Math.max(...displayedDist.map((item) => item.count), 1);
   const distTitle = selectedHole ? `Hole ${selectedHole} breakdown` : 'Scoring breakdown';
