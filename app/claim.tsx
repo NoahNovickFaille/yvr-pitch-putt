@@ -44,11 +44,8 @@ export default function ClaimScorecardScreen() {
   const [claiming, setClaiming] = useState(false);
   const [authedUserId, setAuthedUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (shareToken) {
-      void setPendingClaimToken(shareToken);
-    }
-  }, [shareToken]);
+  // Only persist the token if the user isn't signed in yet (needs auth redirect).
+  // Don't blindly re-save on every mount — that causes stale redirects.
 
   useEffect(() => {
     let cancelled = false;
@@ -163,7 +160,7 @@ export default function ClaimScorecardScreen() {
         <View style={styles.centered}>
           <Text style={styles.title}>Link not found</Text>
           <Text style={styles.body}>This share link is invalid or has been removed.</Text>
-          <Pressable style={styles.primaryBtn} onPress={() => router.replace("/(tabs)")}>
+          <Pressable style={styles.primaryBtn} onPress={() => { void clearPendingClaimToken(); router.replace("/(tabs)"); }}>
             <Text style={styles.primaryBtnText}>Go home</Text>
           </Pressable>
         </View>
@@ -177,7 +174,7 @@ export default function ClaimScorecardScreen() {
         <View style={styles.centered}>
           <Text style={styles.title}>Link expired</Text>
           <Text style={styles.body}>Ask the round owner to send a new share link.</Text>
-          <Pressable style={styles.primaryBtn} onPress={() => router.replace("/(tabs)")}>
+          <Pressable style={styles.primaryBtn} onPress={() => { void clearPendingClaimToken(); router.replace("/(tabs)"); }}>
             <Text style={styles.primaryBtnText}>Go home</Text>
           </Pressable>
         </View>
@@ -230,7 +227,7 @@ export default function ClaimScorecardScreen() {
           </Pressable>
         ) : null}
 
-        <Pressable style={styles.secondaryBtn} onPress={() => router.replace("/(tabs)")}>
+        <Pressable style={styles.secondaryBtn} onPress={() => { void clearPendingClaimToken(); router.replace("/(tabs)"); }}>
           <Text style={styles.secondaryBtnText}>Go home</Text>
         </Pressable>
       </ScrollView>

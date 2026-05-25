@@ -267,6 +267,39 @@ export default function HomeScreen() {
         >
           <BottomSheetView style={styles.sheetContent}>
             <Text style={styles.sheetTitle}>Menu</Text>
+            <Pressable
+              style={styles.sheetItem}
+              onPress={() => {
+                Alert.prompt(
+                  'Edit display name',
+                  'This is how you appear on scorecards.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Save',
+                      onPress: async (value?: string) => {
+                        const trimmed = (value ?? '').trim();
+                        if (!trimmed) return;
+                        const { error } = await supabase.auth.updateUser({
+                          data: { first_name: trimmed },
+                        });
+                        if (error) {
+                          Alert.alert('Could not update name', error.message);
+                          return;
+                        }
+                        const session = useSessionStore.getState();
+                        session.setSession(session.userId ?? '', session.userEmail ?? '', trimmed);
+                      },
+                    },
+                  ],
+                  'plain-text',
+                  userName ?? '',
+                );
+              }}
+            >
+              <Text style={styles.sheetItemText}>Edit display name</Text>
+              <Feather name="edit-2" size={16} color="#6b6b6b" />
+            </Pressable>
             <Pressable style={styles.sheetItem} onPress={() => navigateFromMenu('/(tabs)')}>
               <Text style={styles.sheetItemText}>Start a round</Text>
               <Feather name="play" size={16} color="#2D6A4F" />

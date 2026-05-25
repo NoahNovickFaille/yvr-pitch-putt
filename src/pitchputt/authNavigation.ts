@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 
-import { peekPendingClaimToken } from "./pendingClaim";
+import { clearPendingClaimToken, peekPendingClaimToken } from "./pendingClaim";
 import { waitForAuthedUserId } from "./roundsRemote";
 import { useRoundsStore } from "./store";
 
@@ -15,6 +15,7 @@ export async function finishAuthAndNavigate(expectedUserId: string): Promise<voi
 
   const pendingToken = await peekPendingClaimToken();
   if (pendingToken) {
+    await clearPendingClaimToken();
     router.replace({ pathname: "/claim", params: { token: pendingToken } });
     return;
   }

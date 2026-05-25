@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Redirect } from 'expo-router';
 
 import { supabase } from '@/src/lib/supabase';
+import { clearPendingClaimToken } from '@/src/pitchputt/pendingClaim';
 import { useSessionStore } from '@/src/pitchputt/store';
 
 export default function Index() {
@@ -11,6 +12,7 @@ export default function Index() {
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
+    clearPendingClaimToken();
     supabase.auth.getSession().then(({ data }) => {
       setHasSession(Boolean(data.session?.user));
       setChecked(true);

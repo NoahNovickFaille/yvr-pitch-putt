@@ -282,6 +282,17 @@ export default function HoleScreen() {
               const strokes = round.holeScores[holeNumber]?.[player.id];
               const delta = getRunningRoundDelta(player.id);
               const displayValue = strokes ?? currentHole.par;
+              const holeDelta = displayValue - currentHole.par;
+              const indicatorWrap =
+                displayValue === 1
+                  ? styles.indicatorHio
+                  : holeDelta < 0
+                    ? styles.indicatorBirdie
+                    : holeDelta === 1
+                      ? styles.indicatorBogey
+                      : holeDelta >= 2
+                        ? styles.indicatorDouble
+                        : null;
               return (
                 <View key={player.id} style={styles.scoreRow}>
                   <View style={styles.scoreRowHeader}>
@@ -305,7 +316,9 @@ export default function HoleScreen() {
                     >
                       <Feather name="minus" size={18} color="#1a1a1a" />
                     </Pressable>
-                    <Text style={styles.stepperValue}>{displayValue}</Text>
+                    <View style={[styles.stepperValueWrap, indicatorWrap]}>
+                      <Text style={styles.stepperValue}>{displayValue}</Text>
+                    </View>
                     <Pressable
                       style={styles.stepperBtn}
                       onPress={() =>
@@ -525,8 +538,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#f7f6f2",
   },
+  stepperValueWrap: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 21,
+  },
+  indicatorBirdie: {
+    borderWidth: 2,
+    borderColor: "#2D6A4F",
+    borderRadius: 21,
+  },
+  indicatorHio: {
+    borderWidth: 2,
+    borderColor: "#2D5A8E",
+    borderRadius: 21,
+    backgroundColor: "rgba(45,90,142,0.08)",
+  },
+  indicatorBogey: {
+    borderWidth: 2,
+    borderColor: "#B85C38",
+    borderRadius: 6,
+  },
+  indicatorDouble: {
+    borderWidth: 2,
+    borderColor: "#B85C38",
+    borderRadius: 6,
+    backgroundColor: "rgba(184,92,56,0.08)",
+  },
   stepperValue: {
-    minWidth: 34,
     textAlign: "center",
     color: "#1a1a1a",
     fontWeight: "800",
