@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as StoreReview from 'expo-store-review';
 
 import { getCourseById } from '@/src/pitchputt/data';
 import { createRoundShareToken } from '@/src/pitchputt/roundShareRemote';
@@ -116,7 +117,7 @@ export default function FinalScorecardScreen() {
     }
   };
 
-  const handleSaveScorecard = () => {
+  const handleSaveScorecard = async () => {
     const isGuestUser = !userId || userId.startsWith('guest-');
     if (!round.completedAt) {
       completeRound(round.id);
@@ -125,6 +126,15 @@ export default function FinalScorecardScreen() {
       setShowGuestSignupModal(true);
       return;
     }
+
+    const completedCount = useRoundsStore.getState().rounds.filter((r) => r.completedAt).length;
+    if (completedCount === 1) {
+      const canAsk = await StoreReview.isAvailableAsync();
+      if (canAsk) {
+        await StoreReview.requestReview();
+      }
+    }
+
     router.replace('/(tabs)');
   };
 
