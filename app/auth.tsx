@@ -11,12 +11,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { finishAuthAndNavigate } from "@/src/pitchputt/authNavigation";
 import {
   signInWithApple,
   signInWithEmail,
   signInWithGoogle,
 } from "@/src/pitchputt/authService";
-import { useRoundsStore, useSessionStore } from "@/src/pitchputt/store";
+import { useSessionStore } from "@/src/pitchputt/store";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -123,8 +124,12 @@ export default function AuthScreen() {
       setIsSubmitting(false);
     }
 
-    void useRoundsStore.getState().hydrateRoundsFromDatabase();
-    router.replace("/(tabs)");
+    const authedUserId = useSessionStore.getState().userId;
+    if (!authedUserId) {
+      router.replace("/(tabs)");
+      return;
+    }
+    await finishAuthAndNavigate(authedUserId);
   };
 
   const continueAsGuest = () => {

@@ -11,12 +11,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
+import { supabase } from "@/src/lib/supabase";
 import { getCourseById } from "@/src/pitchputt/data";
+import {
+  clearPendingClaimToken,
+  setPendingClaimToken,
+} from "@/src/pitchputt/pendingClaim";
 import {
   claimRoundShareToken,
   peekRoundShareToken,
   type ShareRoundPreview,
 } from "@/src/pitchputt/roundShareRemote";
+import { getAuthedUserId, waitForAuthedUserId } from "@/src/pitchputt/roundsRemote";
 import { isSupabaseAuthUserId } from "@/src/pitchputt/sessionUtils";
 import { useRoundsStore, useSessionStore } from "@/src/pitchputt/store";
 
@@ -28,7 +34,7 @@ function formatVsPar(value: number) {
 export default function ClaimScorecardScreen() {
   const { token } = useLocalSearchParams<{ token?: string }>();
   const shareToken = typeof token === "string" ? token : "";
-  const userId = useSessionStore((state) => state.userId);
+  const setSession = useSessionStore((state) => state.setSession);
   const hydrateRoundsFromDatabase = useRoundsStore(
     (state) => state.hydrateRoundsFromDatabase,
   );
@@ -36,6 +42,31 @@ export default function ClaimScorecardScreen() {
   const [preview, setPreview] = useState<ShareRoundPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
+  const [authedUserId, setAuthedUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (shareToken) {
+      void setPendingClaimToken(shareToken);
+    }
+  }, [shareToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refreshAuth = async () => {
+      const id = await getAuthedUserId();
+      if (!cancelled) setAuthedUserId(id);
+    };
+    void refreshAuth();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      void refreshAuth();
+    });
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const loadPreview = useCallback(async () => {
     if (!shareToken) {
@@ -79,9 +110,26 @@ export default function ClaimScorecardScreen() {
   const handleClaim = async () => {
     if (!shareToken || claiming) return;
 
-    if (!isSupabaseAuthUserId(userId)) {
+    // Force a token refresh so the JWT is fresh for the RPC
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    const readyUserId = await waitForAuthedUserId(authedUserId ?? undefined);
+    if (!readyUserId || refreshError) {
+      await setPendingClaimToken(shareToken);
       router.replace("/auth");
       return;
+    }
+
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (user?.id === readyUserId) {
+      const meta = user.user_metadata;
+      const name =
+        typeof meta?.first_name === "string" && meta.first_name.trim()
+          ? meta.first_name.trim()
+          : typeof meta?.full_name === "string" && meta.full_name.trim()
+            ? meta.full_name.trim()
+            : null;
+      setSession(user.id, user.email ?? "", name);
     }
 
     setClaiming(true);
@@ -92,6 +140,7 @@ export default function ClaimScorecardScreen() {
       return;
     }
 
+    await clearPendingClaimToken();
     await hydrateRoundsFromDatabase();
     setClaiming(false);
     router.replace({ pathname: "/history/[id]", params: { id: result.roundId } });
@@ -137,7 +186,7 @@ export default function ClaimScorecardScreen() {
   }
 
   const alreadyClaimed = preview.status === "claimed";
-  const signedIn = isSupabaseAuthUserId(userId);
+  const signedIn = isSupabaseAuthUserId(authedUserId);
 
   return (
     <SafeAreaView style={styles.safeArea}>

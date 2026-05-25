@@ -109,7 +109,6 @@ export default function FinalScorecardScreen() {
     try {
       await Share.share({
         message: buildRoundShareMessage(player.name, courseLabel, url),
-        url,
       });
       setShareModalVisible(false);
     } catch {

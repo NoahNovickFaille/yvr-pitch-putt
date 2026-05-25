@@ -28,7 +28,7 @@ module.exports = {
       bundleIdentifier: IS_DEV
         ? "ca.noahnovick.pitchputt.dev"
         : "ca.noahnovick.pitchputt",
-      buildNumber: "12",
+      buildNumber: "13",
       supportsTablet: false,
       infoPlist: {
         NSCameraUsageDescription:
@@ -78,6 +78,14 @@ module.exports = {
         },
       ],
       "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
+            ? `com.googleusercontent.apps.${process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID.split(".apps.googleusercontent.com")[0]}`
+            : undefined,
+        },
+      ],
     ],
     owner: "noahnovick",
     extra: {
@@ -86,6 +94,8 @@ module.exports = {
       },
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
     },
     experiments: {
       typedRoutes: true,

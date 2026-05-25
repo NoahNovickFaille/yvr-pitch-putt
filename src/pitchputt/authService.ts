@@ -1,9 +1,19 @@
-import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import Constants from 'expo-constants';
+import {
+  GoogleSignin,
+  isSuccessResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 
 import { authRedirectUrl, supabase } from '@/src/lib/supabase';
 
-WebBrowser.maybeCompleteAuthSession();
+const extra = Constants.expoConfig?.extra ?? {};
+
+GoogleSignin.configure({
+  webClientId: extra.googleWebClientId ?? process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
+  iosClientId: extra.googleIosClientId ?? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
+});
 
 export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
@@ -28,35 +38,38 @@ export async function signUpWithEmail(
 }
 
 export async function signInWithGoogle() {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: authRedirectUrl,
-      skipBrowserRedirect: true,
-    },
-  });
+  try {
+    await GoogleSignin.hasPlayServices();
+    const response = await GoogleSignin.signIn();
 
-  if (error) return { error };
-  if (data?.url) {
-    const browserResult = await WebBrowser.openAuthSessionAsync(
-      data.url,
-      authRedirectUrl,
-    );
-    if (browserResult.type === 'cancel' || browserResult.type === 'dismiss') {
+    if (!isSuccessResponse(response)) {
       return { error: new Error('Google sign-in was cancelled.') };
     }
-  }
 
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
-  if (sessionError) return { error: sessionError };
-  const user = sessionData.session?.user;
-  if (!user) {
-    return {
-      error: new Error('Google sign-in did not establish a session.'),
-    };
+    const idToken = response.data.idToken;
+    if (!idToken) {
+      return { error: new Error('Google sign-in did not return an ID token.') };
+    }
+
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
+    });
+
+    if (error) return { error };
+    if (!data.user) {
+      return { error: new Error('Google sign-in did not establish a session.') };
+    }
+    return { data: { user: data.user }, error: null };
+  } catch (error: any) {
+    if (error?.code === statusCodes.SIGN_IN_CANCELLED) {
+      return { error: new Error('Google sign-in was cancelled.') };
+    }
+    if (error?.code === statusCodes.IN_PROGRESS) {
+      return { error: new Error('Google sign-in already in progress.') };
+    }
+    return { error: error instanceof Error ? error : new Error('Google sign-in failed.') };
   }
-  return { data: { user }, error: null };
 }
 
 export async function signInWithApple() {

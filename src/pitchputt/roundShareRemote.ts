@@ -1,6 +1,7 @@
 import { supabase } from "@/src/lib/supabase";
 
 import { COURSES } from "./data";
+import { waitForAuthedUserId } from "./roundsRemote";
 import type { Round } from "./types";
 
 export type ShareTokenStatus = "ready" | "claimed" | "expired" | "invalid";
@@ -121,15 +122,29 @@ export async function peekRoundShareToken(token: string): Promise<ShareRoundPrev
 export async function claimRoundShareToken(
   token: string,
 ): Promise<{ ok: true; roundId: string } | { ok: false; message: string }> {
+  const authedUserId = await waitForAuthedUserId();
+  if (!authedUserId) {
+    return {
+      ok: false,
+      message: "Sign in to claim this scorecard, then try again.",
+    };
+  }
+
   const { data, error } = await supabase.rpc("claim_round_share_token", {
     p_token: token,
   });
 
   if (error || typeof data !== "string" || !data) {
     console.warn("[roundShareRemote] claim token", error?.message);
+    const raw = error?.message ?? "";
+    const message =
+      raw.toLowerCase().includes("not authenticated") ||
+      raw.toLowerCase().includes("jwt")
+        ? "Sign in to claim this scorecard, then try again."
+        : raw || "Could not claim this scorecard.";
     return {
       ok: false,
-      message: error?.message ?? "Could not claim this scorecard.",
+      message,
     };
   }
 

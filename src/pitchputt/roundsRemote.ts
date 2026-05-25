@@ -14,6 +14,22 @@ export async function getAuthedUserId(): Promise<string | null> {
   return data.session.user.id;
 }
 
+/** Poll until Supabase JWT is available (RPCs need auth.uid(), not just local session store). */
+export async function waitForAuthedUserId(
+  expectedUserId?: string,
+  timeoutMs = 4000,
+): Promise<string | null> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const authedUserId = await getAuthedUserId();
+    if (authedUserId && (!expectedUserId || authedUserId === expectedUserId)) {
+      return authedUserId;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+  return null;
+}
+
 function shouldSyncRound(ownerId: string | null, roundId: string): boolean {
   return isSupabaseAuthUserId(ownerId) && isUuid(roundId);
 }

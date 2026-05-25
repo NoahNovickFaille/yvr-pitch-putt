@@ -3,21 +3,12 @@ import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'reac
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { finishAuthAndNavigate } from '@/src/pitchputt/authNavigation';
 import { signUpWithEmail } from '@/src/pitchputt/authService';
-import { getAuthedUserId } from '@/src/pitchputt/roundsRemote';
+import { waitForAuthedUserId } from '@/src/pitchputt/roundsRemote';
 import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-async function waitForAuthedUserId(expectedUserId: string): Promise<boolean> {
-  const startedAt = Date.now();
-  while (Date.now() - startedAt < 2500) {
-    const authedUserId = await getAuthedUserId();
-    if (authedUserId === expectedUserId) return true;
-    await new Promise((resolve) => setTimeout(resolve, 120));
-  }
-  return false;
-}
 
 export default function RegisterScreen() {
   const lastNameInputRef = useRef<TextInput>(null);
@@ -72,20 +63,18 @@ export default function RegisterScreen() {
         return;
       }
       setSession(sessionUser.id, email, firstName.trim());
-      const hasAuthedSession = await waitForAuthedUserId(sessionUser.id);
-      if (hasAuthedSession) {
-        await useRoundsStore.getState().syncGuestRoundsToUser(sessionUser.id);
+      const authedUserId = await waitForAuthedUserId(sessionUser.id);
+      if (authedUserId) {
+        await useRoundsStore.getState().syncGuestRoundsToUser(authedUserId);
       } else {
         console.warn('[register] Supabase session not ready; skipping immediate guest round sync.');
       }
-      void useRoundsStore.getState().hydrateRoundsFromDatabase();
+      await finishAuthAndNavigate(sessionUser.id);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sign up failed. Please try again.';
       Alert.alert('Sign up failed', message);
       return;
     }
-
-    router.replace('/(tabs)');
   };
 
   return (
