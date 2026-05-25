@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
+import { supabase } from '@/src/lib/supabase';
 import { COURSES, getCourseById } from '@/src/pitchputt/data';
 import { isRoundFullyScored } from '@/src/pitchputt/roundCompleteness';
 import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
@@ -432,6 +433,36 @@ export default function StatsScreen() {
           <Pressable style={styles.sheetItem} onPress={() => navigateFromMenu('/logout')}>
             <Text style={styles.sheetItemDanger}>Log out</Text>
             <Feather name="log-out" size={16} color="#B85C38" />
+          </Pressable>
+          <Pressable
+            style={styles.sheetItem}
+            onPress={() => {
+              bottomSheetRef.current?.close();
+              Alert.alert(
+                'Delete account?',
+                'This permanently removes your account, all rounds, and scores. This cannot be undone.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                      const { error } = await supabase.rpc('delete_my_account');
+                      if (error) {
+                        Alert.alert('Could not delete account', error.message);
+                        return;
+                      }
+                      useSessionStore.getState().clearSession();
+                      useRoundsStore.getState().clearRounds();
+                      router.replace('/auth');
+                    },
+                  },
+                ],
+              );
+            }}
+          >
+            <Text style={styles.sheetItemDanger}>Delete account</Text>
+            <Feather name="trash-2" size={16} color="#B85C38" />
           </Pressable>
         </BottomSheetView>
       </BottomSheet>

@@ -9,6 +9,7 @@ import Animated, { runOnUI, useAnimatedStyle, useSharedValue, withSpring } from 
 
 import { COURSES, getCourseById } from '@/src/pitchputt/data';
 import type { Round } from '@/src/pitchputt/types';
+import { supabase } from '@/src/lib/supabase';
 import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
 
 const COURSE_NEIGHBORHOODS: Record<string, string> = {
@@ -281,6 +282,35 @@ export default function HomeScreen() {
             <Pressable style={styles.sheetItem} onPress={() => navigateFromMenu('/logout')}>
               <Text style={styles.sheetItemDanger}>Log out</Text>
               <Feather name="log-out" size={16} color="#B85C38" />
+            </Pressable>
+            <Pressable
+              style={styles.sheetItem}
+              onPress={() => {
+                Alert.alert(
+                  'Delete account?',
+                  'This permanently removes your account, all rounds, and scores. This cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: async () => {
+                        const { error } = await supabase.rpc('delete_my_account');
+                        if (error) {
+                          Alert.alert('Could not delete account', error.message);
+                          return;
+                        }
+                        useSessionStore.getState().clearSession();
+                        useRoundsStore.getState().clearRounds();
+                        router.replace('/auth');
+                      },
+                    },
+                  ],
+                );
+              }}
+            >
+              <Text style={styles.sheetItemDanger}>Delete account</Text>
+              <Feather name="trash-2" size={16} color="#B85C38" />
             </Pressable>
           </BottomSheetView>
         </BottomSheet>

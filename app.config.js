@@ -28,7 +28,7 @@ module.exports = {
       bundleIdentifier: IS_DEV
         ? "ca.noahnovick.pitchputt.dev"
         : "ca.noahnovick.pitchputt",
-      buildNumber: "13",
+      buildNumber: "14",
       supportsTablet: false,
       infoPlist: {
         NSCameraUsageDescription:
@@ -81,9 +81,7 @@ module.exports = {
       [
         "@react-native-google-signin/google-signin",
         {
-          iosUrlScheme: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
-            ? `com.googleusercontent.apps.${process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID.split(".apps.googleusercontent.com")[0]}`
-            : undefined,
+          iosUrlScheme: `com.googleusercontent.apps.${(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "528156094015-7dg714vraauh4mgv3novtugkkhiovqoh.apps.googleusercontent.com").split(".apps.googleusercontent.com")[0]}`,
         },
       ],
     ],
