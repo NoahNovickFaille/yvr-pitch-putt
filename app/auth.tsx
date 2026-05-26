@@ -32,6 +32,7 @@ export default function AuthScreen() {
   const setSession = useSessionStore((state) => state.setSession);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEmailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
@@ -210,23 +211,32 @@ export default function AuthScreen() {
           blurOnSubmit={false}
           onSubmitEditing={() => passwordInputRef.current?.focus()}
         />
-        <TextInput
-          ref={passwordInputRef}
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#aaaaaa"
-          value={password}
-          onChangeText={(value) => {
-            setPassword(value);
-            if (errorMessage) {
-              setErrorMessage(null);
-            }
-          }}
-          secureTextEntry
-          autoCorrect={false}
-          returnKeyType="go"
-          onSubmitEditing={() => void continueWithProvider("email")}
-        />
+        <View style={styles.passwordWrap}>
+          <TextInput
+            ref={passwordInputRef}
+            style={styles.passwordInput}
+            placeholder="Password"
+            placeholderTextColor="#aaaaaa"
+            value={password}
+            onChangeText={(value) => {
+              setPassword(value);
+              if (errorMessage) {
+                setErrorMessage(null);
+              }
+            }}
+            secureTextEntry={!showPassword}
+            autoCorrect={false}
+            returnKeyType="go"
+            onSubmitEditing={() => void continueWithProvider("email")}
+          />
+          <Pressable
+            style={styles.showPasswordBtn}
+            onPress={() => setShowPassword((prev) => !prev)}
+            hitSlop={8}
+          >
+            <Text style={styles.showPasswordText}>{showPassword ? "Hide" : "Show"}</Text>
+          </Pressable>
+        </View>
 
         {errorMessage ? (
           <Text style={styles.errorText}>{errorMessage}</Text>
@@ -370,6 +380,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
+  },
+  passwordWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderColor: "rgba(0,0,0,0.1)",
+    borderWidth: 1,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+  },
+  passwordInput: {
+    flex: 1,
+    color: "#1a1a1a",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+  },
+  showPasswordBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  showPasswordText: {
+    color: "#2D6A4F",
+    fontSize: 13,
+    fontWeight: "600",
   },
   primaryBtn: {
     backgroundColor: "#2D6A4F",

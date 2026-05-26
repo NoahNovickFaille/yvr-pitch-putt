@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,6 +20,8 @@ export default function RegisterScreen() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState(params.password ?? '');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const isEmailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
   const isPasswordValid = useMemo(() => password.length >= 8, [password]);
 
@@ -46,6 +48,7 @@ export default function RegisterScreen() {
       return;
     }
 
+    setIsCreating(true);
     try {
       const result = await signUpWithEmail(email, password, {
         firstName: firstName.trim(),
@@ -73,7 +76,8 @@ export default function RegisterScreen() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sign up failed. Please try again.';
       Alert.alert('Sign up failed', message);
-      return;
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -126,24 +130,41 @@ export default function RegisterScreen() {
           blurOnSubmit={false}
           onSubmitEditing={() => passwordInputRef.current?.focus()}
         />
-        <TextInput
-          ref={passwordInputRef}
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#aaaaaa"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCorrect={false}
-          returnKeyType="go"
-          onSubmitEditing={() => void createAccount()}
-        />
+        <View style={styles.passwordWrap}>
+          <TextInput
+            ref={passwordInputRef}
+            style={styles.passwordInput}
+            placeholder="Password"
+            placeholderTextColor="#aaaaaa"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            autoCorrect={false}
+            returnKeyType="go"
+            onSubmitEditing={() => void createAccount()}
+          />
+          <Pressable
+            style={styles.showPasswordBtn}
+            onPress={() => setShowPassword((prev) => !prev)}
+            hitSlop={8}
+          >
+            <Text style={styles.showPasswordText}>{showPassword ? "Hide" : "Show"}</Text>
+          </Pressable>
+        </View>
         <Text style={[styles.passwordHint, isPasswordValid ? styles.passwordHintValid : styles.passwordHintInvalid]}>
           {'\u2022'} Password must be at least 8 characters long
         </Text>
 
-        <Pressable style={[styles.primaryBtn, disabled && styles.primaryBtnDisabled]} onPress={() => void createAccount()}>
-          <Text style={styles.primaryBtnText}>Create account</Text>
+        <Pressable
+          style={[styles.primaryBtn, (disabled || isCreating) && styles.primaryBtnDisabled]}
+          onPress={() => void createAccount()}
+          disabled={isCreating}
+        >
+          {isCreating ? (
+            <ActivityIndicator color="#ffffff" size="small" />
+          ) : (
+            <Text style={styles.primaryBtnText}>Create account</Text>
+          )}
         </Pressable>
 
         <Pressable onPress={() => router.back()}>
@@ -187,6 +208,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
+  },
+  passwordWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderWidth: 1,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+  },
+  passwordInput: {
+    flex: 1,
+    color: '#1a1a1a',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+  },
+  showPasswordBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  showPasswordText: {
+    color: '#2D6A4F',
+    fontSize: 13,
+    fontWeight: '600',
   },
   primaryBtn: {
     backgroundColor: '#2D6A4F',

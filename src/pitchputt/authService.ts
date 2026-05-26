@@ -1,19 +1,31 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import Constants from 'expo-constants';
-import {
-  GoogleSignin,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 
 import { authRedirectUrl, supabase } from '@/src/lib/supabase';
 
 const extra = Constants.expoConfig?.extra ?? {};
 
-GoogleSignin.configure({
-  webClientId: extra.googleWebClientId ?? process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
-  iosClientId: extra.googleIosClientId ?? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
-});
+let GoogleSignin: any = null;
+let isSuccessResponse: any = null;
+let statusCodes: any = {};
+let googleConfigured = false;
+
+function ensureGoogleConfigured() {
+  if (googleConfigured) return;
+  try {
+    const mod = require('@react-native-google-signin/google-signin');
+    GoogleSignin = mod.GoogleSignin;
+    isSuccessResponse = mod.isSuccessResponse;
+    statusCodes = mod.statusCodes;
+    GoogleSignin.configure({
+      webClientId: extra.googleWebClientId ?? process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
+      iosClientId: extra.googleIosClientId ?? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
+    });
+    googleConfigured = true;
+  } catch {
+    // Native module not available (e.g. running in Expo Go)
+  }
+}
 
 export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
@@ -44,6 +56,10 @@ export async function signUpWithEmail(
 }
 
 export async function signInWithGoogle() {
+  ensureGoogleConfigured();
+  if (!GoogleSignin) {
+    return { error: new Error('Google Sign-In is not available in this build.') };
+  }
   try {
     await GoogleSignin.hasPlayServices();
     const response = await GoogleSignin.signIn();
