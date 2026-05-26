@@ -13,7 +13,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import * as StoreReview from 'expo-store-review';
+let StoreReview: typeof import('expo-store-review') | null = null;
+try {
+  StoreReview = require('expo-store-review');
+} catch {}
 
 import { getCourseById } from '@/src/pitchputt/data';
 import { createRoundShareToken } from '@/src/pitchputt/roundShareRemote';
@@ -117,7 +120,7 @@ export default function FinalScorecardScreen() {
     }
   };
 
-  const handleSaveScorecard = async () => {
+  const handleSaveScorecard = () => {
     const isGuestUser = !userId || userId.startsWith('guest-');
     if (!round.completedAt) {
       completeRound(round.id);
@@ -128,11 +131,10 @@ export default function FinalScorecardScreen() {
     }
 
     const completedCount = useRoundsStore.getState().rounds.filter((r) => r.completedAt).length;
-    if (completedCount === 1) {
-      const canAsk = await StoreReview.isAvailableAsync();
-      if (canAsk) {
-        await StoreReview.requestReview();
-      }
+    if (completedCount === 1 && StoreReview) {
+      StoreReview.isAvailableAsync().then((canAsk) => {
+        if (canAsk) StoreReview!.requestReview();
+      }).catch(() => {});
     }
 
     router.replace('/(tabs)');
@@ -309,7 +311,7 @@ export default function FinalScorecardScreen() {
               })}
             </View>
             <Pressable
-              style={styles.modalSecondaryBtn}
+              style={[styles.modalSecondaryBtn, { flex: undefined }]}
               onPress={() => setShareModalVisible(false)}
               disabled={sharingPlayerId != null}
             >

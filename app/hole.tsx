@@ -65,6 +65,15 @@ export default function HoleScreen() {
     );
   }
   const isFinalHole = holeNumber === course.holes.length;
+  const isFirstHole = holeNumber === 1;
+
+  const goToHole = (target: number) => {
+    if (target < 1 || target > course.holes.length) return;
+    router.replace({
+      pathname: "/hole",
+      params: { roundId, hole: String(target) },
+    });
+  };
 
   const formatScore = (delta: number | null) => {
     if (delta === null) return "E";
@@ -237,12 +246,28 @@ export default function HoleScreen() {
           </View>
         </View>
 
-        <Pressable
-          style={styles.primaryBtn}
-          onPress={() => bottomSheetRef.current?.snapToIndex(0)}
-        >
-          <Text style={styles.primaryBtnText}>Enter scores</Text>
-        </Pressable>
+        <View style={styles.holeNavRow}>
+          <Pressable
+            style={[styles.holeNavBtn, isFirstHole && styles.holeNavBtnDisabled]}
+            onPress={() => goToHole(holeNumber - 1)}
+            disabled={isFirstHole}
+          >
+            <Feather name="chevron-left" size={20} color={isFirstHole ? "#ccc" : "#1a1a1a"} />
+          </Pressable>
+          <Pressable
+            style={styles.primaryBtn}
+            onPress={() => bottomSheetRef.current?.snapToIndex(0)}
+          >
+            <Text style={styles.primaryBtnText}>Enter scores</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.holeNavBtn, isFinalHole && styles.holeNavBtnDisabled]}
+            onPress={() => goToHole(holeNumber + 1)}
+            disabled={isFinalHole}
+          >
+            <Feather name="chevron-right" size={20} color={isFinalHole ? "#ccc" : "#1a1a1a"} />
+          </Pressable>
+        </View>
 
         <BottomSheet
           ref={bottomSheetRef}
@@ -338,20 +363,36 @@ export default function HoleScreen() {
               );
             })}
 
-            <Pressable
-              style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}
-              onPress={() => void saveAndContinue()}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <View style={styles.saveBtnContent}>
-                  <ActivityIndicator color="#ffffff" size="small" />
-                  <Text style={styles.saveBtnText}>Saving…</Text>
-                </View>
-              ) : (
-                <Text style={styles.saveBtnText}>Save</Text>
-              )}
-            </Pressable>
+            <View style={styles.saveNavRow}>
+              <Pressable
+                style={[styles.holeNavBtn, isFirstHole && styles.holeNavBtnDisabled]}
+                onPress={() => goToHole(holeNumber - 1)}
+                disabled={isFirstHole}
+              >
+                <Feather name="chevron-left" size={20} color={isFirstHole ? "#ccc" : "#1a1a1a"} />
+              </Pressable>
+              <Pressable
+                style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}
+                onPress={() => void saveAndContinue()}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <View style={styles.saveBtnContent}>
+                    <ActivityIndicator color="#ffffff" size="small" />
+                    <Text style={styles.saveBtnText}>Saving…</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.saveBtnText}>Save</Text>
+                )}
+              </Pressable>
+              <Pressable
+                style={[styles.holeNavBtn, isFinalHole && styles.holeNavBtnDisabled]}
+                onPress={() => goToHole(holeNumber + 1)}
+                disabled={isFinalHole}
+              >
+                <Feather name="chevron-right" size={20} color={isFinalHole ? "#ccc" : "#1a1a1a"} />
+              </Pressable>
+            </View>
           </BottomSheetView>
         </BottomSheet>
 
@@ -474,12 +515,31 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: "rgba(0,0,0,0.1)",
   },
+  holeNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 4,
+  },
+  holeNavBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  holeNavBtnDisabled: {
+    opacity: 0.3,
+  },
   primaryBtn: {
+    flex: 1,
     backgroundColor: "#2D6A4F",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 2,
   },
   primaryBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
   sheetBackground: {
@@ -573,13 +633,19 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 20,
   },
+  saveNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 4,
+  },
   saveBtn: {
+    flex: 1,
     backgroundColor: "#2D6A4F",
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
     minHeight: 46,
   },
   saveBtnDisabled: { backgroundColor: "#6b9e88" },
