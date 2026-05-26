@@ -8,6 +8,7 @@ import { supabase } from '@/src/lib/supabase';
 import { COURSES, getCourseById } from '@/src/pitchputt/data';
 import { isRoundFullyScored } from '@/src/pitchputt/roundCompleteness';
 import { useRoundsStore, useSessionStore } from '@/src/pitchputt/store';
+import { useIsGuest } from '@/src/pitchputt/useIsGuest';
 
 type RangeKey = 'year' | '90d' | '30d' | 'all';
 type StatsMetrics = {
@@ -64,6 +65,7 @@ export default function StatsScreen() {
   const rounds = useRoundsStore((state) => state.rounds);
   const userId = useSessionStore((state) => state.userId);
   const userName = useSessionStore((state) => state.userName);
+  const isGuest = useIsGuest();
   const userEmail = useSessionStore((state) => state.userEmail);
   const [range, setRange] = useState<RangeKey>('year');
   const [courseId, setCourseId] = useState<'all' | string>('all');
@@ -426,44 +428,48 @@ export default function StatsScreen() {
             <Text style={styles.sheetItemText}>My stats</Text>
             <Feather name="chevron-right" size={16} color="#6b6b6b" />
           </Pressable>
-          <Pressable style={styles.sheetItem} onPress={() => navigateFromMenu('/membership-card')}>
-            <Text style={styles.sheetItemText}>Membership card</Text>
-            <Feather name="chevron-right" size={16} color="#6b6b6b" />
-          </Pressable>
+          {!isGuest ? (
+            <Pressable style={styles.sheetItem} onPress={() => navigateFromMenu('/membership-card')}>
+              <Text style={styles.sheetItemText}>Membership card</Text>
+              <Feather name="chevron-right" size={16} color="#6b6b6b" />
+            </Pressable>
+          ) : null}
           <Pressable style={styles.sheetItem} onPress={() => navigateFromMenu('/logout')}>
             <Text style={styles.sheetItemDanger}>Log out</Text>
             <Feather name="log-out" size={16} color="#B85C38" />
           </Pressable>
-          <Pressable
-            style={styles.sheetItem}
-            onPress={() => {
-              bottomSheetRef.current?.close();
-              Alert.alert(
-                'Delete account?',
-                'This permanently removes your account, all rounds, and scores. This cannot be undone.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                      const { error } = await supabase.rpc('delete_my_account');
-                      if (error) {
-                        Alert.alert('Could not delete account', error.message);
-                        return;
-                      }
-                      useSessionStore.getState().clearSession();
-                      useRoundsStore.getState().clearRounds();
-                      router.replace('/auth');
+          {!isGuest ? (
+            <Pressable
+              style={styles.sheetItem}
+              onPress={() => {
+                bottomSheetRef.current?.close();
+                Alert.alert(
+                  'Delete account?',
+                  'This permanently removes your account, all rounds, and scores. This cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: async () => {
+                        const { error } = await supabase.rpc('delete_my_account');
+                        if (error) {
+                          Alert.alert('Could not delete account', error.message);
+                          return;
+                        }
+                        useSessionStore.getState().clearSession();
+                        useRoundsStore.getState().clearRounds();
+                        router.replace('/auth');
+                      },
                     },
-                  },
-                ],
-              );
-            }}
-          >
-            <Text style={styles.sheetItemDanger}>Delete account</Text>
-            <Feather name="trash-2" size={16} color="#B85C38" />
-          </Pressable>
+                  ],
+                );
+              }}
+            >
+              <Text style={styles.sheetItemDanger}>Delete account</Text>
+              <Feather name="trash-2" size={16} color="#B85C38" />
+            </Pressable>
+          ) : null}
         </BottomSheetView>
       </BottomSheet>
     </SafeAreaView>

@@ -26,6 +26,7 @@ import { supabase } from "@/src/lib/supabase";
 import { COURSES, getCourseById } from "@/src/pitchputt/data";
 import { useRoundsStore, useSessionStore } from "@/src/pitchputt/store";
 import type { Round } from "@/src/pitchputt/types";
+import { useIsGuest } from "@/src/pitchputt/useIsGuest";
 
 const COURSE_NEIGHBORHOODS: Record<string, string> = {
   "course-stanley": "Coal Harbour",
@@ -154,6 +155,7 @@ export default function HomeScreen() {
   const userId = useSessionStore((state) => state.userId);
   const userName = useSessionStore((state) => state.userName);
   const userEmail = useSessionStore((state) => state.userEmail);
+  const isGuest = useIsGuest();
   const firstName = useMemo(() => {
     const isGuestUser = !userId || userId.startsWith("guest-");
     if (isGuestUser) {
@@ -329,43 +331,45 @@ export default function HomeScreen() {
         >
           <BottomSheetView style={styles.sheetContent}>
             <Text style={styles.sheetTitle}>Menu</Text>
-            <Pressable
-              style={styles.sheetItem}
-              onPress={() => {
-                Alert.prompt(
-                  "Edit display name",
-                  "This is how you appear on scorecards.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Save",
-                      onPress: async (value?: string) => {
-                        const trimmed = (value ?? "").trim();
-                        if (!trimmed) return;
-                        const { error } = await supabase.auth.updateUser({
-                          data: { first_name: trimmed },
-                        });
-                        if (error) {
-                          Alert.alert("Could not update name", error.message);
-                          return;
-                        }
-                        const session = useSessionStore.getState();
-                        session.setSession(
-                          session.userId ?? "",
-                          session.userEmail ?? "",
-                          trimmed,
-                        );
+            {!isGuest ? (
+              <Pressable
+                style={styles.sheetItem}
+                onPress={() => {
+                  Alert.prompt(
+                    "Edit display name",
+                    "This is how you appear on scorecards.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Save",
+                        onPress: async (value?: string) => {
+                          const trimmed = (value ?? "").trim();
+                          if (!trimmed) return;
+                          const { error } = await supabase.auth.updateUser({
+                            data: { first_name: trimmed },
+                          });
+                          if (error) {
+                            Alert.alert("Could not update name", error.message);
+                            return;
+                          }
+                          const session = useSessionStore.getState();
+                          session.setSession(
+                            session.userId ?? "",
+                            session.userEmail ?? "",
+                            trimmed,
+                          );
+                        },
                       },
-                    },
-                  ],
-                  "plain-text",
-                  userName ?? "",
-                );
-              }}
-            >
-              <Text style={styles.sheetItemText}>Edit display name</Text>
-              <Feather name="edit-2" size={16} color="#6b6b6b" />
-            </Pressable>
+                    ],
+                    "plain-text",
+                    userName ?? "",
+                  );
+                }}
+              >
+                <Text style={styles.sheetItemText}>Edit display name</Text>
+                <Feather name="edit-2" size={16} color="#6b6b6b" />
+              </Pressable>
+            ) : null}
             <Pressable
               style={styles.sheetItem}
               onPress={() => navigateFromMenu("/(tabs)")}
@@ -373,20 +377,24 @@ export default function HomeScreen() {
               <Text style={styles.sheetItemText}>Start a round</Text>
               <Feather name="play" size={16} color="#2D6A4F" />
             </Pressable>
-            <Pressable
-              style={styles.sheetItem}
-              onPress={() => navigateFromMenu("/(tabs)/stats")}
-            >
-              <Text style={styles.sheetItemText}>My stats</Text>
-              <Feather name="chevron-right" size={16} color="#6b6b6b" />
-            </Pressable>
-            <Pressable
-              style={styles.sheetItem}
-              onPress={() => navigateFromMenu("/membership-card")}
-            >
-              <Text style={styles.sheetItemText}>Membership card</Text>
-              <Feather name="chevron-right" size={16} color="#6b6b6b" />
-            </Pressable>
+            {!isGuest ? (
+              <Pressable
+                style={styles.sheetItem}
+                onPress={() => navigateFromMenu("/(tabs)/stats")}
+              >
+                <Text style={styles.sheetItemText}>My stats</Text>
+                <Feather name="chevron-right" size={16} color="#6b6b6b" />
+              </Pressable>
+            ) : null}
+            {!isGuest ? (
+              <Pressable
+                style={styles.sheetItem}
+                onPress={() => navigateFromMenu("/membership-card")}
+              >
+                <Text style={styles.sheetItemText}>Membership card</Text>
+                <Feather name="chevron-right" size={16} color="#6b6b6b" />
+              </Pressable>
+            ) : null}
             <Pressable
               style={styles.sheetItem}
               onPress={() => navigateFromMenu("/logout")}
@@ -394,39 +402,41 @@ export default function HomeScreen() {
               <Text style={styles.sheetItemDanger}>Log out</Text>
               <Feather name="log-out" size={16} color="#B85C38" />
             </Pressable>
-            <Pressable
-              style={styles.sheetItem}
-              onPress={() => {
-                Alert.alert(
-                  "Delete account?",
-                  "This permanently removes your account, all rounds, and scores. This cannot be undone.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Delete",
-                      style: "destructive",
-                      onPress: async () => {
-                        const { error } =
-                          await supabase.rpc("delete_my_account");
-                        if (error) {
-                          Alert.alert(
-                            "Could not delete account",
-                            error.message,
-                          );
-                          return;
-                        }
-                        useSessionStore.getState().clearSession();
-                        useRoundsStore.getState().clearRounds();
-                        router.replace("/auth");
+            {!isGuest ? (
+              <Pressable
+                style={styles.sheetItem}
+                onPress={() => {
+                  Alert.alert(
+                    "Delete account?",
+                    "This permanently removes your account, all rounds, and scores. This cannot be undone.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: async () => {
+                          const { error } =
+                            await supabase.rpc("delete_my_account");
+                          if (error) {
+                            Alert.alert(
+                              "Could not delete account",
+                              error.message,
+                            );
+                            return;
+                          }
+                          useSessionStore.getState().clearSession();
+                          useRoundsStore.getState().clearRounds();
+                          router.replace("/auth");
+                        },
                       },
-                    },
-                  ],
-                );
-              }}
-            >
-              <Text style={styles.sheetItemDanger}>Delete account</Text>
-              <Feather name="trash-2" size={16} color="#B85C38" />
-            </Pressable>
+                    ],
+                  );
+                }}
+              >
+                <Text style={styles.sheetItemDanger}>Delete account</Text>
+                <Feather name="trash-2" size={16} color="#B85C38" />
+              </Pressable>
+            ) : null}
           </BottomSheetView>
         </BottomSheet>
       </View>
